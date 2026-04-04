@@ -1,0 +1,14 @@
+# # AI tooling
+# CLAUDE.local.md
+# .claude/*
+# !.claude/CLAUDE.md
+# !.claude/settings.json
+# !.claude/skills/
+
+# Temp files
+_*
+
+# Local data store
+db/local/*
+.bundle/
+.vscode/
