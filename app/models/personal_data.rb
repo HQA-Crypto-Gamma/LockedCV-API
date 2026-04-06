@@ -4,7 +4,7 @@ require 'json'
 require 'base64'
 require 'rbnacl'
 
-module LockCV
+module LockedCV
   STORE_DIR = 'db/local'
   # Holds a full user information
   class PersonalData
@@ -33,24 +33,24 @@ module LockCV
 
     # File store must be setup once when application runs
     def self.setup
-      FileUtils.mkdir_p(LockCV::STORE_DIR)
+      FileUtils.mkdir_p(LockedCV::STORE_DIR)
     end
 
     # Stores personal data in file store
     def save
-      File.write("#{LockCV::STORE_DIR}/#{id}.txt", to_json)
+      File.write("#{LockedCV::STORE_DIR}/#{id}.txt", to_json)
     end
 
     # Query method to find one personal data entry
     def self.find(find_id)
-      personal_data_file = File.read("#{LockCV::STORE_DIR}/#{find_id}.txt")
+      personal_data_file = File.read("#{LockedCV::STORE_DIR}/#{find_id}.txt")
       PersonalData.new JSON.parse(personal_data_file)
     end
 
     # Query method to retrieve index of all personal data entries
     def self.all
-      Dir.glob("#{LockCV::STORE_DIR}/*.txt").map do |file|
-        file.match(%r{#{Regexp.quote(LockCV::STORE_DIR)}/(.*)\.txt})[1]
+      Dir.glob("#{LockedCV::STORE_DIR}/*.txt").map do |file|
+        file.match(%r{#{Regexp.quote(LockedCV::STORE_DIR)}/(.*)\.txt})[1]
       end
     end
 
