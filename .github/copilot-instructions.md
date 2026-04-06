@@ -81,6 +81,21 @@ All application classes live under the `LockedCV` module namespace.
 - All models include `to_json` for API responses
 - Response format includes `type` field identifying the resource type
 
+### API Responses
+
+- All responses use `Content-Type: application/json`
+- Success responses return JSON objects with relevant data
+- Error responses use appropriate HTTP status codes (404, 400) with descriptive error messages
+- POST success returns 201 status with confirmation message and resource ID
+
+### Roda Routing
+
+- Use `routing.on` for path segments (e.g., `routing.on 'api'`)
+- Use `routing.get`, `routing.post` for HTTP methods
+- Use `routing.get String do |id|` to capture URL parameters
+- Use `routing.halt` with status code and JSON for error responses
+- Rescue `StandardError` for not-found resources and return 404
+
 ## Code Conventions
 
 ### Testing
