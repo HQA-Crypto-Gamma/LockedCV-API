@@ -7,13 +7,29 @@ AllCops:
 
 plugins:
   - rubocop-minitest
+  - rubocop-performance
+  - rubocop-rake
+  - rubocop-sequel
 
 Metrics/BlockLength:
   Enabled: true
   Exclude:
+    - app/controllers/*.rb # Roda's nested controllers require large blocks
     - spec/**/*
+    - Rakefile # Rake namespaces produce large blocks
 
 Security/YAMLLoad:
   Enabled: true
   Exclude:
     - spec/**/*
+
+Style/HashSyntax:
+  Enabled: true
+  Exclude:
+    - Rakefile
+
+Style/SymbolArray:
+  Enabled: true
+  Exclude:
+    - Rakefile
+    - db/migrations/*.rb
