@@ -48,7 +48,7 @@ namespace :db do
     require 'sequel'
 
     Sequel.extension :migration
-    @app = Tyto::Api
+    @app = LockedCV::Api
   end
 
   desc 'Load all models'
@@ -64,9 +64,9 @@ namespace :db do
 
   desc 'Destroy data in database; maintain tables'
   task delete: :load_models do
-    Tyto::Event.dataset.destroy
-    Tyto::Location.dataset.destroy
-    Tyto::Course.dataset.destroy
+    LockedCV::SensitiveData.dataset.destroy
+    LockedCV::User.dataset.destroy
+    LockedCV::File.dataset.destroy
   end
 
   desc 'Delete dev or test database file'
@@ -76,7 +76,7 @@ namespace :db do
       return
     end
 
-    db_filename = "db/local/#{Tyto::Api.environment}.db"
+    db_filename = "db/local/#{LockedCV::Api.environment}.db"
     FileUtils.rm(db_filename)
     puts "Deleted #{db_filename}"
   end
