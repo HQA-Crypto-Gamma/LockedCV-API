@@ -66,6 +66,39 @@ All application classes live under the `LockedCV` module namespace.
 - Base64-encoded and truncated to 10 characters
 - Implementation in `PersonalData#new_id`
 
+### Relational Schema (`db/migrations`)
+
+Current schema implemented in migrations:
+
+1. `files`
+   - `id` (String, PK)
+   - `file_name` (String)
+   - `route` (String)
+   - `update_time` (DateTime)
+   - `user_id` (String, FK -> `users.id`)
+   - Unique constraint: `[:user_id, :file_name]`
+2. `sensitive_data`
+   - `id` (String, PK)
+   - `user_name` (String)
+   - `phone_number` (String)
+   - `birthday` (Date)
+   - `email` (String)
+   - `address` (String)
+   - `identification_numbers` (String)
+   - `file_id` (String, FK -> `files.id`)
+   - Unique constraint: `[:file_id]`
+3. `users` (cause ohters tables reference it)
+   - `id` (String, PK)
+   - `first_name` (String)
+   - `last_name` (String)
+   - `phone_number` (String)
+
+Migration files:
+
+- `db/migrations/001_create_files.rb`
+- `db/migrations/002_create_sensitive_data.rb`
+- `db/migrations/003_user.rb`
+
 ### Directory Structure
 
 - `config.ru` — Rack entry point
