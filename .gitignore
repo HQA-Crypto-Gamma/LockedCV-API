@@ -12,3 +12,6 @@ _*
 db/local/*
 .bundle/
 .vscode/
+
+# Secrets
+config/secrets.yml

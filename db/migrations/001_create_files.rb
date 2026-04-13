@@ -3,10 +3,14 @@
 Sequel.migration do
   change do
     create_table(:files) do
-      String :id, primary_key: true
+      primary_key :id
+
       String :file_name
       String :route
-      DateTime :update_time
+
+      DateTime :created_at
+      DateTime :updated_at
+
       foreign_key :user_id, :users
 
       unique %i[user_id file_name]
