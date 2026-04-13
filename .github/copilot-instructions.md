@@ -74,7 +74,8 @@ Current schema implemented in migrations:
    - `id` (String, PK)
    - `file_name` (String)
    - `route` (String)
-   - `update_time` (DateTime)
+   - `created_at` (DateTime)
+   - `updated_at` (DateTime)
    - `user_id` (String, FK -> `users.id`)
    - Unique constraint: `[:user_id, :file_name]`
 2. `sensitive_data`
@@ -85,6 +86,8 @@ Current schema implemented in migrations:
    - `email` (String)
    - `address` (String)
    - `identification_numbers` (String)
+   - `created_at` (DateTime)
+   - `updated_at` (DateTime)
    - `file_id` (String, FK -> `files.id`)
    - Unique constraint: `[:file_id]`
 3. `users` (cause ohters tables reference it)
@@ -92,6 +95,8 @@ Current schema implemented in migrations:
    - `first_name` (String)
    - `last_name` (String)
    - `phone_number` (String)
+   - `created_at` (DateTime)
+   - `updated_at` (DateTime)
 
 Migration files:
 

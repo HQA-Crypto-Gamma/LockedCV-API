@@ -157,7 +157,10 @@ rubocop
 │   ├── controllers/
 │   │   └── app.rb          # Main Roda controller with API routes
 │   └── models/
-│       └── personal_data.rb # PersonalData model
+│       ├── personal_data.rb # PersonalData file-store model
+│       ├── user.rb          # User DB model
+│       ├── file.rb          # File DB model
+│       └── sensitive_data.rb # SensitiveData DB model
 ├── config.ru                # Rack configuration
 ├── db/
 │   ├── local/              # File storage directory (gitignored)

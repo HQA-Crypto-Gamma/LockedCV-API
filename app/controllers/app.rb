@@ -14,7 +14,7 @@ module LockedCV
       PersonalData.setup
     end
 
-    route do |routing| # rubocop:disable Metrics/BlockLength
+    route do |routing|
       response['Content-Type'] = 'application/json'
       routing.root do
         { message: 'LockedCV API up at /api/v1' }.to_json
@@ -40,7 +40,7 @@ module LockedCV
             routing.post do
               new_data = JSON.parse(routing.body.read)
               new_doc = PersonalData.new(new_data)
-              if new_doc.save
+              if new_doc.save_changes
                 response.status = 201
                 { message: 'Personal data saved', id: new_doc.id }.to_json
               else

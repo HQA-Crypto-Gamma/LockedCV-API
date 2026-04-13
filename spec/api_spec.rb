@@ -1,23 +1,20 @@
 # frozen_string_literal: true
 
-require 'json'
-require 'yaml'
-require 'minitest/autorun'
-require 'minitest/rg'
-require 'rack/test'
-require_relative '../app/controllers/app'
+require_relative 'spec_helper'
 
 describe LockedCV::Api do
   include Rack::Test::Methods
-
-  SEED_FILE = 'db/seeds/personal_data_seeds.yml'
 
   def app
     LockedCV::Api
   end
 
+  def seed_file
+    'db/seeds/personal_data_seeds.yml'
+  end
+
   def seeded_personal_data
-    YAML.safe_load_file(SEED_FILE)
+    YAML.safe_load_file(seed_file)
   end
 
   before do
@@ -25,7 +22,7 @@ describe LockedCV::Api do
     Dir.glob('db/local/*.txt').each { |file| File.delete(file) }
 
     seeded_personal_data.each do |personal_data|
-      LockedCV::PersonalData.new(personal_data).save
+      LockedCV::PersonalData.new(personal_data).save_changes
     end
   end
 
