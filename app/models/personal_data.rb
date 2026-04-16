@@ -37,13 +37,13 @@ module LockedCV
     end
 
     # Stores personal data in file store
-    def save
-      File.write("#{LockedCV::STORE_DIR}/#{id}.txt", to_json)
+    def save_changes
+      ::File.write("#{LockedCV::STORE_DIR}/#{id}.txt", to_json)
     end
 
     # Query method to find one personal data entry
     def self.find(find_id)
-      personal_data_file = File.read("#{LockedCV::STORE_DIR}/#{find_id}.txt")
+      personal_data_file = ::File.read("#{LockedCV::STORE_DIR}/#{find_id}.txt")
       PersonalData.new JSON.parse(personal_data_file)
     end
 

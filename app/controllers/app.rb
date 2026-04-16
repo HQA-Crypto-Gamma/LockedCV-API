@@ -46,6 +46,8 @@ module LockedCV
               else
                 routing.halt 400, { message: 'Could not save personal data' }.to_json
               end
+            rescue JSON::ParserError
+              routing.halt 400, { message: 'Could not save personal data' }.to_json
             end
           end
         end
