@@ -81,3 +81,12 @@ namespace :db do
     puts "Deleted #{db_filename}"
   end
 end
+
+namespace :newkey do
+  desc 'Create sample cryptographic key for database'
+  task :db do
+    # require_app('lib', config: false)
+    require_app('lib')
+    puts "DB_KEY: #{LockedCV::SecureDB.generate_key}"
+  end
+end
