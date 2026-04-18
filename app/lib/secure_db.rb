@@ -3,7 +3,7 @@
 require 'base64'
 require 'rbnacl'
 
-module Tyto
+module LockedCV
   # Encrypt and Decrypt from Database
   class SecureDB
     class NoDbKeyError < StandardError; end
