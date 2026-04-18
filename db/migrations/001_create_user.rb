@@ -4,11 +4,11 @@
 Sequel.migration do
   change do
     create_table(:users) do
-      primary_key :id
+      uuid :id, primary_key: true
 
-      String :first_name
-      String :last_name
-      String :phone_number
+      String :first_name_secure
+      String :last_name_secure
+      String :phone_number_secure
 
       DateTime :created_at
       DateTime :updated_at
