@@ -17,9 +17,9 @@ module LockedCV
   # Shared helpers for spec setup/teardown and database seed loading
   module SpecHelpers
     USER_SEEDS_FILE = 'db/seeds/user_seeds.yml'
-    FILE_SEEDS_FILE = 'db/seeds/file_seeds.yml'
+    ATTACHMENT_SEEDS_FILE = 'db/seeds/attachment_seeds.yml'
     SENSITIVE_DATA_SEEDS_FILE = 'db/seeds/sensitive_data_seeds.yml'
-    REQUIRED_TABLES = %i[users files sensitive_data].freeze
+    REQUIRED_TABLES = %i[users attachments sensitive_data].freeze
 
     def db
       LockedCV::Api.DB
@@ -36,8 +36,8 @@ module LockedCV
       YAML.safe_load_file(USER_SEEDS_FILE)
     end
 
-    def seeded_files
-      YAML.safe_load_file(FILE_SEEDS_FILE)
+    def seeded_attachments
+      YAML.safe_load_file(ATTACHMENT_SEEDS_FILE)
     end
 
     def seeded_sensitive_data
@@ -46,13 +46,13 @@ module LockedCV
 
     def wipe_database_tables!
       LockedCV::SensitiveData.dataset.delete
-      LockedCV::File.dataset.delete
+      LockedCV::Attachment.dataset.delete
       LockedCV::User.dataset.delete
     end
 
     def load_seed_data!
       seeded_users.each { |user| LockedCV::User.create(user) }
-      seeded_files.each { |file| LockedCV::File.create(file) }
+      seeded_attachments.each { |attachment| LockedCV::Attachment.create(attachment) }
       seeded_sensitive_data.each { |sensitive_data| LockedCV::SensitiveData.create(sensitive_data) }
     end
 

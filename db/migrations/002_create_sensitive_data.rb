@@ -15,9 +15,9 @@ Sequel.migration do
       DateTime :created_at
       DateTime :updated_at
 
-      foreign_key :file_id, :files
+      foreign_key :attachment_id, :attachments
 
-      unique %i[file_id]
+      unique %i[attachment_id]
     end
   end
 end

@@ -7,7 +7,7 @@ module LockedCV
   class SensitiveData < Sequel::Model(:sensitive_data)
     plugin :timestamps
 
-    many_to_one :file, class: :'LockedCV::File', key: :file_id
+    many_to_one :attachment, class: :'LockedCV::Attachment', key: :attachment_id
 
     # rubocop:disable Metrics/MethodLength
     def to_json(options = {})

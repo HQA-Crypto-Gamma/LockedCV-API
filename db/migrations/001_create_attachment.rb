@@ -2,10 +2,10 @@
 
 Sequel.migration do
   change do
-    create_table(:files) do
+    create_table(:attachments) do
       primary_key :id
 
-      String :file_name
+      String :attachment_name
       String :route
 
       DateTime :created_at
@@ -13,7 +13,7 @@ Sequel.migration do
 
       foreign_key :user_id, :users
 
-      unique %i[user_id file_name]
+      unique %i[user_id attachment_name]
     end
   end
 end

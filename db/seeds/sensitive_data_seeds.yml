@@ -5,7 +5,7 @@
   email: ada@example.com
   address: London
   identification_numbers: A123456789
-  file_id: file_001
+  attachment_id: attachment_001
 
 - id: sd_002
   user_name: Alan Turing
@@ -14,4 +14,4 @@
   email: alan@example.com
   address: Manchester
   identification_numbers: B987654321
-  file_id: file_002
+  attachment_id: attachment_002

@@ -70,14 +70,14 @@ All application classes live under the `LockedCV` module namespace.
 
 Current schema implemented in migrations:
 
-1. `files`
+1. `attachments`
    - `id` (String, PK)
-   - `file_name` (String)
+   - `attachment_name` (String)
    - `route` (String)
    - `created_at` (DateTime)
    - `updated_at` (DateTime)
    - `user_id` (String, FK -> `users.id`)
-   - Unique constraint: `[:user_id, :file_name]`
+   - Unique constraint: `[:user_id, :attachment_name]`
 2. `sensitive_data`
    - `id` (String, PK)
    - `user_name` (String)
@@ -88,8 +88,8 @@ Current schema implemented in migrations:
    - `identification_numbers` (String)
    - `created_at` (DateTime)
    - `updated_at` (DateTime)
-   - `file_id` (String, FK -> `files.id`)
-   - Unique constraint: `[:file_id]`
+   - `attachment_id` (String, FK -> `attachments.id`)
+   - Unique constraint: `[:attachment_id]`
 3. `users` (cause ohters tables reference it)
    - `id` (String, PK)
    - `first_name` (String)
@@ -100,9 +100,9 @@ Current schema implemented in migrations:
 
 Migration files:
 
-- `db/migrations/001_create_files.rb`
+- `db/migrations/001_create_attachment.rb`
 - `db/migrations/002_create_sensitive_data.rb`
-- `db/migrations/003_user.rb`
+- `db/migrations/003_create_user.rb`
 
 ### Directory Structure
 

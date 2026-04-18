@@ -8,8 +8,8 @@ module LockedCV
     plugin :timestamps
     plugin :association_dependencies
 
-    one_to_many :files, class: :'LockedCV::File', key: :user_id
-    add_association_dependencies files: :destroy
+    one_to_many :attachments, class: :'LockedCV::Attachment', key: :user_id
+    add_association_dependencies attachments: :destroy
 
     # rubocop:disable Metrics/MethodLength
     def to_json(options = {})

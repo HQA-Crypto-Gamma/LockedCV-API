@@ -159,7 +159,7 @@ rubocop
 │   └── models/
 │       ├── personal_data.rb # PersonalData file-store model
 │       ├── user.rb          # User DB model
-│       ├── file.rb          # File DB model
+│       ├── attachment.rb    # Attachment DB model
 │       └── sensitive_data.rb # SensitiveData DB model
 ├── config.ru                # Rack configuration
 ├── db/

@@ -1,9 +1,0 @@
-- id: file_001
-  file_name: resume_ada.pdf
-  route: /uploads/resume_ada.pdf
-  user_id: user_001
-
-- id: file_002
-  file_name: resume_alan.pdf
-  route: /uploads/resume_alan.pdf
-  user_id: user_002

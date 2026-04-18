@@ -3,13 +3,13 @@
 require 'json'
 
 module LockedCV
-  # Sequel model for files table
-  class File < Sequel::Model(:files)
+  # Sequel model for attachments table
+  class Attachment < Sequel::Model(:attachments)
     plugin :timestamps
     plugin :association_dependencies
 
     many_to_one :user, class: :'LockedCV::User', key: :user_id
-    one_to_one :sensitive_data, class: :'LockedCV::SensitiveData', key: :file_id
+    one_to_one :sensitive_data, class: :'LockedCV::SensitiveData', key: :attachment_id
     add_association_dependencies sensitive_data: :destroy
 
     # rubocop:disable Metrics/MethodLength
@@ -17,10 +17,10 @@ module LockedCV
       JSON(
         {
           data: {
-            type: 'file',
+            type: 'attachment',
             attributes: {
               id:,
-              file_name:,
+              attachment_name:,
               route:
             }
           },
