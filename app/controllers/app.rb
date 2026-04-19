@@ -57,7 +57,7 @@ module LockedCV
                     routing.halt 400, { message: 'Could not save sensitive data' }.to_json
                   end
                 end
-                
+
                 # GET api/v1/users/[user_id]/attachments/[attachment_id]
                 routing.get do
                   attachment = Attachment.where(user_id:, id: attachment_id).first
@@ -71,7 +71,7 @@ module LockedCV
               routing.get do
                 output = { data: User.find(id: user_id).attachments }
                 JSON.pretty_generate(output)
-              rescue StandardError => e
+              rescue StandardError
                 routing.halt 404, { message: 'Could not find attachments' }.to_json
               end
 
