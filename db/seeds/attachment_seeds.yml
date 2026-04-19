@@ -1,9 +1,5 @@
-- id: attachment_001
-  attachment_name: resume_ada.pdf
+- attachment_name: resume_ada.pdf
   route: /uploads/resume_ada.pdf
-  user_id: user_001
 
-- id: attachment_002
-  attachment_name: resume_alan.pdf
+- attachment_name: resume_alan.pdf
   route: /uploads/resume_alan.pdf
-  user_id: user_002
