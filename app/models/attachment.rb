@@ -1,12 +1,15 @@
 # frozen_string_literal: true
 
 require 'json'
+require 'sequel'
 
 module LockedCV
   # Sequel model for attachments table
   class Attachment < Sequel::Model(:attachments)
     plugin :timestamps
     plugin :association_dependencies
+    plugin :whitelist_security
+    set_allowed_columns :attachment_name, :route
 
     many_to_one :user, class: :'LockedCV::User', key: :user_id
     one_to_one :sensitive_data, class: :'LockedCV::SensitiveData', key: :attachment_id
