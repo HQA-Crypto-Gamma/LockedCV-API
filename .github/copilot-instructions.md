@@ -4,7 +4,7 @@ This file provides guidance to GitHub Copilot when working with the LockedCV API
 
 ## Project Overview
 
-LockedCV is a Ruby Web API that allows users to securely share resumes or other personal documents with automatic personal information hiding. It uses the Roda framework with a file-based data store.
+LockedCV is a Ruby Web API that allows users to securely share resumes or other personal documents with automatic personal information hiding. It uses the Roda framework with a SQLite data store via Sequel ORM.
 
 - **Ruby version:** 4.0.1 (see `.ruby-version`)
 - **Framework:** Roda (lightweight Ruby web framework)
@@ -53,31 +53,20 @@ All application classes live under the `LockedCV` module namespace.
 
 ### Data Persistence
 
-**File-based store:**
-
-- Models persist as individual JSON files in `db/local/`
-- Each record is a `.txt` file containing JSON data
-- Store directory: `db/local/` (gitignored)
-- The store directory is created on app startup via `PersonalData.setup`
-
-**ID generation:**
-
-- IDs are generated via SHA-256 hash of timestamp
-- Base64-encoded and truncated to 10 characters
-- Implementation in `PersonalData#new_id`
+Application data is stored in SQLite database files under `db/local/` (gitignored).
 
 ### Relational Schema (`db/migrations`)
 
 Current schema implemented in migrations:
 
-1. `files`
+1. `attachments`
    - `id` (String, PK)
-   - `file_name` (String)
+   - `attachment_name` (String)
    - `route` (String)
    - `created_at` (DateTime)
    - `updated_at` (DateTime)
    - `user_id` (String, FK -> `users.id`)
-   - Unique constraint: `[:user_id, :file_name]`
+   - Unique constraint: `[:user_id, :attachment_name]`
 2. `sensitive_data`
    - `id` (String, PK)
    - `user_name` (String)
@@ -88,8 +77,8 @@ Current schema implemented in migrations:
    - `identification_numbers` (String)
    - `created_at` (DateTime)
    - `updated_at` (DateTime)
-   - `file_id` (String, FK -> `files.id`)
-   - Unique constraint: `[:file_id]`
+   - `attachment_id` (String, FK -> `attachments.id`)
+   - Unique constraint: `[:attachment_id]`
 3. `users` (cause ohters tables reference it)
    - `id` (String, PK)
    - `first_name` (String)
@@ -100,22 +89,22 @@ Current schema implemented in migrations:
 
 Migration files:
 
-- `db/migrations/001_create_files.rb`
+- `db/migrations/001_create_attachment.rb`
 - `db/migrations/002_create_sensitive_data.rb`
-- `db/migrations/003_user.rb`
+- `db/migrations/003_create_user.rb`
 
 ### Directory Structure
 
 - `config.ru` — Rack entry point
 - `app/controllers/` — Roda controllers with routing logic
-- `app/models/` — Domain models (e.g., `PersonalData`) with file-based persistence
-- `db/local/` — File store directory (gitignored)
+- `app/models/` — Sequel models (`User`, `Attachment`, `SensitiveData`)
+- `db/local/` — Local SQLite database files (gitignored)
 - `db/seeds/` — YAML seed data for tests
 - `spec/` — Minitest specs using `Rack::Test`
 
 ### Models
 
-- Models implement `save`, `find(id)`, and `all` methods
+- Models use Sequel ORM associations and persistence helpers
 - All models include `to_json` for API responses
 - Response format includes `type` field identifying the resource type
 
@@ -139,9 +128,9 @@ Migration files:
 ### Testing
 
 - **Framework:** Minitest with `minitest-rg` for colored output
-- **Test data:** Seed data in `db/seeds/course_seeds.yml`
+- **Test data:** Seed data in `db/seeds/*.yml`
 - **Test labels:** Tests are labeled HAPPY/SAD to indicate success/failure paths
-- **Setup:** The `before` block wipes `db/local/*.txt` before each test
+- **Setup:** Tests clear database tables before each test
 
 ### Code Style
 

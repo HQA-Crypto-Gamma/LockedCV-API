@@ -1,0 +1,68 @@
+# frozen_string_literal: true
+
+require_relative 'spec_helper'
+
+describe 'Attachment Endpoints' do
+  include Rack::Test::Methods
+  include LockedCV::SpecHelpers
+
+  def app
+    LockedCV::Api
+  end
+
+  before do
+    reset_database!
+    @user = LockedCV::User.create(DATA[:users].first.transform_keys(&:to_sym))
+    @attachments = [@user.add_attachment(DATA[:attachments].first.transform_keys(&:to_sym))]
+  end
+
+  describe 'POST /api/v1/users/:user_id/attachments' do
+    it 'HAPPY: creates an attachment for a user' do
+      payload = DATA[:attachments].last.transform_keys(&:to_sym)
+
+      post "/api/v1/users/#{@user.id}/attachments", payload.to_json, req_header
+
+      _(last_response.status).must_equal 201
+      _(last_response.headers['Content-Type']).must_include 'application/json'
+      _(json_body['message']).must_equal 'Attachment saved'
+      _(json_body.dig('data', 'data', 'attributes', 'attachment_name')).must_equal payload[:attachment_name]
+    end
+  end
+
+  describe 'GET /api/v1/users/:user_id/attachments' do
+    it 'HAPPY: gets all attachments for a user' do
+      get "/api/v1/users/#{@user.id}/attachments"
+
+      _(last_response.status).must_equal 200
+      _(last_response.headers['Content-Type']).must_include 'application/json'
+      attachment_names = json_body['data'].map { |item| item.dig('data', 'attributes', 'attachment_name') }
+      _(attachment_names).must_include DATA[:attachments].first['attachment_name']
+    end
+
+    it 'SAD: returns 404 for missing user' do
+      get '/api/v1/users/999999/attachments'
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Could not find attachments')
+    end
+  end
+
+  describe 'GET /api/v1/users/:user_id/attachments/:attachment_id' do
+    it 'HAPPY: gets one attachment' do
+      attachment = @attachments.first
+
+      get "/api/v1/users/#{@user.id}/attachments/#{attachment.id}"
+
+      _(last_response.status).must_equal 200
+      _(json_body.dig('data', 'type')).must_equal 'attachment'
+      _(json_body.dig('data', 'attributes', 'id')).must_equal attachment.id
+    end
+
+    it 'SAD: returns 404 for missing attachment' do
+      get "/api/v1/users/#{@user.id}/attachments/999999"
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Attachment not found')
+    end
+  end
+end

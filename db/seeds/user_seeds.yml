@@ -1,9 +1,7 @@
-- id: user_001
-  first_name: Ada
+- first_name: Ada
   last_name: Lovelace
   phone_number: 0912-000-001
 
-- id: user_002
-  first_name: Alan
+- first_name: Alan
   last_name: Turing
   phone_number: 0912-000-002

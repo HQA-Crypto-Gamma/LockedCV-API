@@ -15,3 +15,4 @@ db/local/*
 
 # Secrets
 config/secrets.yml
+*~
