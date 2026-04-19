@@ -1,12 +1,11 @@
 # LockedCV API
 
-A Ruby web API for the Crypto γ SEC project that allows users to securely share resumes or other personal documents with automatic personal information hiding. Built with Roda framework and file-based data storage.
+A Ruby web API for the Crypto γ SEC project that allows users to securely share resumes or other personal documents with automatic personal information hiding. Built with Roda framework and SQLite (via Sequel ORM).
 
 ## Features
 
-- RESTful API for managing personal data
-- File-based JSON storage (no database required)
-- Secure ID generation using SHA-256 hashing
+- RESTful API for managing users, attachments, and sensitive data
+- SQLite data storage via Sequel ORM
 - JSON response format
 
 ## Prerequisites
@@ -55,82 +54,77 @@ Response:
 }
 ```
 
-### Personal Data Endpoints
+### User Endpoints
 
-#### Get All Personal Data IDs
+#### Create User
 
-**GET** `/api/v1/personal_data`
-
-Returns a list of all personal data entry IDs.
+**POST** `/api/v1/users`
 
 ```bash
-http -v GET localhost:9292/api/v1/personal_data
-```
-
-Response:
-```json
-{
-  "personal_data_ids": [
-    "abc123xyz",
-    "def456uvw"
-  ]
-}
-```
-
-#### Get Personal Data by ID
-
-**GET** `/api/v1/personal_data/:id`
-
-Retrieve a specific personal data entry.
-
-```bash
-http -v GET localhost:9292/api/v1/personal_data/abc123xyz
-```
-
-Response:
-```json
-{
-  "type": "personal_data",
-  "id": "abc123xyz",
-  "first_name": "John",
-  "last_name": "Doe",
-  "phone": "123-456-7890"
-}
-```
-
-Error Response (404):
-```json
-{
-  "message": "Personal data not found"
-}
-```
-
-#### Create Personal Data
-
-**POST** `/api/v1/personal_data`
-
-Create a new personal data entry.
-
-```bash
-http -v --json POST localhost:9292/api/v1/personal_data \
+http -v --json POST localhost:9292/api/v1/users \
   first_name="Jane" \
   last_name="Smith" \
-  phone="987-654-3210"
+  phone_number="987-654-3210"
 ```
 
-Success Response (201):
-```json
-{
-  "message": "Personal data saved",
-  "id": "xyz789abc"
-}
+#### Get User by ID
+
+**GET** `/api/v1/users/:user_id`
+
+```bash
+http -v GET localhost:9292/api/v1/users/1
 ```
 
-Error Response (400):
-```json
-{
-  "message": "Could not save personal data"
-}
+### Attachment Endpoints
+
+#### Create Attachment for a User
+
+**POST** `/api/v1/users/:user_id/attachments`
+
+```bash
+http -v --json POST localhost:9292/api/v1/users/1/attachments \
+  attachment_name="resume_jane.pdf" \
+  route="/uploads/resume_jane.pdf"
+```
+
+#### Get All Attachments for a User
+
+**GET** `/api/v1/users/:user_id/attachments`
+
+```bash
+http -v GET localhost:9292/api/v1/users/1/attachments
+```
+
+#### Get Attachment by ID
+
+**GET** `/api/v1/users/:user_id/attachments/:attachment_id`
+
+```bash
+http -v GET localhost:9292/api/v1/users/1/attachments/1
+```
+
+### Sensitive Data Endpoints
+
+#### Create Sensitive Data for an Attachment
+
+**POST** `/api/v1/users/:user_id/attachments/:attachment_id/sensitive_data`
+
+```bash
+http -v --json POST localhost:9292/api/v1/users/1/attachments/1/sensitive_data \
+  user_name="Jane Smith" \
+  phone_number="987-654-3210" \
+  birthday="1990-01-01" \
+  email="jane@example.com" \
+  address="Taipei" \
+  identification_numbers="A123456789"
+```
+
+#### Get Sensitive Data by Attachment
+
+**GET** `/api/v1/users/:user_id/attachments/:attachment_id/sensitive_data`
+
+```bash
+http -v GET localhost:9292/api/v1/users/1/attachments/1/sensitive_data
 ```
 
 ## Development
@@ -157,13 +151,12 @@ rubocop
 │   ├── controllers/
 │   │   └── app.rb          # Main Roda controller with API routes
 │   └── models/
-│       ├── personal_data.rb # PersonalData file-store model
 │       ├── user.rb          # User DB model
 │       ├── attachment.rb    # Attachment DB model
 │       └── sensitive_data.rb # SensitiveData DB model
 ├── config.ru                # Rack configuration
 ├── db/
-│   ├── local/              # File storage directory (gitignored)
+│   ├── local/              # Local SQLite database files (gitignored)
 │   └── seeds/              # Test seed data
 ├── spec/                    # Test files
 └── .github/
@@ -172,7 +165,7 @@ rubocop
 
 ## Data Storage
 
-Personal data is stored as individual JSON files in the `db/local/` directory. Each file is named with a unique ID generated using SHA-256 hashing of the timestamp, base64-encoded and truncated to 10 characters.
+Application data is stored in SQLite database files under `db/local/`.
 
 ## License
 
