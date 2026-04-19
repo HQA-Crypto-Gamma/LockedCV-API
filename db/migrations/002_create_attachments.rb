@@ -2,7 +2,7 @@
 
 Sequel.migration do
   change do
-    create_table(:files) do
+    create_table(:attachments) do
       primary_key :id
 
       String :file_name
