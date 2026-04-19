@@ -85,8 +85,7 @@ end
 namespace :newkey do
   desc 'Create sample cryptographic key for database'
   task :db do
-    # require_app('lib', config: false)
-    require_app('lib')
+    require_app('lib', config: false)
     puts "DB_KEY: #{LockedCV::SecureDB.generate_key}"
   end
 end

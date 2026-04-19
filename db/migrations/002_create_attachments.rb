@@ -2,8 +2,8 @@
 
 Sequel.migration do
   change do
-    create_table(:files) do
-      uuid :id, primary_key: true
+    create_table(:attachments) do
+      primary_key :id
 
       String :file_name
       String :route

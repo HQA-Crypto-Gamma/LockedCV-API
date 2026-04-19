@@ -3,7 +3,7 @@
 Sequel.migration do
   change do
     create_table(:sensitive_data) do
-      uuid :id, primary_key: true
+      primary_key :id
 
       String :user_name_secure
       String :phone_number_secure
