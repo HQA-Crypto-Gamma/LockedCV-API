@@ -4,9 +4,11 @@ ENV['RACK_ENV'] = 'test'
 
 require 'json'
 require 'date'
+require 'logger'
 require 'minitest/autorun'
 require 'minitest/rg'
 require 'rack/test'
+require 'stringio'
 require 'yaml'
 
 require_relative 'test_load_all'
@@ -55,6 +57,21 @@ module LockedCV
 
     def json_body
       JSON.parse(last_response.body)
+    end
+
+    def capture_app_logs
+      original_logger = LockedCV::Api.logger
+      io = StringIO.new
+      test_logger = Logger.new(io)
+      test_logger.level = Logger::DEBUG
+
+      LockedCV::Api.send(:remove_const, :LOGGER)
+      LockedCV::Api.const_set(:LOGGER, test_logger)
+
+      yield io
+    ensure
+      LockedCV::Api.send(:remove_const, :LOGGER)
+      LockedCV::Api.const_set(:LOGGER, original_logger)
     end
   end
 end

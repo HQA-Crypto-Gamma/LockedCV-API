@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'spec_helper'
+require_relative '../spec_helper'
 
 describe 'Attachment Endpoints' do
   include Rack::Test::Methods
@@ -26,6 +26,18 @@ describe 'Attachment Endpoints' do
       _(last_response.headers['Content-Type']).must_include 'application/json'
       _(json_body['message']).must_equal 'Attachment saved'
       _(json_body.dig('data', 'data', 'attributes', 'attachment_name')).must_equal payload[:attachment_name]
+    end
+
+    it 'SAD: returns 400 and does not create attachment on mass assignment' do
+      payload = DATA[:attachments].last.merge('user_id' => 'forged-user')
+      before_count = LockedCV::Attachment.count
+
+      post "/api/v1/users/#{@user.id}/attachments", payload.to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Illegal attributes')
+      _(LockedCV::Attachment.count).must_equal before_count
+      _(LockedCV::Attachment.where(user_id: 'forged-user').count).must_equal 0
     end
   end
 

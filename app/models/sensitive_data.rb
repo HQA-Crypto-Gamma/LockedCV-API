@@ -34,7 +34,7 @@ module LockedCV
     end
 
     def birthday=(plaintext)
-      self.birthday_secure = SecureDB.encrypt(plaintext)
+      self.birthday_secure = SecureDB.encrypt(plaintext&.to_s)
     end
 
     def email

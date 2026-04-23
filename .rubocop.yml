@@ -18,6 +18,11 @@ Metrics/BlockLength:
     - spec/**/*
     - Rakefile # Rake namespaces produce large blocks
 
+Metrics/ClassLength:
+  Enabled: true
+  Exclude:
+    - app/controllers/*.rb # Roda controllers are routing-heavy by design
+
 Security/YAMLLoad:
   Enabled: true
   Exclude:

@@ -28,7 +28,7 @@ puma
 Run all tests:
 
 ```bash
-ruby spec/api_spec.rb
+ruby spec/integration/api_spec.rb
 ```
 
 ### Linting
