@@ -9,6 +9,18 @@ module LockedCV
     plugin :environments
     plugin :halt
 
+    def find_attachment_for_user(user_id, attachment_id)
+      Attachment.where(user_id: user_id.to_s, id: attachment_id.to_s).first
+    end
+
+    def find_sensitive_data_for_attachment(attachment_id)
+      SensitiveData.where(attachment_id: attachment_id.to_s).first
+    end
+
+    def log_unknown_error(route:, error:)
+      Api.logger.error("UNKNOWN_ERROR route=#{route} error=#{error.class} message=#{error.message}")
+    end
+
     route do |routing|
       response['Content-Type'] = 'application/json'
 
@@ -31,10 +43,10 @@ module LockedCV
 
                   # GET api/v1/users/[user_id]/attachments/[attachment_id]/sensitive_data
                   routing.get do
-                    attachment = Attachment.where(user_id:, id: attachment_id).first
+                    attachment = find_attachment_for_user(user_id, attachment_id)
                     raise('Attachment not found') unless attachment
 
-                    sensitive_data = SensitiveData.first(attachment_id:)
+                    sensitive_data = find_sensitive_data_for_attachment(attachment_id)
                     sensitive_data ? sensitive_data.to_json : raise('Sensitive data not found')
                   rescue StandardError
                     routing.halt 404, { message: 'Sensitive data not found' }.to_json
@@ -42,17 +54,21 @@ module LockedCV
 
                   # POST api/v1/users/[user_id]/attachments/[attachment_id]/sensitive_data
                   routing.post do
-                    attachment = Attachment.where(user_id:, id: attachment_id).first
+                    attachment = find_attachment_for_user(user_id, attachment_id)
                     raise('Attachment not found') unless attachment
-                    raise('Sensitive data already exists') if SensitiveData.first(attachment_id:)
+                    raise('Sensitive data already exists') if find_sensitive_data_for_attachment(attachment_id)
 
                     new_data = JSON.parse(routing.body.read)
-                    new_doc = SensitiveData.new(new_data.merge(attachment_id:))
+                    new_doc = SensitiveData.new(new_data)
+                    new_doc.attachment_id = attachment_id
                     raise('Could not save sensitive data') unless new_doc.save_changes
 
                     response.status = 201
                     response['Location'] = "#{@sensitive_data_route}/#{new_doc.id}"
                     { message: 'Sensitive data saved', data: new_doc }.to_json
+                  rescue Sequel::MassAssignmentRestriction
+                    Api.logger.warn("MASS_ASSIGNMENT_ATTEMPT keys=#{new_data.keys}")
+                    routing.halt 400, { message: 'Illegal attributes' }.to_json
                   rescue StandardError
                     routing.halt 400, { message: 'Could not save sensitive data' }.to_json
                   end
@@ -60,7 +76,7 @@ module LockedCV
 
                 # GET api/v1/users/[user_id]/attachments/[attachment_id]
                 routing.get do
-                  attachment = Attachment.where(user_id:, id: attachment_id).first
+                  attachment = find_attachment_for_user(user_id, attachment_id)
                   attachment ? attachment.to_json : raise('Attachment not found')
                 rescue StandardError
                   routing.halt 404, { message: 'Attachment not found' }.to_json
@@ -88,7 +104,11 @@ module LockedCV
                 else
                   routing.halt 400, { message: 'Could not save attachment' }.to_json
                 end
-              rescue StandardError
+              rescue Sequel::MassAssignmentRestriction
+                Api.logger.warn("MASS_ASSIGNMENT_ATTEMPT keys=#{new_data.keys}")
+                routing.halt 400, { message: 'Illegal attributes' }.to_json
+              rescue StandardError => e
+                log_unknown_error(route: @attachment_route, error: e)
                 routing.halt 500, { message: 'Database error' }.to_json
               end
             end
@@ -120,7 +140,11 @@ module LockedCV
             response.status = 201
             response['Location'] = "#{@user_route}/#{new_doc.id}"
             { message: 'User saved', data: new_doc }.to_json
-          rescue StandardError
+          rescue Sequel::MassAssignmentRestriction
+            Api.logger.warn("MASS_ASSIGNMENT_ATTEMPT keys=#{new_data.keys}")
+            routing.halt 400, { message: 'Illegal attributes' }.to_json
+          rescue StandardError => e
+            log_unknown_error(route: @user_route, error: e)
             routing.halt 500, { message: 'Database error' }.to_json
           end
         end

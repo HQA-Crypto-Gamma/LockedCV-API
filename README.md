@@ -132,7 +132,7 @@ http -v GET localhost:9292/api/v1/users/1/attachments/1/sensitive_data
 ### Running Tests
 
 ```bash
-ruby spec/api_spec.rb
+ruby spec/integration/api_spec.rb
 ```
 
 ### Linting
