@@ -29,7 +29,7 @@ describe 'Sensitive Data Endpoints' do
       _(json_body.dig('data', 'data', 'attributes', 'phone_number')).must_equal payload[:phone_number]
     end
 
-    it 'SAD: returns 400 and does not create sensitive data on mass assignment' do
+    it 'SECURITY: returns 400 and does not create sensitive data on mass assignment' do
       payload = DATA[:sensitive_data].first.merge('attachment_id' => 'forged-attachment')
       before_count = LockedCV::SensitiveData.count
 
@@ -45,7 +45,7 @@ describe 'Sensitive Data Endpoints' do
       payload = DATA[:sensitive_data].first.transform_keys(&:to_sym)
       sensitive_data = LockedCV::SensitiveData.new(payload)
       sensitive_data.attachment_id = @attachment.id
-      sensitive_data.save
+      sensitive_data.save_changes
 
       post "/api/v1/users/#{@user.id}/attachments/#{@attachment.id}/sensitive_data", payload.to_json, req_header
 
@@ -53,15 +53,26 @@ describe 'Sensitive Data Endpoints' do
       _(json_body).must_equal('message' => 'Could not save sensitive data')
     end
 
-    it 'SAD: rejects SQL injection in attachment_id and creates no sensitive data' do
+    it 'SECURITY: rejects SQL injection in attachment_id and creates no sensitive data' do
       payload = DATA[:sensitive_data].first.transform_keys(&:to_sym)
       injected_attachment_id = CGI.escape("#{@attachment.id}' OR '1'='1")
       before_count = LockedCV::SensitiveData.count
 
       post "/api/v1/users/#{@user.id}/attachments/#{injected_attachment_id}/sensitive_data", payload.to_json, req_header
 
-      _(last_response.status).must_equal 400
-      _(json_body).must_equal('message' => 'Could not save sensitive data')
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Sensitive data not found')
+      _(LockedCV::SensitiveData.count).must_equal before_count
+    end
+
+    it 'SAD: returns 404 when attachment path resource is missing' do
+      payload = DATA[:sensitive_data].first.transform_keys(&:to_sym)
+      before_count = LockedCV::SensitiveData.count
+
+      post "/api/v1/users/#{@user.id}/attachments/999999/sensitive_data", payload.to_json, req_header
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Sensitive data not found')
       _(LockedCV::SensitiveData.count).must_equal before_count
     end
   end
@@ -71,7 +82,7 @@ describe 'Sensitive Data Endpoints' do
       payload = DATA[:sensitive_data].first.transform_keys(&:to_sym)
       sensitive_data = LockedCV::SensitiveData.new(payload)
       sensitive_data.attachment_id = @attachment.id
-      sensitive_data.save
+      sensitive_data.save_changes
 
       get "/api/v1/users/#{@user.id}/attachments/#{@attachment.id}/sensitive_data"
 
@@ -81,11 +92,11 @@ describe 'Sensitive Data Endpoints' do
       _(json_body.dig('data', 'attributes', 'id')).must_equal sensitive_data.id
     end
 
-    it 'SAD: rejects SQL injection in user_id when fetching sensitive data' do
+    it 'SECURITY: rejects SQL injection in user_id when fetching sensitive data' do
       payload = DATA[:sensitive_data].first.transform_keys(&:to_sym)
       sensitive_data = LockedCV::SensitiveData.new(payload)
       sensitive_data.attachment_id = @attachment.id
-      sensitive_data.save
+      sensitive_data.save_changes
       injected_user_id = CGI.escape("#{@user.id}' OR '1'='1")
 
       get "/api/v1/users/#{injected_user_id}/attachments/#{@attachment.id}/sensitive_data"
@@ -94,11 +105,11 @@ describe 'Sensitive Data Endpoints' do
       _(json_body).must_equal('message' => 'Sensitive data not found')
     end
 
-    it 'SAD: rejects SQL injection in attachment_id when fetching sensitive data' do
+    it 'SECURITY: rejects SQL injection in attachment_id when fetching sensitive data' do
       payload = DATA[:sensitive_data].first.transform_keys(&:to_sym)
       sensitive_data = LockedCV::SensitiveData.new(payload)
       sensitive_data.attachment_id = @attachment.id
-      sensitive_data.save
+      sensitive_data.save_changes
       injected_attachment_id = CGI.escape("#{@attachment.id}' OR '1'='1")
 
       get "/api/v1/users/#{@user.id}/attachments/#{injected_attachment_id}/sensitive_data"

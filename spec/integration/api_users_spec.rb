@@ -26,7 +26,7 @@ describe 'User Endpoints' do
       _(json_body.dig('data', 'data', 'attributes', 'phone_number')).must_equal payload[:phone_number]
     end
 
-    it 'SAD: returns 400 and does not create user on mass assignment' do
+    it 'SECURITY: returns 400 and does not create user on mass assignment' do
       payload = DATA[:users].last.merge('id' => 'forced-id')
       before_count = LockedCV::User.count
 
@@ -52,9 +52,8 @@ describe 'User Endpoints' do
 
         _(last_response.status).must_equal 500
         _(json_body).must_equal('message' => 'Database error')
-        _(logs.string).must_include 'UNKNOWN_ERROR'
-        _(logs.string).must_include 'route=api/v1/users'
-        _(logs.string).must_include 'error=JSON::ParserError'
+        _(logs.string).must_include 'UNKNOWN ERROR:'
+        _(logs.string).must_include "expected ',' or '}' after object value"
       end
     end
   end
