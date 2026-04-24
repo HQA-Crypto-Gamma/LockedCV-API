@@ -28,7 +28,7 @@ describe 'Attachment Endpoints' do
       _(json_body.dig('data', 'data', 'attributes', 'attachment_name')).must_equal payload[:attachment_name]
     end
 
-    it 'SAD: returns 400 and does not create attachment on mass assignment' do
+    it 'SECURITY: returns 400 and does not create attachment on mass assignment' do
       payload = DATA[:attachments].last.merge('user_id' => 'forged-user')
       before_count = LockedCV::Attachment.count
 
