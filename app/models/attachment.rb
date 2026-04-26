@@ -11,7 +11,7 @@ module LockedCV
     plugin :whitelist_security
     set_allowed_columns :attachment_name, :route
 
-    many_to_one :user, class: :'LockedCV::User', key: :user_id
+    many_to_one :account, class: :'LockedCV::Account', key: :account_id
     one_to_one :sensitive_data, class: :'LockedCV::SensitiveData', key: :attachment_id
     add_association_dependencies sensitive_data: :destroy
 
@@ -28,7 +28,7 @@ module LockedCV
             }
           },
           included: {
-            user:
+            account:
           }
         },
         options

@@ -18,17 +18,17 @@ describe LockedCV::SecureDB do
     _(LockedCV::SecureDB.decrypt(ciphertext)).must_equal plaintext
   end
 
-  it 'SECURITY: stores user personal data encrypted in the database' do
-    payload = DATA[:users].first.transform_keys(&:to_sym)
+  it 'SECURITY: stores account personal data encrypted in the database' do
+    payload = DATA[:accounts].first.transform_keys(&:to_sym)
 
-    user = LockedCV::User.create(payload)
-    stored_row = db[:users].where(id: user.id).first
+    account = LockedCV::Account.create(payload)
+    stored_row = db[:accounts].where(id: account.id).first
 
     _(stored_row[:first_name_secure]).wont_equal payload[:first_name]
     _(stored_row[:last_name_secure]).wont_equal payload[:last_name]
     _(stored_row[:phone_number_secure]).wont_equal payload[:phone_number]
-    _(user.first_name).must_equal payload[:first_name]
-    _(user.last_name).must_equal payload[:last_name]
-    _(user.phone_number).must_equal payload[:phone_number]
+    _(account.first_name).must_equal payload[:first_name]
+    _(account.last_name).must_equal payload[:last_name]
+    _(account.phone_number).must_equal payload[:phone_number]
   end
 end

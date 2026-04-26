@@ -7,8 +7,8 @@ describe LockedCV::SensitiveData do
 
   before do
     reset_database!
-    @user = LockedCV::User.create(DATA[:users].first.transform_keys(&:to_sym))
-    @attachment = @user.add_attachment(DATA[:attachments].first.transform_keys(&:to_sym))
+    @account = LockedCV::Account.create(DATA[:accounts].first.transform_keys(&:to_sym))
+    @attachment = @account.add_attachment(DATA[:attachments].first.transform_keys(&:to_sym))
   end
 
   it 'SECURITY: stores sensitive data encrypted in the database and decrypts through getters' do

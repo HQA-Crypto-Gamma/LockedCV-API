@@ -18,20 +18,20 @@ module LockedCV
 
       @api_root = 'api/v1'
       routing.on @api_root do
-        routing.on 'users' do
-          @user_route = "#{@api_root}/users"
+        routing.on 'accounts' do
+          @account_route = "#{@api_root}/accounts"
 
-          routing.on String do |user_id|
+          routing.on String do |account_id|
             routing.on 'attachments' do
-              @attachment_route = "#{@user_route}/#{user_id}/attachments"
+              @attachment_route = "#{@account_route}/#{account_id}/attachments"
 
               routing.on String do |attachment_id|
                 routing.on 'sensitive_data' do
                   @sensitive_data_route = "#{@attachment_route}/#{attachment_id}/sensitive_data"
 
-                  # GET api/v1/users/[user_id]/attachments/[attachment_id]/sensitive_data
+                  # GET api/v1/accounts/[account_id]/attachments/[attachment_id]/sensitive_data
                   routing.get do
-                    attachment = FindAttachmentService.call(user_id:, attachment_id:)
+                    attachment = FindAttachmentService.call(account_id:, attachment_id:)
                     raise('Attachment not found') unless attachment
 
                     sensitive_data = FindSensitiveDataService.call(attachment_id:)
@@ -40,9 +40,9 @@ module LockedCV
                     routing.halt 404, { message: 'Sensitive data not found' }.to_json
                   end
 
-                  # POST api/v1/users/[user_id]/attachments/[attachment_id]/sensitive_data
+                  # POST api/v1/accounts/[account_id]/attachments/[attachment_id]/sensitive_data
                   routing.post do
-                    attachment = FindAttachmentService.call(user_id:, attachment_id:)
+                    attachment = FindAttachmentService.call(account_id:, attachment_id:)
                     routing.halt 404, { message: 'Sensitive data not found' }.to_json unless attachment
 
                     raise('Sensitive data already exists') if FindSensitiveDataService.call(attachment_id:)
@@ -63,28 +63,28 @@ module LockedCV
                   end
                 end
 
-                # GET api/v1/users/[user_id]/attachments/[attachment_id]
+                # GET api/v1/accounts/[account_id]/attachments/[attachment_id]
                 routing.get do
-                  attachment = FindAttachmentService.call(user_id:, attachment_id:)
+                  attachment = FindAttachmentService.call(account_id:, attachment_id:)
                   attachment ? attachment.to_json : raise('Attachment not found')
                 rescue StandardError
                   routing.halt 404, { message: 'Attachment not found' }.to_json
                 end
               end
 
-              # GET api/v1/users/[user_id]/attachments
+              # GET api/v1/accounts/[account_id]/attachments
               routing.get do
-                output = { data: User.find(id: user_id).attachments }
+                output = { data: Account.find(id: account_id).attachments }
                 JSON.pretty_generate(output)
               rescue StandardError
                 routing.halt 404, { message: 'Could not find attachments' }.to_json
               end
 
-              # POST api/v1/users/[user_id]/attachments
+              # POST api/v1/accounts/[account_id]/attachments
               routing.post do
                 new_data = JSON.parse(routing.body.read)
-                user = User.find(id: user_id)
-                new_attachment = user.add_attachment(new_data)
+                account = Account.find(id: account_id)
+                new_attachment = account.add_attachment(new_data)
 
                 if new_attachment
                   response.status = 201
@@ -102,33 +102,33 @@ module LockedCV
               end
             end
 
-            # GET api/v1/users/[user_id]
+            # GET api/v1/accounts/[account_id]
             routing.get do
-              user = User.find(id: user_id)
-              user ? user.to_json : raise('User not found')
+              account = Account.find(id: account_id)
+              account ? account.to_json : raise('Account not found')
             rescue StandardError
-              routing.halt 404, { message: 'User not found' }.to_json
+              routing.halt 404, { message: 'Account not found' }.to_json
             end
           end
 
-          # GET api/v1/users
-          # NOTE: Disabled for now (security concern: listing all users without auth)
+          # GET api/v1/accounts
+          # NOTE: Disabled for now (security concern: listing all accounts without auth)
           # routing.get do
-          #   output = { data: User.all }
+          #   output = { data: Account.all }
           #   JSON.pretty_generate(output)
           # rescue StandardError
-          #   routing.halt 500, { message: 'Error retrieving users' }.to_json
+          #   routing.halt 500, { message: 'Error retrieving accounts' }.to_json
           # end
 
-          # POST api/v1/users
+          # POST api/v1/accounts
           routing.post do
             new_data = JSON.parse(routing.body.read)
-            new_doc = User.new(new_data)
-            raise('Could not save user') unless new_doc.save_changes
+            new_doc = Account.new(new_data)
+            raise('Could not save account') unless new_doc.save_changes
 
             response.status = 201
-            response['Location'] = "#{@user_route}/#{new_doc.id}"
-            { message: 'User saved', data: new_doc }.to_json
+            response['Location'] = "#{@account_route}/#{new_doc.id}"
+            { message: 'Account saved', data: new_doc }.to_json
           rescue Sequel::MassAssignmentRestriction
             Api.logger.warn("MASS_ASSIGNMENT_ATTEMPT keys=#{new_data.keys}")
             routing.halt 400, { message: 'Illegal attributes' }.to_json

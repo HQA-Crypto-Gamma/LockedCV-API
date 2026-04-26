@@ -24,13 +24,13 @@
 7. **整體整合與回歸**：完成 account 路由與測試整合，確認舊 user 命名已移除或保留相容策略（視決策）。
 
 ## Todo 清單（含可先做/待決策）
-1. [x] `baseline-docs-and-version`（已完成）
+1. ✅ `baseline-docs-and-version`（已完成）
    - 已完成：README 與 `.github/copilot-instructions.md` 的 Ruby 版本敘述已更新為 `4.0.2`。
----
 
-2. `account-domain-renaming`
-   - 將 `User/users` 逐步改為 `Account/accounts`（model、migration、service、controller、spec、seed 命名）。
-   - 路由策略（已決）：改為 `/accounts`，並採巢狀 `/accounts/:account_id/attachments`，不保留 `/users`。
+2. ✅ `account-domain-renaming`（已完成）
+   - 已完成：`User/users` 已改為 `Account/accounts`（model、migration、service、controller、spec、seed 命名）。
+   - 已完成：路由改為 `/accounts`，並採巢狀 `/accounts/:account_id/attachments`，不保留 `/users`。
+   - 備註：`sensitive_data.user_name` 保留，因其語意是履歷上的姓名欄位，非帳號關聯名稱。
 
 3. `password-security-core`
    - 新增 `KeyStretching` module。

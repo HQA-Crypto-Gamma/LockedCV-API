@@ -4,15 +4,15 @@ require 'json'
 require 'sequel'
 
 module LockedCV
-  # Sequel model for users table
-  class User < Sequel::Model(:users)
+  # Sequel model for accounts table
+  class Account < Sequel::Model(:accounts)
     plugin :uuid, field: :id
     plugin :timestamps
     plugin :association_dependencies
     plugin :whitelist_security
     set_allowed_columns :first_name, :last_name, :phone_number
 
-    one_to_many :attachments, class: :'LockedCV::Attachment', key: :user_id
+    one_to_many :attachments, class: :'LockedCV::Attachment', key: :account_id
     add_association_dependencies attachments: :destroy
 
     # Secure getters and setters
@@ -45,7 +45,7 @@ module LockedCV
       JSON(
         {
           data: {
-            type: 'user',
+            type: 'account',
             attributes: {
               id:,
               first_name:,

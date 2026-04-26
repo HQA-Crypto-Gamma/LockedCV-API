@@ -2,7 +2,7 @@
 
 require_relative '../spec_helper'
 
-describe 'User Endpoints' do
+describe 'Account Endpoints' do
   include Rack::Test::Methods
   include LockedCV::SpecHelpers
 
@@ -14,24 +14,24 @@ describe 'User Endpoints' do
     reset_database!
   end
 
-  describe 'POST /api/v1/users' do
-    it 'HAPPY: creates a user' do
-      payload = DATA[:users].last.transform_keys(&:to_sym)
+  describe 'POST /api/v1/accounts' do
+    it 'HAPPY: creates an account' do
+      payload = DATA[:accounts].last.transform_keys(&:to_sym)
 
-      post '/api/v1/users', payload.to_json, req_header
+      post '/api/v1/accounts', payload.to_json, req_header
 
       _(last_response.status).must_equal 201
       _(last_response.headers['Content-Type']).must_include 'application/json'
-      _(json_body['message']).must_equal 'User saved'
+      _(json_body['message']).must_equal 'Account saved'
       _(json_body.dig('data', 'data', 'attributes', 'phone_number')).must_equal payload[:phone_number]
     end
 
-    it 'SECURITY: returns 400 and does not create user on mass assignment' do
-      payload = DATA[:users].last.merge('id' => 'forced-id')
-      before_count = LockedCV::User.count
+    it 'SECURITY: returns 400 and does not create account on mass assignment' do
+      payload = DATA[:accounts].last.merge('id' => 'forced-id')
+      before_count = LockedCV::Account.count
 
       capture_app_logs do |logs|
-        post '/api/v1/users', payload.to_json, req_header
+        post '/api/v1/accounts', payload.to_json, req_header
 
         _(last_response.status).must_equal 400
         _(json_body).must_equal('message' => 'Illegal attributes')
@@ -40,15 +40,15 @@ describe 'User Endpoints' do
         _(logs.string).wont_include payload['phone_number']
       end
 
-      _(LockedCV::User.count).must_equal before_count
-      _(LockedCV::User.first(id: 'forced-id')).must_be_nil
+      _(LockedCV::Account.count).must_equal before_count
+      _(LockedCV::Account.first(id: 'forced-id')).must_be_nil
     end
 
     it 'SAD: logs unknown errors for unexpected failures' do
       invalid_json = '{"first_name":"Ada"'
 
       capture_app_logs do |logs|
-        post '/api/v1/users', invalid_json, req_header
+        post '/api/v1/accounts', invalid_json, req_header
 
         _(last_response.status).must_equal 500
         _(json_body).must_equal('message' => 'Database error')
@@ -58,23 +58,23 @@ describe 'User Endpoints' do
     end
   end
 
-  describe 'GET /api/v1/users/:id' do
-    it 'HAPPY: gets a single user' do
-      user = LockedCV::User.create(DATA[:users].first.transform_keys(&:to_sym))
+  describe 'GET /api/v1/accounts/:id' do
+    it 'HAPPY: gets a single account' do
+      account = LockedCV::Account.create(DATA[:accounts].first.transform_keys(&:to_sym))
 
-      get "/api/v1/users/#{user.id}"
+      get "/api/v1/accounts/#{account.id}"
 
       _(last_response.status).must_equal 200
       _(last_response.headers['Content-Type']).must_include 'application/json'
-      _(json_body.dig('data', 'type')).must_equal 'user'
-      _(json_body.dig('data', 'attributes', 'id')).must_equal user.id
+      _(json_body.dig('data', 'type')).must_equal 'account'
+      _(json_body.dig('data', 'attributes', 'id')).must_equal account.id
     end
 
-    it 'SAD: returns 404 for missing user' do
-      get '/api/v1/users/999999'
+    it 'SAD: returns 404 for missing account' do
+      get '/api/v1/accounts/999999'
 
       _(last_response.status).must_equal 404
-      _(json_body).must_equal('message' => 'User not found')
+      _(json_body).must_equal('message' => 'Account not found')
     end
   end
 end

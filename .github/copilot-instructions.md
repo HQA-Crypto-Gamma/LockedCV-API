@@ -4,7 +4,7 @@ This file provides guidance to GitHub Copilot when working with the LockedCV API
 
 ## Project Overview
 
-LockedCV is a Ruby Web API that allows users to securely share resumes or other personal documents with automatic personal information hiding. It uses the Roda framework with a SQLite data store via Sequel ORM.
+LockedCV is a Ruby Web API that allows accounts to securely share resumes or other personal documents with automatic personal information hiding. It uses the Roda framework with a SQLite data store via Sequel ORM.
 
 - **Ruby version:** 4.0.2 (see `.ruby-version`)
 - **Framework:** Roda (lightweight Ruby web framework)
@@ -65,8 +65,8 @@ Current schema implemented in migrations:
    - `route` (String)
    - `created_at` (DateTime)
    - `updated_at` (DateTime)
-   - `user_id` (String, FK -> `users.id`)
-   - Unique constraint: `[:user_id, :attachment_name]`
+   - `account_id` (String, FK -> `accounts.id`)
+   - Unique constraint: `[:account_id, :attachment_name]`
 2. `sensitive_data`
    - `id` (String, PK)
    - `user_name` (String)
@@ -79,7 +79,7 @@ Current schema implemented in migrations:
    - `updated_at` (DateTime)
    - `attachment_id` (String, FK -> `attachments.id`)
    - Unique constraint: `[:attachment_id]`
-3. `users` (cause ohters tables reference it)
+3. `accounts` (cause others tables reference it)
    - `id` (String, PK)
    - `first_name` (String)
    - `last_name` (String)
@@ -89,15 +89,15 @@ Current schema implemented in migrations:
 
 Migration files:
 
-- `db/migrations/001_create_attachment.rb`
-- `db/migrations/002_create_sensitive_data.rb`
-- `db/migrations/003_create_user.rb`
+- `db/migrations/001_create_accounts.rb`
+- `db/migrations/002_create_attachments.rb`
+- `db/migrations/003_create_sensitive_data.rb`
 
 ### Directory Structure
 
 - `config.ru` — Rack entry point
 - `app/controllers/` — Roda controllers with routing logic
-- `app/models/` — Sequel models (`User`, `Attachment`, `SensitiveData`)
+- `app/models/` — Sequel models (`Account`, `Attachment`, `SensitiveData`)
 - `db/local/` — Local SQLite database files (gitignored)
 - `db/seeds/` — YAML seed data for tests
 - `spec/` — Minitest specs using `Rack::Test`
