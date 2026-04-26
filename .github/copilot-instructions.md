@@ -6,7 +6,7 @@ This file provides guidance to GitHub Copilot when working with the LockedCV API
 
 LockedCV is a Ruby Web API that allows users to securely share resumes or other personal documents with automatic personal information hiding. It uses the Roda framework with a SQLite data store via Sequel ORM.
 
-- **Ruby version:** 4.0.1 (see `.ruby-version`)
+- **Ruby version:** 4.0.2 (see `.ruby-version`)
 - **Framework:** Roda (lightweight Ruby web framework)
 
 ## Commands

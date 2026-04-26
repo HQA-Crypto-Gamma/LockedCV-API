@@ -10,7 +10,7 @@ A Ruby web API for the Crypto γ SEC project that allows users to securely share
 
 ## Prerequisites
 
-- Ruby 4.0.1 (see `.ruby-version`)
+- Ruby 4.0.2 (see `.ruby-version`)
 - Bundler
 
 ## Installation
