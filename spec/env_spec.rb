@@ -6,4 +6,8 @@ describe 'Secret credentials not exposed' do
   it 'SECURITY: does not expose database url' do
     _(LockedCV::Api.config.DATABASE_URL).must_be_nil
   end
+
+  it 'SECURITY: does not expose database key' do
+    _(LockedCV::Api.config.DB_KEY).must_be_nil
+  end
 end
