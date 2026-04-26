@@ -1,9 +1,9 @@
-- first_name: Ada
-  last_name: Lovelace
+- username: ada-lovelace
+  email: ada@example.com
   phone_number: 0912-000-001
   password: ada-secret
 
-- first_name: Alan
-  last_name: Turing
+- username: alan-turing
+  email: alan@example.com
   phone_number: 0912-000-002
   password: alan-secret

@@ -88,4 +88,10 @@ namespace :newkey do
     require_app('lib', config: false)
     puts "DB_KEY: #{LockedCV::SecureDB.generate_key}"
   end
+
+  desc 'Create sample cryptographic key for HMAC lookup hashing'
+  task :hash do
+    require_app('lib', config: false)
+    puts "HASH_KEY: #{LockedCV::SecureDB.generate_key}"
+  end
 end

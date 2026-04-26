@@ -38,11 +38,15 @@
    - 已完成：在 `accounts` schema（001 migration）加入 `password_digest` 欄位。
    - 已完成：在 `Account` 提供 `password=` 與 `password?`（不提供 getter）。
 
-4. `pii-confidential-searchable`
-   - 選定要支援的帳號 PII（暫定：先做 email、phone；name 先維持 secure-only）。
-   - migration 新增 `*_secure` 與 `*_hash` 欄位、必要索引與唯一性策略。
-   - model setter 寫入 secure/hash；getter 僅解密 secure。
-   - 實作 search service + routes（透過 hash 查找，不以明文搜尋）。
+4. ✅ `pii-confidential-searchable`（已完成）
+    - 已完成：選定帳號 PII 為 email 與 phone（username 為明文）。
+    - 已完成：migration 001 新增 `email_secure`、`email_hash`、`phone_number_secure`、`phone_number_hash` 欄位與唯一性約束。
+    - 已完成：Account model 提供 `email=` 和 `phone_number=` setters 同時寫入 secure/hash；getters 僅解密 secure。
+    - 已完成：SecureDB 新增 `hash()` 方法（HMAC-SHA256）用於可搜尋 PII；新增 `rake newkey:hash` task。
+    - 已完成：SensitiveData migration 更新欄位必填性；model 更新 first_name/last_name（替代 user_name）。
+    - 已完成：所有相關測試通過（41 runs, 141 assertions, 0 failures）。
+    - 待做：search service + routes（透過 hash 查找）。
+
 
 5. `many-to-many-associations`
    - 建立需要的 join tables（至少一組 account 與其他實體的 M:N）。

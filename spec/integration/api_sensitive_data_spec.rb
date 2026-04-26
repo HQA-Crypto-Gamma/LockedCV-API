@@ -26,7 +26,7 @@ describe 'Sensitive Data Endpoints' do
       _(last_response.status).must_equal 201
       _(last_response.headers['Content-Type']).must_include 'application/json'
       _(json_body['message']).must_equal 'Sensitive data saved'
-      _(json_body.dig('data', 'data', 'attributes', 'phone_number')).must_equal payload[:phone_number]
+      _(json_body.dig('data', 'data', 'attributes', 'first_name')).must_equal payload[:first_name]
     end
 
     it 'SECURITY: returns 400 and does not create sensitive data on mass assignment' do

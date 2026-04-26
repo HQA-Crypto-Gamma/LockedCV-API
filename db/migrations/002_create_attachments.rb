@@ -5,8 +5,8 @@ Sequel.migration do
     create_table(:attachments) do
       primary_key :id
 
-      String :attachment_name
-      String :route
+      String :attachment_name, null: false
+      String :route, null: false, unique: true
 
       DateTime :created_at
       DateTime :updated_at

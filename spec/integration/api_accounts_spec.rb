@@ -23,7 +23,7 @@ describe 'Account Endpoints' do
       _(last_response.status).must_equal 201
       _(last_response.headers['Content-Type']).must_include 'application/json'
       _(json_body['message']).must_equal 'Account saved'
-      _(json_body.dig('data', 'data', 'attributes', 'phone_number')).must_equal payload[:phone_number]
+      _(json_body.dig('data', 'data', 'attributes', 'email')).must_equal payload[:email]
     end
 
     it 'SECURITY: returns 400 and does not create account on mass assignment' do
@@ -36,8 +36,8 @@ describe 'Account Endpoints' do
         _(last_response.status).must_equal 400
         _(json_body).must_equal('message' => 'Illegal attributes')
         _(logs.string).must_include 'MASS_ASSIGNMENT_ATTEMPT'
-        _(logs.string).must_include 'keys=["first_name", "last_name", "phone_number", "password", "id"]'
-        _(logs.string).wont_include payload['phone_number']
+        _(logs.string).must_include 'keys=["username", "email", "phone_number", "password", "id"]'
+        _(logs.string).wont_include payload['email']
       end
 
       _(LockedCV::Account.count).must_equal before_count

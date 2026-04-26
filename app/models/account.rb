@@ -10,34 +10,45 @@ module LockedCV
     plugin :timestamps
     plugin :association_dependencies
     plugin :whitelist_security
-    set_allowed_columns :first_name, :last_name, :phone_number, :password
+    set_allowed_columns :username, :email, :phone_number, :password
 
     one_to_many :attachments, class: :'LockedCV::Attachment', key: :account_id
     add_association_dependencies attachments: :destroy
 
-    # Secure getters and setters
-    def first_name
-      SecureDB.decrypt(first_name_secure)
+    # Plaintext username - direct access to DB column
+    def username
+      self[:username]
     end
 
-    def first_name=(plaintext)
-      self.first_name_secure = SecureDB.encrypt(plaintext)
+    def username=(value)
+      self[:username] = value
     end
 
-    def last_name
-      SecureDB.decrypt(last_name_secure)
+    # PII - Email
+    def email
+      SecureDB.decrypt(self[:email_secure])
     end
 
-    def last_name=(plaintext)
-      self.last_name_secure = SecureDB.encrypt(plaintext)
+    def email=(plaintext)
+      self[:email_secure] = SecureDB.encrypt(plaintext)
+      self[:email_hash] = SecureDB.hash(plaintext)
     end
 
+    # PII - Phone Number (optional)
     def phone_number
-      SecureDB.decrypt(phone_number_secure)
+      return nil if self[:phone_number_secure].nil?
+
+      SecureDB.decrypt(self[:phone_number_secure])
     end
 
     def phone_number=(plaintext)
-      self.phone_number_secure = SecureDB.encrypt(plaintext)
+      if plaintext.nil?
+        self[:phone_number_secure] = nil
+        self[:phone_number_hash] = nil
+      else
+        self[:phone_number_secure] = SecureDB.encrypt(plaintext)
+        self[:phone_number_hash] = SecureDB.hash(plaintext)
+      end
     end
 
     def password=(new_password)
@@ -59,8 +70,8 @@ module LockedCV
             type: 'account',
             attributes: {
               id:,
-              first_name:,
-              last_name:,
+              username:,
+              email:,
               phone_number:
             }
           }

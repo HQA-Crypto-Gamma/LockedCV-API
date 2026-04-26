@@ -24,11 +24,9 @@ describe LockedCV::SecureDB do
     account = LockedCV::Account.create(payload)
     stored_row = db[:accounts].where(id: account.id).first
 
-    _(stored_row[:first_name_secure]).wont_equal payload[:first_name]
-    _(stored_row[:last_name_secure]).wont_equal payload[:last_name]
+    _(stored_row[:email_secure]).wont_equal payload[:email]
     _(stored_row[:phone_number_secure]).wont_equal payload[:phone_number]
-    _(account.first_name).must_equal payload[:first_name]
-    _(account.last_name).must_equal payload[:last_name]
+    _(account.email).must_equal payload[:email]
     _(account.phone_number).must_equal payload[:phone_number]
   end
 end
