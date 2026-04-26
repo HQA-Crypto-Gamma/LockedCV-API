@@ -32,11 +32,11 @@
    - 已完成：路由改為 `/accounts`，並採巢狀 `/accounts/:account_id/attachments`，不保留 `/users`。
    - 備註：`sensitive_data.user_name` 保留，因其語意是履歷上的姓名欄位，非帳號關聯名稱。
 
-3. `password-security-core`
-   - 新增 `KeyStretching` module。
-   - 新增 Password handling（可為 model 或 PORO）並撰寫單元測試。
-   - 在 account migration 加入密碼欄位（例如 `password_digest` / stretched hash + salt）。
-   - 在 `Account` 提供 `set_password` / `check_password?`（不提供 getter）。
+3. ✅ `password-security-core`（已完成）
+   - 已完成：新增 `KeyStretch` module（RbNaCl + Base64）與 `Password` value object。
+   - 已完成：新增 `spec/unit/password_spec.rb` 與 `spec/unit/account_spec.rb` 驗證密碼 digest 與比對。
+   - 已完成：在 `accounts` schema（001 migration）加入 `password_digest` 欄位。
+   - 已完成：在 `Account` 提供 `password=` 與 `password?`（不提供 getter）。
 
 4. `pii-confidential-searchable`
    - 選定要支援的帳號 PII（暫定：先做 email、phone；name 先維持 secure-only）。

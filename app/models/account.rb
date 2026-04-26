@@ -10,7 +10,7 @@ module LockedCV
     plugin :timestamps
     plugin :association_dependencies
     plugin :whitelist_security
-    set_allowed_columns :first_name, :last_name, :phone_number
+    set_allowed_columns :first_name, :last_name, :phone_number, :password
 
     one_to_many :attachments, class: :'LockedCV::Attachment', key: :account_id
     add_association_dependencies attachments: :destroy
@@ -38,6 +38,17 @@ module LockedCV
 
     def phone_number=(plaintext)
       self.phone_number_secure = SecureDB.encrypt(plaintext)
+    end
+
+    def password=(new_password)
+      self.password_digest = Password.digest(new_password)
+    end
+
+    def password?(try_password)
+      digest = Password.from_digest(password_digest)
+      digest.correct?(try_password)
+    rescue StandardError
+      false
     end
 
     # rubocop:disable Metrics/MethodLength

@@ -36,7 +36,7 @@ describe 'Account Endpoints' do
         _(last_response.status).must_equal 400
         _(json_body).must_equal('message' => 'Illegal attributes')
         _(logs.string).must_include 'MASS_ASSIGNMENT_ATTEMPT'
-        _(logs.string).must_include 'keys=["first_name", "last_name", "phone_number", "id"]'
+        _(logs.string).must_include 'keys=["first_name", "last_name", "phone_number", "password", "id"]'
         _(logs.string).wont_include payload['phone_number']
       end
 

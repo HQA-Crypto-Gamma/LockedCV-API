@@ -47,9 +47,6 @@ module LockedCV
       require 'pry'
     end
 
-    LOGGER = Logger.new($stderr)
-    def self.logger = LOGGER
-
     configure :test do
       logger.level = Logger::ERROR
     end
