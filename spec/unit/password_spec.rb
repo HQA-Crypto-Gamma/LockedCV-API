@@ -4,10 +4,10 @@ require_relative '../spec_helper'
 
 describe LockedCV::Password do
   it 'SECURITY: digests password with random salt' do
-    digest_1 = LockedCV::Password.digest('super-secret').to_s
-    digest_2 = LockedCV::Password.digest('super-secret').to_s
+    digest_one = LockedCV::Password.digest('super-secret').to_s
+    digest_two = LockedCV::Password.digest('super-secret').to_s
 
-    _(digest_1).wont_equal digest_2
+    _(digest_one).wont_equal digest_two
   end
 
   it 'SECURITY: verifies correct password from digest' do
@@ -47,9 +47,9 @@ describe LockedCV::Password do
   end
 
   it 'SECURITY: different passwords produce different digests' do
-    digest_1 = LockedCV::Password.digest('password-one').to_s
-    digest_2 = LockedCV::Password.digest('password-two').to_s
+    digest_one = LockedCV::Password.digest('password-one').to_s
+    digest_two = LockedCV::Password.digest('password-two').to_s
 
-    _(digest_1).wont_equal digest_2
+    _(digest_one).wont_equal digest_two
   end
 end

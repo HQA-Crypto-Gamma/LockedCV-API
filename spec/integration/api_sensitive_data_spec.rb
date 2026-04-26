@@ -58,7 +58,8 @@ describe 'Sensitive Data Endpoints' do
       injected_attachment_id = CGI.escape("#{@attachment.id}' OR '1'='1")
       before_count = LockedCV::SensitiveData.count
 
-      post "/api/v1/accounts/#{@account.id}/attachments/#{injected_attachment_id}/sensitive_data", payload.to_json, req_header
+      post "/api/v1/accounts/#{@account.id}/attachments/#{injected_attachment_id}/sensitive_data",
+           payload.to_json, req_header
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Sensitive data not found')
@@ -119,7 +120,10 @@ describe 'Sensitive Data Endpoints' do
     end
 
     it 'SAD: returns 404 when sensitive data is missing' do
-      another_attachment = @account.add_attachment(attachment_name: 'resume_no_sd.pdf', route: '/uploads/resume_no_sd.pdf')
+      another_attachment = @account.add_attachment(
+        attachment_name: 'resume_no_sd.pdf',
+        route: '/uploads/resume_no_sd.pdf'
+      )
 
       get "/api/v1/accounts/#{@account.id}/attachments/#{another_attachment.id}/sensitive_data"
 
