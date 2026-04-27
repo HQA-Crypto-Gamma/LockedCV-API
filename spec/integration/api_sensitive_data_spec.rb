@@ -13,8 +13,13 @@ describe 'Sensitive Data Endpoints' do
 
   before do
     reset_database!
-    @account = LockedCV::Account.create(DATA[:accounts].first.transform_keys(&:to_sym))
-    @attachment = @account.add_attachment(DATA[:attachments].first.transform_keys(&:to_sym))
+    @account = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+    )
+    @attachment = LockedCV::CreateAttachmentService.call(
+      account_id: @account.id,
+      attachment_data: DATA[:attachments].first.transform_keys(&:to_sym)
+    )
   end
 
   describe 'POST /api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data' do
@@ -43,9 +48,11 @@ describe 'Sensitive Data Endpoints' do
 
     it 'SAD: returns 400 when sensitive data already exists for attachment' do
       payload = DATA[:sensitive_data].first.transform_keys(&:to_sym)
-      sensitive_data = LockedCV::SensitiveData.new(payload)
-      sensitive_data.attachment_id = @attachment.id
-      sensitive_data.save_changes
+      LockedCV::CreateSensitiveDataService.call(
+        account_id: @account.id,
+        attachment_id: @attachment.id,
+        sensitive_data: payload
+      )
 
       post "/api/v1/accounts/#{@account.id}/attachments/#{@attachment.id}/sensitive_data", payload.to_json, req_header
 
@@ -81,9 +88,11 @@ describe 'Sensitive Data Endpoints' do
   describe 'GET /api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data' do
     it 'HAPPY: gets sensitive data by attachment' do
       payload = DATA[:sensitive_data].first.transform_keys(&:to_sym)
-      sensitive_data = LockedCV::SensitiveData.new(payload)
-      sensitive_data.attachment_id = @attachment.id
-      sensitive_data.save_changes
+      sensitive_data = LockedCV::CreateSensitiveDataService.call(
+        account_id: @account.id,
+        attachment_id: @attachment.id,
+        sensitive_data: payload
+      )
 
       get "/api/v1/accounts/#{@account.id}/attachments/#{@attachment.id}/sensitive_data"
 
@@ -95,9 +104,11 @@ describe 'Sensitive Data Endpoints' do
 
     it 'SECURITY: rejects SQL injection in account_id when fetching sensitive data' do
       payload = DATA[:sensitive_data].first.transform_keys(&:to_sym)
-      sensitive_data = LockedCV::SensitiveData.new(payload)
-      sensitive_data.attachment_id = @attachment.id
-      sensitive_data.save_changes
+      LockedCV::CreateSensitiveDataService.call(
+        account_id: @account.id,
+        attachment_id: @attachment.id,
+        sensitive_data: payload
+      )
       injected_account_id = CGI.escape("#{@account.id}' OR '1'='1")
 
       get "/api/v1/accounts/#{injected_account_id}/attachments/#{@attachment.id}/sensitive_data"
@@ -108,9 +119,11 @@ describe 'Sensitive Data Endpoints' do
 
     it 'SECURITY: rejects SQL injection in attachment_id when fetching sensitive data' do
       payload = DATA[:sensitive_data].first.transform_keys(&:to_sym)
-      sensitive_data = LockedCV::SensitiveData.new(payload)
-      sensitive_data.attachment_id = @attachment.id
-      sensitive_data.save_changes
+      LockedCV::CreateSensitiveDataService.call(
+        account_id: @account.id,
+        attachment_id: @attachment.id,
+        sensitive_data: payload
+      )
       injected_attachment_id = CGI.escape("#{@attachment.id}' OR '1'='1")
 
       get "/api/v1/accounts/#{@account.id}/attachments/#{injected_attachment_id}/sensitive_data"
@@ -120,9 +133,12 @@ describe 'Sensitive Data Endpoints' do
     end
 
     it 'SAD: returns 404 when sensitive data is missing' do
-      another_attachment = @account.add_attachment(
-        attachment_name: 'resume_no_sd.pdf',
-        route: '/uploads/resume_no_sd.pdf'
+      another_attachment = LockedCV::CreateAttachmentService.call(
+        account_id: @account.id,
+        attachment_data: {
+          attachment_name: 'resume_no_sd.pdf',
+          route: '/uploads/resume_no_sd.pdf'
+        }
       )
 
       get "/api/v1/accounts/#{@account.id}/attachments/#{another_attachment.id}/sensitive_data"

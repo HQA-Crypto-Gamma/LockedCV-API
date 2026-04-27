@@ -53,7 +53,8 @@ namespace :db do
 
   desc 'Load all models'
   task :load_models do
-    require_app('models')
+    require_app(%w[models services])
+    @app = LockedCV::Api
   end
 
   desc 'Run migrations'
@@ -81,6 +82,13 @@ namespace :db do
     db_filename = "db/local/#{LockedCV::Api.environment}.db"
     FileUtils.rm(db_filename)
     puts "Deleted #{db_filename}"
+  end
+
+  desc 'Seeds the development database'
+  task seed: :load_models do
+    require_relative 'db/seeds/create_all'
+
+    LockedCV::SeedData.run
   end
 end
 

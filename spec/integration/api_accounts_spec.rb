@@ -60,7 +60,9 @@ describe 'Account Endpoints' do
 
   describe 'GET /api/v1/accounts/:id' do
     it 'HAPPY: gets a single account' do
-      account = LockedCV::Account.create(DATA[:accounts].first.transform_keys(&:to_sym))
+      account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
 
       get "/api/v1/accounts/#{account.id}"
 

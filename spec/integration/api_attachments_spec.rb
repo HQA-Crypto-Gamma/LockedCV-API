@@ -12,8 +12,15 @@ describe 'Attachment Endpoints' do
 
   before do
     reset_database!
-    @account = LockedCV::Account.create(DATA[:accounts].first.transform_keys(&:to_sym))
-    @attachments = [@account.add_attachment(DATA[:attachments].first.transform_keys(&:to_sym))]
+    @account = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+    )
+    @attachments = [
+      LockedCV::CreateAttachmentService.call(
+        account_id: @account.id,
+        attachment_data: DATA[:attachments].first.transform_keys(&:to_sym)
+      )
+    ]
   end
 
   describe 'POST /api/v1/accounts/:account_id/attachments' do

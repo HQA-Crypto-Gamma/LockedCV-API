@@ -65,6 +65,19 @@
    - 控制器改呼叫 service object，減少 controller 內部資料庫細節。
    - 測試與 seed 也重用相同服務，避免邏輯分岔。
 
+   - Status update（2026-04-27）：現有 API service refactor 已完成；update/search deferred。
+   - 已完成：新增 `CreateAccountService`、`FindAccountService`，讓 account create/get 流程走 service。
+   - 已完成：新增 `CreateAttachmentService`，並沿用 `FindAttachmentService`，讓 attachment create/find 流程走 service。
+   - 已完成：新增 `CreateSensitiveDataService`，並沿用 `FindSensitiveDataService`，讓 sensitive_data create/find 流程走 service。
+   - 已完成：`app/controllers/app.rb` 不再直接處理現有 create/find workflow 的 model 建立與查找，改由 service object 負責。
+   - 已完成：新增 `spec/unit/services_spec.rb`，覆蓋 service happy/sad paths 與 scoped lookup 行為。
+   - 已完成：integration specs 的 setup 改用 service objects，避免測試資料建立流程和 app workflow 分岔。
+   - 已完成：新增 `db/seeds/create_all.rb` 與 `db/seeds/role_seeds.yml`，seed runner 會重用 service objects 建立 roles、accounts、attachments、sensitive_data。
+   - 已完成：`Rakefile` 新增 `rake db:seed`，並讓 `db:load_models` 載入 services。
+   - 已驗證：`rake db:seed` 通過。
+   - 已驗證：`rake style` 通過。
+   - Deferred：`UpdateAccountService` / `SearchAccountsService` 尚未建立，因為目前 `app.rb` 沒有 account update/search routes；等 route 與 API contract 設計後再補。
+
 8. `db-seed-optional`
    - （可選）導入 `sequel-seed`。
    - 建立 `db/seeds/<date>_<description>.rb` with `Sequel.seed(:development)` + `run`。

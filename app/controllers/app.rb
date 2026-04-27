@@ -42,19 +42,18 @@ module LockedCV
 
                   # POST api/v1/accounts/[account_id]/attachments/[attachment_id]/sensitive_data
                   routing.post do
-                    attachment = FindAttachmentService.call(account_id:, attachment_id:)
-                    routing.halt 404, { message: 'Sensitive data not found' }.to_json unless attachment
-
-                    raise('Sensitive data already exists') if FindSensitiveDataService.call(attachment_id:)
-
                     new_data = JSON.parse(routing.body.read)
-                    new_doc = SensitiveData.new(new_data)
-                    new_doc.attachment_id = attachment_id
-                    raise('Could not save sensitive data') unless new_doc.save_changes
+                    new_doc = CreateSensitiveDataService.call(
+                      account_id:,
+                      attachment_id:,
+                      sensitive_data: new_data
+                    )
 
                     response.status = 201
                     response['Location'] = "#{@sensitive_data_route}/#{new_doc.id}"
                     { message: 'Sensitive data saved', data: new_doc }.to_json
+                  rescue CreateSensitiveDataService::AttachmentNotFoundError
+                    routing.halt 404, { message: 'Sensitive data not found' }.to_json
                   rescue Sequel::MassAssignmentRestriction
                     Api.logger.warn("MASS_ASSIGNMENT_ATTEMPT keys=#{new_data.keys}")
                     routing.halt 400, { message: 'Illegal attributes' }.to_json
@@ -74,7 +73,10 @@ module LockedCV
 
               # GET api/v1/accounts/[account_id]/attachments
               routing.get do
-                output = { data: Account.find(id: account_id).attachments }
+                account = FindAccountService.call(account_id:)
+                raise('Account not found') unless account
+
+                output = { data: account.attachments }
                 JSON.pretty_generate(output)
               rescue StandardError
                 routing.halt 404, { message: 'Could not find attachments' }.to_json
@@ -83,8 +85,10 @@ module LockedCV
               # POST api/v1/accounts/[account_id]/attachments
               routing.post do
                 new_data = JSON.parse(routing.body.read)
-                account = Account.find(id: account_id)
-                new_attachment = account.add_attachment(new_data)
+                new_attachment = CreateAttachmentService.call(
+                  account_id:,
+                  attachment_data: new_data
+                )
 
                 if new_attachment
                   response.status = 201
@@ -104,7 +108,7 @@ module LockedCV
 
             # GET api/v1/accounts/[account_id]
             routing.get do
-              account = Account.find(id: account_id)
+              account = FindAccountService.call(account_id:)
               account ? account.to_json : raise('Account not found')
             rescue StandardError
               routing.halt 404, { message: 'Account not found' }.to_json
@@ -123,8 +127,7 @@ module LockedCV
           # POST api/v1/accounts
           routing.post do
             new_data = JSON.parse(routing.body.read)
-            new_doc = Account.new(new_data)
-            raise('Could not save account') unless new_doc.save_changes
+            new_doc = CreateAccountService.call(account_data: new_data)
 
             response.status = 201
             response['Location'] = "#{@account_route}/#{new_doc.id}"
