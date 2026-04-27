@@ -18,6 +18,7 @@ gem 'rbnacl', '~>7.1'
 
 # Database
 gem 'sequel', '~>5.55'
+gem 'sequel-seed'
 gem 'table_print', '~>1.0' # Console / REPL formatting (dev only)
 
 group :development, :test do

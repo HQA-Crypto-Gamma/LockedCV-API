@@ -24,6 +24,8 @@ describe 'Account Endpoints' do
       _(last_response.headers['Content-Type']).must_include 'application/json'
       _(json_body['message']).must_equal 'Account saved'
       _(json_body.dig('data', 'data', 'attributes', 'email')).must_equal payload[:email]
+      _(json_body.dig('data', 'data', 'attributes').keys).wont_include 'password'
+      _(json_body.dig('data', 'data', 'attributes').keys).wont_include 'password_digest'
     end
 
     it 'SECURITY: returns 400 and does not create account on mass assignment' do
@@ -70,6 +72,8 @@ describe 'Account Endpoints' do
       _(last_response.headers['Content-Type']).must_include 'application/json'
       _(json_body.dig('data', 'type')).must_equal 'account'
       _(json_body.dig('data', 'attributes', 'id')).must_equal account.id
+      _(json_body.dig('data', 'attributes').keys).wont_include 'password'
+      _(json_body.dig('data', 'attributes').keys).wont_include 'password_digest'
     end
 
     it 'SAD: returns 404 for missing account' do

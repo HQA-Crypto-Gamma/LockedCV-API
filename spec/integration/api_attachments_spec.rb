@@ -83,5 +83,17 @@ describe 'Attachment Endpoints' do
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Attachment not found')
     end
+
+    it 'SECURITY: returns 404 when attachment belongs to another account' do
+      other_account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+      )
+      attachment = @attachments.first
+
+      get "/api/v1/accounts/#{other_account.id}/attachments/#{attachment.id}"
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Attachment not found')
+    end
   end
 end
