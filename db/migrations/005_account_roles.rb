@@ -1,8 +1,12 @@
 # frozen_string_literal: true
 
-# Placeholder migration for account_roles feature.
+require 'sequel'
+
 Sequel.migration do
   change do
-    # Intentionally blank.
+    create_join_table(
+      account_id: { table: :accounts, type: :uuid },
+      role_id: :roles
+    )
   end
 end

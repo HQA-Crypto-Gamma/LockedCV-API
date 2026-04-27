@@ -46,4 +46,20 @@ describe LockedCV::Attachment do
     _(LockedCV::SensitiveData.count).must_equal(before_count - 1)
     _(LockedCV::SensitiveData.where(id: sensitive_data.id).first).must_be_nil
   end
+
+  it 'HAPPY: provides resource-role style helpers on attachment' do
+    owner_account = LockedCV::Account.create(DATA[:accounts].last.transform_keys(&:to_sym))
+    owner_role = LockedCV::Role.create(name: 'owner')
+    masked_role = LockedCV::Role.create(name: 'viewer_masked')
+    full_role = LockedCV::Role.create(name: 'viewer_full')
+
+    @account.add_system_role(masked_role)
+    @account.add_system_role(full_role)
+    owner_account.add_system_role(owner_role)
+    attachment = @account.add_attachment(DATA[:attachments].first.transform_keys(&:to_sym))
+
+    _(attachment.owner.id).must_equal owner_account.id
+    _(attachment.viewers_masked.map(&:id)).must_include @account.id
+    _(attachment.viewers_full.map(&:id)).must_include @account.id
+  end
 end

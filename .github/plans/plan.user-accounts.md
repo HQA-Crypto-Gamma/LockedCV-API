@@ -48,15 +48,17 @@
     - 待做：search service + routes（透過 hash 查找）。
 
 
-5. `many-to-many-associations`
-   - 建立需要的 join tables（至少一組 account 與其他實體的 M:N）。
-   - 在雙向模型定義 appropriately named associations。
-   - 使用 `association_dependencies` 確保刪除/清理行為一致。
+5. ✅ `many-to-many-associations`（已完成）
+   - 已完成：建立 `accounts_roles`（`accounts` ↔ `roles`）M:N join table。
+   - 已完成：`Account` 與 `Role` 建立雙向關聯（`many_to_many`）。
+   - 已完成：補強 migration 型別（`accounts_roles.account_id` 使用 UUID 對齊 `accounts.id`）。
 
-6. `roles-system`
-   - 定義 system roles（至少 `admin`、`member`）與必要的 entity roles（若有）。
-   - 決定 role 儲存方式（enum-like 欄位 vs role join table；待決策）。
-   - 在服務層與路由套用角色檢查（先最小可用版本）。
+6. ✅ `roles-system`（本階段完成）
+   - 已完成：定義 system roles（`admin`、`member`）與 resource roles（`owner`、`viewer_masked`、`viewer_full`）命名與分類。
+   - 已完成：採 role join table 儲存（非 enum 欄位）。
+   - 已完成：`Account` 加入 `admin?`、`member?`、`system_role?` helper。
+   - 已完成：`Attachment` 加入 `owner`、`viewers_masked`、`viewers_full` helper（目前以全域 roles 對應）。
+   - 備註：待 authentication 授權章節後，再把角色檢查正式掛進 service/route 的存取控制流程。
 
 7. `service-object-refactor`
    - 新增/重構 account create/get/update/search 與關聯操作服務。

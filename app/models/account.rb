@@ -13,7 +13,24 @@ module LockedCV
     set_allowed_columns :username, :email, :phone_number, :password
 
     one_to_many :attachments, class: :'LockedCV::Attachment', key: :account_id
+    many_to_many :system_roles,
+                 class: :'LockedCV::Role',
+                 join_table: :accounts_roles,
+                 left_key: :account_id,
+                 right_key: :role_id
     add_association_dependencies attachments: :destroy
+
+    def system_role?(role_name)
+      system_roles_dataset.where(name: role_name).any?
+    end
+
+    def admin?
+      system_role?('admin')
+    end
+
+    def member?
+      system_role?('member')
+    end
 
     # Plaintext username - direct access to DB column
     def username

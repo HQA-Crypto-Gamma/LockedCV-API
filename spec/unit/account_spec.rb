@@ -56,4 +56,19 @@ describe LockedCV::Account do
     _(stored[:password_digest]).wont_include 'ada-secret'
     _(JSON.parse(stored[:password_digest])).must_be_kind_of Hash
   end
+
+  it 'HAPPY: supports many-to-many system roles and role checks' do
+    account = LockedCV::Account.create(DATA[:accounts].first.transform_keys(&:to_sym))
+    admin_role = LockedCV::Role.create(name: 'admin')
+    member_role = LockedCV::Role.create(name: 'member')
+
+    account.add_system_role(admin_role)
+    account.add_system_role(member_role)
+
+    _(account.system_roles.map(&:name)).must_include 'admin'
+    _(account.system_roles.map(&:name)).must_include 'member'
+    _(account.admin?).must_equal true
+    _(account.member?).must_equal true
+    _(account.system_role?('viewer_full')).must_equal false
+  end
 end

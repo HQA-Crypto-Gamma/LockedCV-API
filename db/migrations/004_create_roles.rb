@@ -1,8 +1,16 @@
 # frozen_string_literal: true
 
-# Placeholder migration for roles feature.
+require 'sequel'
+
 Sequel.migration do
   change do
-    # Intentionally blank.
+    create_table(:roles) do
+      primary_key :id
+
+      String :name, null: false, unique: true
+
+      DateTime :created_at
+      DateTime :updated_at
+    end
   end
 end

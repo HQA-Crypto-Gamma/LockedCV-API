@@ -65,8 +65,10 @@ namespace :db do
   desc 'Destroy data in database; maintain tables'
   task delete: :load_models do
     LockedCV::SensitiveData.dataset.destroy
-    LockedCV::Account.dataset.destroy
     LockedCV::Attachment.dataset.destroy
+    @app.DB[:accounts_roles].delete
+    LockedCV::Role.dataset.destroy
+    LockedCV::Account.dataset.destroy
   end
 
   desc 'Delete dev or test database file'

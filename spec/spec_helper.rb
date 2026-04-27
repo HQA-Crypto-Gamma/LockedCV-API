@@ -27,7 +27,7 @@ DATA[:sensitive_data] = YAML.safe_load_file(
 module LockedCV
   # Shared helpers for spec setup/teardown and database seed loading
   module SpecHelpers
-    REQUIRED_TABLES = %i[accounts attachments sensitive_data].freeze
+    REQUIRED_TABLES = %i[accounts attachments sensitive_data roles accounts_roles].freeze
 
     def db
       LockedCV::Api.DB
@@ -43,6 +43,8 @@ module LockedCV
     def wipe_database_tables!
       LockedCV::SensitiveData.dataset.delete
       LockedCV::Attachment.dataset.delete
+      LockedCV::Api.DB[:accounts_roles].delete
+      LockedCV::Role.dataset.delete
       LockedCV::Account.dataset.delete
     end
 
