@@ -6,6 +6,8 @@ A Ruby web API for the Crypto γ SEC project that allows accounts to securely sh
 
 - RESTful API for managing accounts, attachments, and sensitive data
 - SQLite data storage via Sequel ORM
+- PII protection for account email/phone via encrypted (`*_secure`) + searchable hash (`*_hash`) columns
+- Role foundation with `roles` and `accounts_roles` (many-to-many)
 - JSON response format
 
 ## Prerequisites
@@ -62,9 +64,10 @@ Response:
 
 ```bash
 http -v --json POST localhost:9292/api/v1/accounts \
-  first_name="Jane" \
-  last_name="Smith" \
-  phone_number="987-654-3210"
+  username="jane_smith" \
+  email="jane@example.com" \
+  phone_number="987-654-3210" \
+  password="my-secret-password"
 ```
 
 #### Get Account by ID
@@ -72,7 +75,7 @@ http -v --json POST localhost:9292/api/v1/accounts \
 **GET** `/api/v1/accounts/:account_id`
 
 ```bash
-http -v GET localhost:9292/api/v1/accounts/1
+http -v GET localhost:9292/api/v1/accounts/<account_uuid>
 ```
 
 ### Attachment Endpoints
@@ -82,7 +85,7 @@ http -v GET localhost:9292/api/v1/accounts/1
 **POST** `/api/v1/accounts/:account_id/attachments`
 
 ```bash
-http -v --json POST localhost:9292/api/v1/accounts/1/attachments \
+http -v --json POST localhost:9292/api/v1/accounts/<account_uuid>/attachments \
   attachment_name="resume_jane.pdf" \
   route="/uploads/resume_jane.pdf"
 ```
@@ -92,7 +95,7 @@ http -v --json POST localhost:9292/api/v1/accounts/1/attachments \
 **GET** `/api/v1/accounts/:account_id/attachments`
 
 ```bash
-http -v GET localhost:9292/api/v1/accounts/1/attachments
+http -v GET localhost:9292/api/v1/accounts/<account_uuid>/attachments
 ```
 
 #### Get Attachment by ID
@@ -100,7 +103,7 @@ http -v GET localhost:9292/api/v1/accounts/1/attachments
 **GET** `/api/v1/accounts/:account_id/attachments/:attachment_id`
 
 ```bash
-http -v GET localhost:9292/api/v1/accounts/1/attachments/1
+http -v GET localhost:9292/api/v1/accounts/<account_uuid>/attachments/1
 ```
 
 ### Sensitive Data Endpoints
@@ -110,8 +113,9 @@ http -v GET localhost:9292/api/v1/accounts/1/attachments/1
 **POST** `/api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data`
 
 ```bash
-http -v --json POST localhost:9292/api/v1/accounts/1/attachments/1/sensitive_data \
-  user_name="Jane Smith" \
+http -v --json POST localhost:9292/api/v1/accounts/<account_uuid>/attachments/1/sensitive_data \
+  first_name="Jane" \
+  last_name="Smith" \
   phone_number="987-654-3210" \
   birthday="1990-01-01" \
   email="jane@example.com" \
@@ -124,7 +128,7 @@ http -v --json POST localhost:9292/api/v1/accounts/1/attachments/1/sensitive_dat
 **GET** `/api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data`
 
 ```bash
-http -v GET localhost:9292/api/v1/accounts/1/attachments/1/sensitive_data
+http -v GET localhost:9292/api/v1/accounts/<account_uuid>/attachments/1/sensitive_data
 ```
 
 ## Development
@@ -132,7 +136,7 @@ http -v GET localhost:9292/api/v1/accounts/1/attachments/1/sensitive_data
 ### Running Tests
 
 ```bash
-ruby spec/integration/api_spec.rb
+bundle exec rake spec
 ```
 
 ### Linting
@@ -140,7 +144,7 @@ ruby spec/integration/api_spec.rb
 Run RuboCop to check code style:
 
 ```bash
-rubocop
+bundle exec rubocop
 ```
 
 ## Project Structure
@@ -153,6 +157,7 @@ rubocop
 │   └── models/
 │       ├── account.rb       # Account DB model
 │       ├── attachment.rb    # Attachment DB model
+│       ├── role.rb          # Role DB model
 │       └── sensitive_data.rb # SensitiveData DB model
 ├── config.ru                # Rack configuration
 ├── db/
