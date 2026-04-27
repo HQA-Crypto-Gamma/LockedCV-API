@@ -86,9 +86,11 @@ namespace :db do
 
   desc 'Seeds the development database'
   task seed: :load_models do
-    require_relative 'db/seeds/create_all'
+    require 'sequel/extensions/seed'
 
-    LockedCV::SeedData.run
+    Sequel.extension :seed
+    Sequel::Seed.setup(@app.environment)
+    Sequel::Seeder.apply(@app.DB, 'db/seeds')
   end
 end
 

@@ -6,20 +6,6 @@ require 'yaml'
 module LockedCV
   # Seeds local development data for manual API testing.
   module SeedData
-    DIR = __dir__
-    ROLES_INFO = YAML.safe_load_file("#{DIR}/role_seeds.yml").freeze
-    ACCOUNTS_INFO = YAML.safe_load_file("#{DIR}/account_seeds.yml").freeze
-    ATTACHMENTS_INFO = YAML.safe_load_file("#{DIR}/attachment_seeds.yml").freeze
-    SENSITIVE_DATA_INFO = YAML.safe_load_file(
-      "#{DIR}/sensitive_data_seeds.yml",
-      permitted_classes: [Date]
-    ).freeze
-
-    SYSTEM_ROLE_ASSIGNMENTS = {
-      'ada-lovelace' => %w[admin],
-      'alan-turing' => %w[member]
-    }.freeze
-
     module_function
 
     def run
@@ -30,25 +16,55 @@ module LockedCV
       assign_system_roles
     end
 
+    def seed_dir
+      __dir__
+    end
+
+    def roles_info
+      YAML.safe_load_file("#{seed_dir}/role_seeds.yml")
+    end
+
+    def accounts_info
+      YAML.safe_load_file("#{seed_dir}/account_seeds.yml")
+    end
+
+    def attachments_info
+      YAML.safe_load_file("#{seed_dir}/attachment_seeds.yml")
+    end
+
+    def sensitive_data_info
+      YAML.safe_load_file(
+        "#{seed_dir}/sensitive_data_seeds.yml",
+        permitted_classes: [Date]
+      )
+    end
+
+    def system_role_assignments
+      {
+        'ada-lovelace' => %w[admin],
+        'alan-turing' => %w[member]
+      }
+    end
+
     def validate_seed_counts
-      return if ACCOUNTS_INFO.length == ATTACHMENTS_INFO.length &&
-                ACCOUNTS_INFO.length == SENSITIVE_DATA_INFO.length
+      return if accounts_info.length == attachments_info.length &&
+                accounts_info.length == sensitive_data_info.length
 
       raise 'Seed data counts must match for accounts, attachments, and sensitive data'
     end
 
     def create_roles
-      ROLES_INFO.each do |role_info|
+      roles_info.each do |role_info|
         Role.find_or_create(role_info.transform_keys(&:to_sym))
       end
     end
 
     def create_accounts_with_documents
-      ACCOUNTS_INFO.each_with_index do |account_info, index|
+      accounts_info.each_with_index do |account_info, index|
         account = find_or_create_account(account_info)
-        attachment = find_or_create_attachment(account, ATTACHMENTS_INFO[index])
+        attachment = find_or_create_attachment(account, attachments_info[index])
 
-        find_or_create_sensitive_data(account, attachment, SENSITIVE_DATA_INFO[index])
+        find_or_create_sensitive_data(account, attachment, sensitive_data_info[index])
       end
     end
 
@@ -75,13 +91,21 @@ module LockedCV
     end
 
     def assign_system_roles
-      SYSTEM_ROLE_ASSIGNMENTS.each do |username, role_names|
+      system_role_assignments.each do |username, role_names|
         account = Account.first(username:)
         role_names.each do |role_name|
           role = Role.first(name: role_name)
-          account.add_system_role(role) unless account.system_roles_dataset.where(id: role.id).any?
+          next if account.system_roles_dataset.where(id: role.id).any?
+
+          account.add_system_role(role)
         end
       end
     end
+  end
+end
+
+Sequel.seed(:development) do
+  def run
+    LockedCV::SeedData.run
   end
 end
