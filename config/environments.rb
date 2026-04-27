@@ -30,7 +30,7 @@ module LockedCV
       def self.DB = DB # rubocop:disable Naming/MethodName
 
       # Load crypto keys
-      SecureDB.setup(ENV.delete('DB_KEY'))
+      SecureDB.setup(ENV.delete('DB_KEY'), ENV.delete('HASH_KEY'))
 
       # Custom events logging
       LOGGER = Logger.new($stderr)
@@ -46,9 +46,6 @@ module LockedCV
     configure :development, :test do
       require 'pry'
     end
-
-    LOGGER = Logger.new($stderr)
-    def self.logger = LOGGER
 
     configure :test do
       logger.level = Logger::ERROR

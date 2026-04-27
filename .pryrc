@@ -8,8 +8,8 @@ require 'table_print'
 
 # Per-model default columns, so show sensible, non-overflowing output.
 MODEL_COLUMNS = {
-  'LockedCV::User' => %i[id first_name last_name phone_number],
-  'LockedCV::Attachment' => %i[id attachment_name route user_id],
+  'LockedCV::Account' => %i[id first_name last_name phone_number],
+  'LockedCV::Attachment' => %i[id attachment_name route account_id],
   'LockedCV::SensitiveData' => %i[id user_name phone_number birthday email address identification_numbers attachment_id]
 }.freeze
 

@@ -17,7 +17,7 @@ require_relative '../require_app'
 require_app
 
 DATA = {} # rubocop:disable Style/MutableConstant
-DATA[:users] = YAML.safe_load_file('db/seeds/user_seeds.yml')
+DATA[:accounts] = YAML.safe_load_file('db/seeds/account_seeds.yml')
 DATA[:attachments] = YAML.safe_load_file('db/seeds/attachment_seeds.yml')
 DATA[:sensitive_data] = YAML.safe_load_file(
   'db/seeds/sensitive_data_seeds.yml',
@@ -27,7 +27,7 @@ DATA[:sensitive_data] = YAML.safe_load_file(
 module LockedCV
   # Shared helpers for spec setup/teardown and database seed loading
   module SpecHelpers
-    REQUIRED_TABLES = %i[users attachments sensitive_data].freeze
+    REQUIRED_TABLES = %i[accounts attachments sensitive_data roles accounts_roles].freeze
 
     def db
       LockedCV::Api.DB
@@ -43,7 +43,9 @@ module LockedCV
     def wipe_database_tables!
       LockedCV::SensitiveData.dataset.delete
       LockedCV::Attachment.dataset.delete
-      LockedCV::User.dataset.delete
+      LockedCV::Api.DB[:accounts_roles].delete
+      LockedCV::Role.dataset.delete
+      LockedCV::Account.dataset.delete
     end
 
     def reset_database!

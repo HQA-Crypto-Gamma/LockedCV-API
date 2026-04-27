@@ -8,17 +8,25 @@ module LockedCV
   class SensitiveData < Sequel::Model(:sensitive_data)
     plugin :timestamps
     plugin :whitelist_security
-    set_allowed_columns :user_name, :phone_number, :birthday, :email, :address, :identification_numbers
+    set_allowed_columns :first_name, :last_name, :phone_number, :birthday, :email, :address, :identification_numbers
 
     many_to_one :attachment, class: :'LockedCV::Attachment', key: :attachment_id
 
     # Secure getters and setters
-    def user_name
-      SecureDB.decrypt(user_name_secure)
+    def first_name
+      SecureDB.decrypt(first_name_secure)
     end
 
-    def user_name=(plaintext)
-      self.user_name_secure = SecureDB.encrypt(plaintext)
+    def first_name=(plaintext)
+      self.first_name_secure = SecureDB.encrypt(plaintext)
+    end
+
+    def last_name
+      SecureDB.decrypt(last_name_secure)
+    end
+
+    def last_name=(plaintext)
+      self.last_name_secure = SecureDB.encrypt(plaintext)
     end
 
     def phone_number
@@ -69,7 +77,8 @@ module LockedCV
             type: 'sensitive_data',
             attributes: {
               id:,
-              user_name:,
+              first_name:,
+              last_name:,
               phone_number:,
               birthday:,
               email:,

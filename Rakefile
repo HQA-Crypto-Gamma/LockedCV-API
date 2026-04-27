@@ -37,7 +37,7 @@ task :print_env do
 end
 
 desc 'Run application console (pry)'
-task console: :print_env do
+task console: %i[db:migrate print_env] do
   sh 'pry -r ./spec/test_load_all'
 end
 
@@ -53,7 +53,8 @@ namespace :db do
 
   desc 'Load all models'
   task :load_models do
-    require_app('models')
+    require_app(%w[models services])
+    @app = LockedCV::Api
   end
 
   desc 'Run migrations'
@@ -65,8 +66,10 @@ namespace :db do
   desc 'Destroy data in database; maintain tables'
   task delete: :load_models do
     LockedCV::SensitiveData.dataset.destroy
-    LockedCV::User.dataset.destroy
     LockedCV::Attachment.dataset.destroy
+    @app.DB[:accounts_roles].delete
+    LockedCV::Role.dataset.destroy
+    LockedCV::Account.dataset.destroy
   end
 
   desc 'Delete dev or test database file'
@@ -80,6 +83,13 @@ namespace :db do
     FileUtils.rm(db_filename)
     puts "Deleted #{db_filename}"
   end
+
+  desc 'Seeds the development database'
+  task seed: :load_models do
+    require_relative 'db/seeds/create_all'
+
+    LockedCV::SeedData.run
+  end
 end
 
 namespace :newkey do
@@ -87,5 +97,11 @@ namespace :newkey do
   task :db do
     require_app('lib', config: false)
     puts "DB_KEY: #{LockedCV::SecureDB.generate_key}"
+  end
+
+  desc 'Create sample cryptographic key for HMAC lookup hashing'
+  task :hash do
+    require_app('lib', config: false)
+    puts "HASH_KEY: #{LockedCV::SecureDB.generate_key}"
   end
 end

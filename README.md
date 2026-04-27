@@ -1,16 +1,18 @@
 # LockedCV API
 
-A Ruby web API for the Crypto γ SEC project that allows users to securely share resumes or other personal documents with automatic personal information hiding. Built with Roda framework and SQLite (via Sequel ORM).
+A Ruby web API for the Crypto γ SEC project that allows accounts to securely share resumes or other personal documents with automatic personal information hiding. Built with Roda framework and SQLite (via Sequel ORM).
 
 ## Features
 
-- RESTful API for managing users, attachments, and sensitive data
+- RESTful API for managing accounts, attachments, and sensitive data
 - SQLite data storage via Sequel ORM
+- PII protection for account email/phone via encrypted (`*_secure`) + searchable hash (`*_hash`) columns
+- Role foundation with `roles` and `accounts_roles` (many-to-many)
 - JSON response format
 
 ## Prerequisites
 
-- Ruby 4.0.1 (see `.ruby-version`)
+- Ruby 4.0.2 (see `.ruby-version`)
 - Bundler
 
 ## Installation
@@ -54,64 +56,66 @@ Response:
 }
 ```
 
-### User Endpoints
+### Account Endpoints
 
-#### Create User
+#### Create Account
 
-**POST** `/api/v1/users`
+**POST** `/api/v1/accounts`
 
 ```bash
-http -v --json POST localhost:9292/api/v1/users \
-  first_name="Jane" \
-  last_name="Smith" \
-  phone_number="987-654-3210"
+http -v --json POST localhost:9292/api/v1/accounts \
+  username="jane_smith" \
+  email="jane@example.com" \
+  phone_number="987-654-3210" \
+  password="my-secret-password"
 ```
 
-#### Get User by ID
+#### Get Account by ID
 
-**GET** `/api/v1/users/:user_id`
+**GET** `/api/v1/accounts/:account_id`
 
 ```bash
-http -v GET localhost:9292/api/v1/users/1
+http -v GET localhost:9292/api/v1/accounts/<account_uuid>
 ```
 
 ### Attachment Endpoints
 
-#### Create Attachment for a User
+#### Create Attachment for an Account
 
-**POST** `/api/v1/users/:user_id/attachments`
+**POST** `/api/v1/accounts/:account_id/attachments`
 
 ```bash
-http -v --json POST localhost:9292/api/v1/users/1/attachments \
+http -v --json POST localhost:9292/api/v1/accounts/<account_uuid>/attachments \
   attachment_name="resume_jane.pdf" \
   route="/uploads/resume_jane.pdf"
 ```
 
-#### Get All Attachments for a User
+#### Get All Attachments for an Account
 
-**GET** `/api/v1/users/:user_id/attachments`
+**GET** `/api/v1/accounts/:account_id/attachments`
 
 ```bash
-http -v GET localhost:9292/api/v1/users/1/attachments
+http -v GET localhost:9292/api/v1/accounts/<account_uuid>/attachments
 ```
 
 #### Get Attachment by ID
 
-**GET** `/api/v1/users/:user_id/attachments/:attachment_id`
+**GET** `/api/v1/accounts/:account_id/attachments/:attachment_id`
 
 ```bash
-http -v GET localhost:9292/api/v1/users/1/attachments/1
+http -v GET localhost:9292/api/v1/accounts/<account_uuid>/attachments/1
 ```
 
 ### Sensitive Data Endpoints
 
 #### Create Sensitive Data for an Attachment
 
-**POST** `/api/v1/users/:user_id/attachments/:attachment_id/sensitive_data`
+**POST** `/api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data`
 
 ```bash
-http -v --json POST localhost:9292/api/v1/users/1/attachments/1/sensitive_data \
-  user_name="Jane Smith" \
+http -v --json POST localhost:9292/api/v1/accounts/<account_uuid>/attachments/1/sensitive_data \
+  first_name="Jane" \
+  last_name="Smith" \
   phone_number="987-654-3210" \
   birthday="1990-01-01" \
   email="jane@example.com" \
@@ -121,10 +125,10 @@ http -v --json POST localhost:9292/api/v1/users/1/attachments/1/sensitive_data \
 
 #### Get Sensitive Data by Attachment
 
-**GET** `/api/v1/users/:user_id/attachments/:attachment_id/sensitive_data`
+**GET** `/api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data`
 
 ```bash
-http -v GET localhost:9292/api/v1/users/1/attachments/1/sensitive_data
+http -v GET localhost:9292/api/v1/accounts/<account_uuid>/attachments/1/sensitive_data
 ```
 
 ## Development
@@ -132,7 +136,7 @@ http -v GET localhost:9292/api/v1/users/1/attachments/1/sensitive_data
 ### Running Tests
 
 ```bash
-ruby spec/integration/api_spec.rb
+bundle exec rake spec
 ```
 
 ### Linting
@@ -140,7 +144,7 @@ ruby spec/integration/api_spec.rb
 Run RuboCop to check code style:
 
 ```bash
-rubocop
+bundle exec rubocop
 ```
 
 ## Project Structure
@@ -151,8 +155,9 @@ rubocop
 │   ├── controllers/
 │   │   └── app.rb          # Main Roda controller with API routes
 │   └── models/
-│       ├── user.rb          # User DB model
+│       ├── account.rb       # Account DB model
 │       ├── attachment.rb    # Attachment DB model
+│       ├── role.rb          # Role DB model
 │       └── sensitive_data.rb # SensitiveData DB model
 ├── config.ru                # Rack configuration
 ├── db/

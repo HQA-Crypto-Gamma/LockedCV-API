@@ -7,8 +7,8 @@ describe LockedCV::SensitiveData do
 
   before do
     reset_database!
-    @user = LockedCV::User.create(DATA[:users].first.transform_keys(&:to_sym))
-    @attachment = @user.add_attachment(DATA[:attachments].first.transform_keys(&:to_sym))
+    @account = LockedCV::Account.create(DATA[:accounts].first.transform_keys(&:to_sym))
+    @attachment = @account.add_attachment(DATA[:attachments].first.transform_keys(&:to_sym))
   end
 
   it 'SECURITY: stores sensitive data encrypted in the database and decrypts through getters' do
@@ -19,13 +19,15 @@ describe LockedCV::SensitiveData do
     sensitive_data.save_changes
     stored_row = db[:sensitive_data].where(id: sensitive_data.id).first
 
-    _(stored_row[:user_name_secure]).wont_equal payload[:user_name]
+    _(stored_row[:first_name_secure]).wont_equal payload[:first_name]
+    _(stored_row[:last_name_secure]).wont_equal payload[:last_name]
     _(stored_row[:phone_number_secure]).wont_equal payload[:phone_number]
     _(stored_row[:birthday_secure]).wont_equal payload[:birthday].to_s
     _(stored_row[:email_secure]).wont_equal payload[:email]
     _(stored_row[:address_secure]).wont_equal payload[:address]
     _(stored_row[:identification_numbers_secure]).wont_equal payload[:identification_numbers]
-    _(sensitive_data.user_name).must_equal payload[:user_name]
+    _(sensitive_data.first_name).must_equal payload[:first_name]
+    _(sensitive_data.last_name).must_equal payload[:last_name]
     _(sensitive_data.phone_number).must_equal payload[:phone_number]
     _(sensitive_data.birthday).must_equal payload[:birthday].to_s
     _(sensitive_data.email).must_equal payload[:email]

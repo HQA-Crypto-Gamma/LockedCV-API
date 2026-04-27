@@ -1,12 +1,12 @@
-# Copilot Instructions
+# LockedCV-API Copilot Instructions
 
 This file provides guidance to GitHub Copilot when working with the LockedCV API codebase.
 
 ## Project Overview
 
-LockedCV is a Ruby Web API that allows users to securely share resumes or other personal documents with automatic personal information hiding. It uses the Roda framework with a SQLite data store via Sequel ORM.
+LockedCV is a Ruby Web API that allows accounts to securely share resumes or other personal documents with automatic personal information hiding. It uses the Roda framework with a SQLite data store via Sequel ORM.
 
-- **Ruby version:** 4.0.1 (see `.ruby-version`)
+- **Ruby version:** 4.0.2 (see `.ruby-version`)
 - **Framework:** Roda (lightweight Ruby web framework)
 
 ## Commands
@@ -28,7 +28,7 @@ puma
 Run all tests:
 
 ```bash
-ruby spec/integration/api_spec.rb
+bundle exec rake spec
 ```
 
 ### Linting
@@ -36,7 +36,7 @@ ruby spec/integration/api_spec.rb
 Run RuboCop:
 
 ```bash
-rubocop
+bundle exec rubocop
 ```
 
 ## Architecture
@@ -59,45 +59,51 @@ Application data is stored in SQLite database files under `db/local/` (gitignore
 
 Current schema implemented in migrations:
 
-1. `attachments`
-   - `id` (String, PK)
+1. `accounts`
+   - `id` (UUID, PK)
+   - `username` (String, unique, plaintext)
+   - `email_secure` (String, encrypted)
+   - `email_hash` (String, deterministic hash, unique)
+   - `phone_number_secure` (String, encrypted, optional)
+   - `phone_number_hash` (String, deterministic hash, optional, unique)
+   - `password_digest` (String)
+   - `created_at`, `updated_at` (DateTime)
+2. `attachments`
+   - `id` (Integer, PK)
    - `attachment_name` (String)
-   - `route` (String)
-   - `created_at` (DateTime)
-   - `updated_at` (DateTime)
-   - `user_id` (String, FK -> `users.id`)
-   - Unique constraint: `[:user_id, :attachment_name]`
-2. `sensitive_data`
-   - `id` (String, PK)
-   - `user_name` (String)
-   - `phone_number` (String)
-   - `birthday` (Date)
-   - `email` (String)
-   - `address` (String)
-   - `identification_numbers` (String)
-   - `created_at` (DateTime)
-   - `updated_at` (DateTime)
-   - `attachment_id` (String, FK -> `attachments.id`)
-   - Unique constraint: `[:attachment_id]`
-3. `users` (cause ohters tables reference it)
-   - `id` (String, PK)
-   - `first_name` (String)
-   - `last_name` (String)
-   - `phone_number` (String)
-   - `created_at` (DateTime)
-   - `updated_at` (DateTime)
+   - `route` (String, unique)
+   - `account_id` (UUID, FK -> `accounts.id`)
+   - `created_at`, `updated_at` (DateTime)
+   - Unique constraint: `[:account_id, :attachment_name]`
+3. `sensitive_data`
+   - `id` (Integer, PK)
+   - `first_name_secure`, `last_name_secure` (String)
+   - `phone_number_secure`, `birthday_secure` (String)
+   - `email_secure`, `address_secure`, `identification_numbers_secure` (String)
+   - `attachment_id` (Integer, FK -> `attachments.id`, unique)
+   - `created_at`, `updated_at` (DateTime)
+4. `roles`
+   - `id` (Integer, PK)
+   - `name` (String, unique)
+   - `created_at`, `updated_at` (DateTime)
+5. `accounts_roles`
+   - `account_id` (UUID, FK -> `accounts.id`)
+   - `role_id` (Integer, FK -> `roles.id`)
+   - Composite PK: `[:account_id, :role_id]`
 
 Migration files:
 
-- `db/migrations/001_create_attachment.rb`
-- `db/migrations/002_create_sensitive_data.rb`
-- `db/migrations/003_create_user.rb`
+- `db/migrations/001_create_accounts.rb`
+- `db/migrations/002_create_attachments.rb`
+- `db/migrations/003_create_sensitive_data.rb`
+- `db/migrations/004_create_roles.rb`
+- `db/migrations/005_account_roles.rb`
 
 ### Directory Structure
 
 - `config.ru` — Rack entry point
 - `app/controllers/` — Roda controllers with routing logic
-- `app/models/` — Sequel models (`User`, `Attachment`, `SensitiveData`)
+- `app/models/` — Sequel models (`Account`, `Attachment`, `SensitiveData`, `Role`)
 - `db/local/` — Local SQLite database files (gitignored)
 - `db/seeds/` — YAML seed data for tests
 - `spec/` — Minitest specs using `Rack::Test`
@@ -149,5 +155,5 @@ All markdown files must be kept lint-free:
 
 ## Security
 
-- Uses `rbnacl` gem for cryptographic operations (SHA-256 hashing)
+- Uses `rbnacl` gem for cryptographic operations (encryption + keyed HMAC-SHA256 hashing)
 - Personal data handling for secure resume/document sharing

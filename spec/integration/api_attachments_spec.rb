@@ -12,15 +12,22 @@ describe 'Attachment Endpoints' do
 
   before do
     reset_database!
-    @user = LockedCV::User.create(DATA[:users].first.transform_keys(&:to_sym))
-    @attachments = [@user.add_attachment(DATA[:attachments].first.transform_keys(&:to_sym))]
+    @account = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+    )
+    @attachments = [
+      LockedCV::CreateAttachmentService.call(
+        account_id: @account.id,
+        attachment_data: DATA[:attachments].first.transform_keys(&:to_sym)
+      )
+    ]
   end
 
-  describe 'POST /api/v1/users/:user_id/attachments' do
-    it 'HAPPY: creates an attachment for a user' do
+  describe 'POST /api/v1/accounts/:account_id/attachments' do
+    it 'HAPPY: creates an attachment for an account' do
       payload = DATA[:attachments].last.transform_keys(&:to_sym)
 
-      post "/api/v1/users/#{@user.id}/attachments", payload.to_json, req_header
+      post "/api/v1/accounts/#{@account.id}/attachments", payload.to_json, req_header
 
       _(last_response.status).must_equal 201
       _(last_response.headers['Content-Type']).must_include 'application/json'
@@ -29,21 +36,21 @@ describe 'Attachment Endpoints' do
     end
 
     it 'SECURITY: returns 400 and does not create attachment on mass assignment' do
-      payload = DATA[:attachments].last.merge('user_id' => 'forged-user')
+      payload = DATA[:attachments].last.merge('account_id' => 'forged-account')
       before_count = LockedCV::Attachment.count
 
-      post "/api/v1/users/#{@user.id}/attachments", payload.to_json, req_header
+      post "/api/v1/accounts/#{@account.id}/attachments", payload.to_json, req_header
 
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Illegal attributes')
       _(LockedCV::Attachment.count).must_equal before_count
-      _(LockedCV::Attachment.where(user_id: 'forged-user').count).must_equal 0
+      _(LockedCV::Attachment.where(account_id: 'forged-account').count).must_equal 0
     end
   end
 
-  describe 'GET /api/v1/users/:user_id/attachments' do
-    it 'HAPPY: gets all attachments for a user' do
-      get "/api/v1/users/#{@user.id}/attachments"
+  describe 'GET /api/v1/accounts/:account_id/attachments' do
+    it 'HAPPY: gets all attachments for an account' do
+      get "/api/v1/accounts/#{@account.id}/attachments"
 
       _(last_response.status).must_equal 200
       _(last_response.headers['Content-Type']).must_include 'application/json'
@@ -51,19 +58,19 @@ describe 'Attachment Endpoints' do
       _(attachment_names).must_include DATA[:attachments].first['attachment_name']
     end
 
-    it 'SAD: returns 404 for missing user' do
-      get '/api/v1/users/999999/attachments'
+    it 'SAD: returns 404 for missing account' do
+      get '/api/v1/accounts/999999/attachments'
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Could not find attachments')
     end
   end
 
-  describe 'GET /api/v1/users/:user_id/attachments/:attachment_id' do
+  describe 'GET /api/v1/accounts/:account_id/attachments/:attachment_id' do
     it 'HAPPY: gets one attachment' do
       attachment = @attachments.first
 
-      get "/api/v1/users/#{@user.id}/attachments/#{attachment.id}"
+      get "/api/v1/accounts/#{@account.id}/attachments/#{attachment.id}"
 
       _(last_response.status).must_equal 200
       _(json_body.dig('data', 'type')).must_equal 'attachment'
@@ -71,7 +78,19 @@ describe 'Attachment Endpoints' do
     end
 
     it 'SAD: returns 404 for missing attachment' do
-      get "/api/v1/users/#{@user.id}/attachments/999999"
+      get "/api/v1/accounts/#{@account.id}/attachments/999999"
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Attachment not found')
+    end
+
+    it 'SECURITY: returns 404 when attachment belongs to another account' do
+      other_account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+      )
+      attachment = @attachments.first
+
+      get "/api/v1/accounts/#{other_account.id}/attachments/#{attachment.id}"
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Attachment not found')
