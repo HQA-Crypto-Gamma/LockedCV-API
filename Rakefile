@@ -72,6 +72,11 @@ namespace :db do
     LockedCV::Account.dataset.destroy
   end
 
+  desc 'Reset seed tracking'
+  task reset_seeds: :load do
+    @app.DB[:schema_seeds].delete if @app.DB.tables.include?(:schema_seeds)
+  end
+
   desc 'Delete dev or test database file'
   task drop: :load do
     if @app.environment == :production
@@ -92,6 +97,9 @@ namespace :db do
     Sequel::Seed.setup(@app.environment)
     Sequel::Seeder.apply(@app.DB, 'db/seeds')
   end
+
+  desc 'Delete all data and reseed'
+  task reseed: %i[delete reset_seeds seed]
 end
 
 namespace :newkey do

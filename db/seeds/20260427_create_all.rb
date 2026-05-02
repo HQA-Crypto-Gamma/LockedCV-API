@@ -12,7 +12,7 @@ module LockedCV
       puts 'Seeding roles, accounts, attachments, and sensitive data'
       validate_seed_counts
       create_roles
-      create_accounts_with_documents
+      create_accounts_with_attachments_and_sensitive_data
       assign_system_roles
     end
 
@@ -59,7 +59,7 @@ module LockedCV
       end
     end
 
-    def create_accounts_with_documents
+    def create_accounts_with_attachments_and_sensitive_data
       accounts_info.each_with_index do |account_info, index|
         account = find_or_create_account(account_info)
         attachment = find_or_create_attachment(account, attachments_info[index])
