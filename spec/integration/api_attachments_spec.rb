@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'cgi'
 require_relative '../spec_helper'
 
 describe 'Attachment Endpoints' do
@@ -64,6 +65,15 @@ describe 'Attachment Endpoints' do
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Could not find attachments')
     end
+
+    it 'SECURITY: rejects SQL injection in account_id when fetching attachments' do
+      injected_account_id = CGI.escape("#{@account.id}' OR '1'='1")
+
+      get "/api/v1/accounts/#{injected_account_id}/attachments"
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Could not find attachments')
+    end
   end
 
   describe 'GET /api/v1/accounts/:account_id/attachments/:attachment_id' do
@@ -91,6 +101,15 @@ describe 'Attachment Endpoints' do
       attachment = @attachments.first
 
       get "/api/v1/accounts/#{other_account.id}/attachments/#{attachment.id}"
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Attachment not found')
+    end
+
+    it 'SECURITY: rejects SQL injection in attachment_id when fetching attachment' do
+      injected_attachment_id = CGI.escape("#{@attachments.first.id}' OR '1'='1")
+
+      get "/api/v1/accounts/#{@account.id}/attachments/#{injected_attachment_id}"
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Attachment not found')

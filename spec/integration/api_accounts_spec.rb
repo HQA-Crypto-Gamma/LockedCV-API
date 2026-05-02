@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'cgi'
 require_relative '../spec_helper'
 
 describe 'Account Endpoints' do
@@ -78,6 +79,18 @@ describe 'Account Endpoints' do
 
     it 'SAD: returns 404 for missing account' do
       get '/api/v1/accounts/999999'
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Account not found')
+    end
+
+    it 'SECURITY: rejects SQL injection in account id' do
+      account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+      injected_account_id = CGI.escape("#{account.id}' OR '1'='1")
+
+      get "/api/v1/accounts/#{injected_account_id}"
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Account not found')
