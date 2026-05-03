@@ -30,12 +30,12 @@ bundle install
 
 ## Running the Application
 
-Start the Puma server:
+Start the API development server:
 ```bash
-puma
+bundle exec rake run:dev
 ```
 
-The API will be available at `http://localhost:9292`
+The API will be available at `http://localhost:9000`
 
 ## API Endpoints
 
@@ -46,7 +46,7 @@ The API will be available at `http://localhost:9292`
 Returns API status message.
 
 ```bash
-http -v GET localhost:9292/
+http -v GET localhost:9000/
 ```
 
 Response:
@@ -63,7 +63,7 @@ Response:
 **POST** `/api/v1/auth/authenticate`
 
 ```bash
-http -v --json POST localhost:9292/api/v1/auth/authenticate \
+http -v --json POST localhost:9000/api/v1/auth/authenticate \
   username="jane_smith" \
   password="my-secret-password"
 ```
@@ -79,7 +79,7 @@ return `403` with a JSON error message.
 **POST** `/api/v1/accounts`
 
 ```bash
-http -v --json POST localhost:9292/api/v1/accounts \
+http -v --json POST localhost:9000/api/v1/accounts \
   username="jane_smith" \
   email="jane@example.com" \
   phone_number="987-654-3210" \
@@ -91,7 +91,7 @@ http -v --json POST localhost:9292/api/v1/accounts \
 **GET** `/api/v1/accounts/:account_id`
 
 ```bash
-http -v GET localhost:9292/api/v1/accounts/<account_uuid>
+http -v GET localhost:9000/api/v1/accounts/<account_uuid>
 ```
 
 #### Assign System Role
@@ -99,7 +99,7 @@ http -v GET localhost:9292/api/v1/accounts/<account_uuid>
 **PUT** `/api/v1/accounts/:username/system_roles/:role_name`
 
 ```bash
-http -v --json PUT localhost:9292/api/v1/accounts/jane_smith/system_roles/member \
+http -v --json PUT localhost:9000/api/v1/accounts/jane_smith/system_roles/member \
   current_account_id="<admin_account_uuid>"
 ```
 
@@ -113,7 +113,7 @@ is a minimal authorization demo; full resource-level authorization is deferred.
 **POST** `/api/v1/accounts/:account_id/attachments`
 
 ```bash
-http -v --json POST localhost:9292/api/v1/accounts/<account_uuid>/attachments \
+http -v --json POST localhost:9000/api/v1/accounts/<account_uuid>/attachments \
   attachment_name="resume_jane.pdf" \
   route="/uploads/resume_jane.pdf"
 ```
@@ -123,7 +123,7 @@ http -v --json POST localhost:9292/api/v1/accounts/<account_uuid>/attachments \
 **GET** `/api/v1/accounts/:account_id/attachments`
 
 ```bash
-http -v GET localhost:9292/api/v1/accounts/<account_uuid>/attachments
+http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments
 ```
 
 #### Get Attachment by ID
@@ -131,7 +131,7 @@ http -v GET localhost:9292/api/v1/accounts/<account_uuid>/attachments
 **GET** `/api/v1/accounts/:account_id/attachments/:attachment_id`
 
 ```bash
-http -v GET localhost:9292/api/v1/accounts/<account_uuid>/attachments/1
+http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1
 ```
 
 ### Sensitive Data Endpoints
@@ -141,7 +141,7 @@ http -v GET localhost:9292/api/v1/accounts/<account_uuid>/attachments/1
 **POST** `/api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data`
 
 ```bash
-http -v --json POST localhost:9292/api/v1/accounts/<account_uuid>/attachments/1/sensitive_data \
+http -v --json POST localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/sensitive_data \
   first_name="Jane" \
   last_name="Smith" \
   phone_number="987-654-3210" \
@@ -156,7 +156,7 @@ http -v --json POST localhost:9292/api/v1/accounts/<account_uuid>/attachments/1/
 **GET** `/api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data`
 
 ```bash
-http -v GET localhost:9292/api/v1/accounts/<account_uuid>/attachments/1/sensitive_data
+http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/sensitive_data
 ```
 
 ## Development
