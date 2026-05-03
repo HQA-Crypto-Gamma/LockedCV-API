@@ -66,6 +66,7 @@
    - 已補 unit/integration specs：admin assign、idempotent reassign、non-admin denied、unknown role、unknown account、missing current account。
    - Deferred：完整 policy object 與 resource-level authorization 等教授 authorization/policy 章節後再設計。
    - Deferred：`owner`、`viewer_masked`、`viewer_full` 如何管 attachment/sensitive_data 存取權，需要先對齊 domain sharing model。
+   - Deferred：authorization policy 完成後，重新開啟 `GET /api/v1/accounts` 作為 admin-only account listing。
 
 6. ✅ `web-app-repo-handoff`（已完成）
    - Web App work has moved to `LockedCV-APP`.

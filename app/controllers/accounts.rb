@@ -131,7 +131,7 @@ module LockedCV
       end
 
       # GET api/v1/accounts
-      # NOTE: Disabled for now (security concern: listing all accounts without auth)
+      # Deferred: enable as admin-only account listing after authorization policy lands.
       # routing.get do
       #   output = { data: Account.all }
       #   JSON.pretty_generate(output)
