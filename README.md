@@ -56,6 +56,22 @@ Response:
 }
 ```
 
+### Authentication Endpoints
+
+#### Authenticate Account
+
+**POST** `/api/v1/auth/authenticate`
+
+```bash
+http -v --json POST localhost:9292/api/v1/auth/authenticate \
+  username="jane_smith" \
+  password="my-secret-password"
+```
+
+Successful authentication returns safe account information for the client
+session, including account ID, username, email, and roles. Invalid credentials
+return `403` with a JSON error message.
+
 ### Account Endpoints
 
 #### Create Account
@@ -77,6 +93,18 @@ http -v --json POST localhost:9292/api/v1/accounts \
 ```bash
 http -v GET localhost:9292/api/v1/accounts/<account_uuid>
 ```
+
+#### Assign System Role
+
+**PUT** `/api/v1/accounts/:username/system_roles/:role_name`
+
+```bash
+http -v --json PUT localhost:9292/api/v1/accounts/jane_smith/system_roles/member \
+  current_account_id="<admin_account_uuid>"
+```
+
+Only accounts with the `admin` system role can assign system roles. This route
+is a minimal authorization demo; full resource-level authorization is deferred.
 
 ### Attachment Endpoints
 
@@ -153,7 +181,10 @@ bundle exec rubocop
 .
 ├── app/
 │   ├── controllers/
-│   │   └── app.rb          # Main Roda controller with API routes
+│   │   ├── app.rb          # Main Roda app with API route dispatch
+│   │   ├── accounts.rb     # Account-scoped API routes
+│   │   ├── auth.rb         # Authentication API routes
+│   │   └── http_request.rb # Request body and TLS/SSL helpers
 │   └── models/
 │       ├── account.rb       # Account DB model
 │       ├── attachment.rb    # Attachment DB model
