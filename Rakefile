@@ -41,6 +41,13 @@ task console: %i[db:migrate print_env] do
   sh 'pry -r ./spec/test_load_all'
 end
 
+namespace :run do
+  desc 'Run API in development mode'
+  task dev: [:print_env] do
+    sh 'puma -p 9000'
+  end
+end
+
 namespace :db do
   desc 'Load nothing by default'
   task :load do
