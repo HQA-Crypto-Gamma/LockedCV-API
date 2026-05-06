@@ -130,14 +130,34 @@ module LockedCV
         end
       end
 
-      # GET api/v1/accounts
-      # Deferred: enable as admin-only account listing after authorization policy lands.
-      # routing.get do
-      #   output = { data: Account.all }
-      #   JSON.pretty_generate(output)
-      # rescue StandardError
-      #   routing.halt 500, { message: 'Error retrieving accounts' }.to_json
-      # end
+      # GET api/v1/accounts?current_account_id=[admin_account_id]
+      routing.get do
+        accounts = ListAccountsService.call(
+          current_account_id: routing.params['current_account_id']
+        )
+
+        output = {
+          data: accounts.map do |account|
+            {
+              type: 'account',
+              attributes: {
+                id: account.id,
+                username: account.username,
+                email: account.email,
+                roles: account.system_roles.map(&:name)
+              }
+            }
+          end
+        }
+        JSON.pretty_generate(output)
+      rescue ListAccountsService::MissingCurrentAccountError
+        routing.halt 401, { message: 'Missing current_account_id' }.to_json
+      rescue ListAccountsService::NotAuthorizedError
+        routing.halt 403, { message: 'Only admins can list accounts' }.to_json
+      rescue StandardError => e
+        Api.logger.error "UNKNOWN ERROR: #{e.message}"
+        routing.halt 500, { message: 'Database error' }.to_json
+      end
 
       # POST api/v1/accounts
       routing.post do
