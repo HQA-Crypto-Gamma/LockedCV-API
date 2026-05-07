@@ -18,3 +18,7 @@ storage/uploads/*
 # Secrets
 config/secrets.yml
 *~
+
+# Project AI skills should be committed
+!.github/skills/
+!.github/skills/**

@@ -25,6 +25,106 @@ describe 'Service Objects' do
     _(found).must_be_nil
   end
 
+  it 'HAPPY: authenticates an account with valid credentials' do
+    payload = DATA[:accounts].first.transform_keys(&:to_sym)
+    account = LockedCV::CreateAccountService.call(account_data: payload)
+
+    authenticated = LockedCV::AuthenticateAccountService.call(
+      username: payload[:username],
+      password: payload[:password]
+    )
+
+    _(authenticated.id).must_equal account.id
+  end
+
+  it 'SAD: raises when authenticating with an invalid password' do
+    payload = DATA[:accounts].first.transform_keys(&:to_sym)
+    LockedCV::CreateAccountService.call(account_data: payload)
+
+    _(
+      proc do
+        LockedCV::AuthenticateAccountService.call(
+          username: payload[:username],
+          password: 'not-the-password'
+        )
+      end
+    ).must_raise LockedCV::AuthenticateAccountService::UnauthorizedError
+  end
+
+  it 'SAD: raises when authenticating an unknown account' do
+    _(
+      proc do
+        LockedCV::AuthenticateAccountService.call(
+          username: 'missing-account',
+          password: 'anything'
+        )
+      end
+    ).must_raise LockedCV::AuthenticateAccountService::UnauthorizedError
+  end
+
+  it 'HAPPY: admin assigns a system role to an account' do
+    admin_role = LockedCV::Role.create(name: 'admin')
+    member_role = LockedCV::Role.create(name: 'member')
+    admin = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+    )
+    target = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+    )
+    admin.add_system_role(admin_role)
+
+    result = LockedCV::AssignSystemRoleService.call(
+      current_account_id: admin.id,
+      target_username: target.username,
+      role_name: member_role.name
+    )
+
+    _(result.created?).must_equal true
+    _(target.reload.system_roles.map(&:name)).must_include 'member'
+  end
+
+  it 'HAPPY: assigning an already assigned system role is idempotent' do
+    admin_role = LockedCV::Role.create(name: 'admin')
+    member_role = LockedCV::Role.create(name: 'member')
+    admin = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+    )
+    target = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+    )
+    admin.add_system_role(admin_role)
+    target.add_system_role(member_role)
+
+    result = LockedCV::AssignSystemRoleService.call(
+      current_account_id: admin.id,
+      target_username: target.username,
+      role_name: member_role.name
+    )
+
+    _(result.created?).must_equal false
+    _(target.reload.system_roles.count { |role| role.name == 'member' }).must_equal 1
+  end
+
+  it 'SAD: non-admin cannot assign a system role' do
+    LockedCV::Role.create(name: 'member')
+    member = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+    )
+    target = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+    )
+
+    _(
+      proc do
+        LockedCV::AssignSystemRoleService.call(
+          current_account_id: member.id,
+          target_username: target.username,
+          role_name: 'member'
+        )
+      end
+    ).must_raise LockedCV::AssignSystemRoleService::NotAuthorizedError
+  end
+
   it 'HAPPY: creates an attachment for an account' do
     account = LockedCV::CreateAccountService.call(
       account_data: DATA[:accounts].first.transform_keys(&:to_sym)
