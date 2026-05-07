@@ -4,6 +4,7 @@ ENV['RACK_ENV'] = 'test'
 
 require 'json'
 require 'date'
+require 'fileutils'
 require 'logger'
 require 'minitest/autorun'
 require 'minitest/rg'
@@ -53,6 +54,14 @@ module LockedCV
       wipe_database_tables!
     end
 
+    def reset_storage!
+      FileUtils.rm_rf('storage/uploads')
+    end
+
+    def storage_path_for(route)
+      File.expand_path(File.join('storage/uploads', route), Dir.pwd)
+    end
+
     def req_header
       { 'CONTENT_TYPE' => 'application/json' }
     end
@@ -60,6 +69,37 @@ module LockedCV
     def json_body
       JSON.parse(last_response.body)
     end
+
+    # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+    def write_text_pdf(path, text)
+      escaped_text = text.gsub('\\', '\\\\\\').gsub('(', '\\(').gsub(')', '\\)')
+      objects = [
+        '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj',
+        '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj',
+        '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] ' \
+        '/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj',
+        '4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj'
+      ]
+      stream = "BT /F1 12 Tf 72 720 Td (#{escaped_text}) Tj ET\n"
+      objects << "5 0 obj << /Length #{stream.bytesize} >> stream\n" \
+                 "#{stream}endstream endobj"
+
+      body = +"%PDF-1.4\n"
+      offsets = objects.map do |object|
+        offset = body.bytesize
+        body << "#{object}\n"
+        offset
+      end
+      xref_offset = body.bytesize
+      body << "xref\n0 #{objects.length + 1}\n"
+      body << "0000000000 65535 f \n"
+      offsets.each { |offset| body << format('%010d 00000 n ', offset) << "\n" }
+      body << "trailer << /Root 1 0 R /Size #{objects.length + 1} >>\n"
+      body << "startxref\n#{xref_offset}\n%%EOF\n"
+
+      File.binwrite(path, body)
+    end
+    # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
 
     def capture_app_logs
       original_logger = LockedCV::Api.logger

@@ -6,6 +6,7 @@ source 'https://rubygems.org'
 gem 'base64'
 gem 'json'
 gem 'logger', '~> 1.0'
+gem 'pdf-reader', '~> 2.14'
 gem 'puma', '~>7.0'
 gem 'roda', '~>3.0'
 

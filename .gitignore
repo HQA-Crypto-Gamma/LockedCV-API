@@ -7,9 +7,11 @@
 
 # Temp files
 _*
+tmp/
 
 # Local data store
 db/local/*
+storage/uploads/*
 .bundle/
 .vscode/
 
