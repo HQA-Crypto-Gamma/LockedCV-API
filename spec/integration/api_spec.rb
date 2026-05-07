@@ -19,5 +19,14 @@ describe LockedCV::Api do
         'message' => 'LockedCV API up at /api/v1'
       )
     end
+
+    it 'SECURITY: rejects requests that do not match configured secure scheme' do
+      get '/', {}, 'rack.url_scheme' => 'https'
+
+      _(last_response.status).must_equal 403
+      _(JSON.parse(last_response.body)).must_equal(
+        'message' => 'TLS/SSL Required'
+      )
+    end
   end
 end

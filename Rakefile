@@ -52,6 +52,13 @@ task console: %i[db:migrate print_env] do
   sh 'pry -r ./spec/test_load_all'
 end
 
+namespace :run do
+  desc 'Run API in development mode'
+  task dev: [:print_env] do
+    sh 'puma -p 9000'
+  end
+end
+
 namespace :db do
   desc 'Load nothing by default'
   task :load do
@@ -83,6 +90,11 @@ namespace :db do
     LockedCV::Account.dataset.destroy
   end
 
+  desc 'Reset seed tracking'
+  task reset_seeds: :load do
+    @app.DB[:schema_seeds].delete if @app.DB.tables.include?(:schema_seeds)
+  end
+
   desc 'Delete dev or test database file'
   task drop: :load do
     if @app.environment == :production
@@ -103,6 +115,9 @@ namespace :db do
     Sequel::Seed.setup(@app.environment)
     Sequel::Seeder.apply(@app.DB, 'db/seeds')
   end
+
+  desc 'Delete all data and reseed'
+  task reseed: %i[delete reset_seeds seed]
 end
 
 namespace :newkey do
