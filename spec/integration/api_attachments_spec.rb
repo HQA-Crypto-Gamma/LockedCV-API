@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'tempfile'
 require_relative '../spec_helper'
 
 describe 'Attachment Endpoints' do
@@ -91,6 +92,46 @@ describe 'Attachment Endpoints' do
       attachment = @attachments.first
 
       get "/api/v1/accounts/#{other_account.id}/attachments/#{attachment.id}"
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Attachment not found')
+    end
+  end
+
+  describe 'GET /api/v1/accounts/:account_id/attachments/:attachment_id/masked_text' do
+    it 'HAPPY: returns masked text for a text-based PDF attachment' do
+      pdf = Tempfile.new(['lockedcv-api-attachment', '.pdf'])
+      write_text_pdf(pdf.path, 'Ada: ada@example.com, 0912-000-001, 1815-12-10, A123456789')
+      attachment = LockedCV::CreateAttachmentService.call(
+        account_id: @account.id,
+        attachment_data: {
+          attachment_name: 'resume_maskable.pdf',
+          route: pdf.path
+        }
+      )
+      LockedCV::CreateSensitiveDataService.call(
+        account_id: @account.id,
+        attachment_id: attachment.id,
+        sensitive_data: DATA[:sensitive_data].first.transform_keys(&:to_sym)
+      )
+
+      get "/api/v1/accounts/#{@account.id}/attachments/#{attachment.id}/masked_text"
+
+      _(last_response.status).must_equal 200
+      _(last_response.headers['Content-Type']).must_include 'application/json'
+      _(json_body['data']['type']).must_equal 'masked_attachment_text'
+      _(json_body['data']['attributes']['attachment_id']).must_equal attachment.id
+      _(json_body['data']['attributes']['masked_text']).must_include '[FIRST_NAME]'
+      _(json_body['data']['attributes']['masked_text']).must_include '[EMAIL]'
+      _(json_body['data']['attributes']['masked_text']).must_include '[PHONE_NUMBER]'
+      _(json_body['data']['attributes']['masked_text']).must_include '[BIRTHDAY]'
+      _(json_body['data']['attributes']['masked_text']).must_include '[IDENTIFICATION_NUMBERS]'
+    ensure
+      pdf&.close!
+    end
+
+    it 'SAD: returns 404 when masking a missing attachment' do
+      get "/api/v1/accounts/#{@account.id}/attachments/999999/masked_text"
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Attachment not found')

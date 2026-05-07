@@ -18,12 +18,23 @@ end
 
 desc 'Runs rubocop on tested code'
 task style: %i[spec audit] do
-  sh 'rubocop .'
+  mkdir_p 'tmp'
+  sh({ 'RUBOCOP_CACHE_ROOT' => 'tmp/rubocop_cache' }, 'rubocop .')
 end
 
 desc 'Update vulnerabilities list and audit gems'
 task :audit do
-  sh 'bundle audit check --update'
+  advisory_db = 'tmp/ruby-advisory-db'
+  mkdir_p 'tmp'
+  audit_command = "bundle audit check --database #{advisory_db}"
+  update_command = "#{audit_command} --update"
+
+  next if system(update_command)
+
+  raise 'Could not update ruby-advisory-db' unless Dir.exist?(advisory_db)
+
+  warn 'Could not update ruby-advisory-db; using local advisory database'
+  sh audit_command
 end
 
 desc 'Checks for release'

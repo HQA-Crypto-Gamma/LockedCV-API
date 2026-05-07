@@ -26,6 +26,25 @@ module LockedCV
               @attachment_route = "#{@account_route}/#{account_id}/attachments"
 
               routing.on String do |attachment_id|
+                routing.on 'masked_text' do
+                  # GET api/v1/accounts/[account_id]/attachments/[attachment_id]/masked_text
+                  routing.get do
+                    result = ProcessAttachmentMasking.call(account_id:, attachment_id:)
+
+                    {
+                      data: {
+                        type: 'masked_attachment_text',
+                        attributes: result
+                      }
+                    }.to_json
+                  rescue ProcessAttachmentMasking::AttachmentNotFoundError
+                    routing.halt 404, { message: 'Attachment not found' }.to_json
+                  rescue StandardError => e
+                    Api.logger.error "PDF MASKING ERROR: #{e.message}"
+                    routing.halt 400, { message: 'Could not mask attachment' }.to_json
+                  end
+                end
+
                 routing.on 'sensitive_data' do
                   @sensitive_data_route = "#{@attachment_route}/#{attachment_id}/sensitive_data"
 
