@@ -13,7 +13,8 @@ module LockedCV
     end
 
     def self.masked_result(attachment:, attachment_id:)
-      text = ExtractPdfText.call(file_path: attachment.route)
+      pdf_path = ResolveAttachmentPath.call(route: attachment.route)
+      text = ExtractPdfText.call(file_path: pdf_path)
       sensitive_data = FindSensitiveDataService.call(attachment_id:)
       matches = MaskSensitiveText.matches_for_masking(text:, sensitive_data:)
       masked_text = MaskSensitiveText.call(text:, matches:)

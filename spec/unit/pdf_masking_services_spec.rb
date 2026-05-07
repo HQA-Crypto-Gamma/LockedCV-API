@@ -8,6 +8,11 @@ describe 'PDF Masking Services' do
 
   before do
     reset_database!
+    reset_storage!
+  end
+
+  after do
+    reset_storage!
   end
 
   it 'HAPPY: extracts text from a text-based PDF' do
@@ -62,11 +67,22 @@ describe 'PDF Masking Services' do
     )
     pdf = Tempfile.new(['lockedcv-attachment', '.pdf'])
     write_text_pdf(pdf.path, 'Reach Ada Lovelace at ada@example.com, 0912-000-001, A123456789.')
+    route = nil
+    File.open(pdf.path, 'rb') do |uploaded_pdf|
+      route = LockedCV::StoreAttachmentFile.call(
+        uploaded_file: {
+          filename: 'resume_ada.pdf',
+          type: 'application/pdf',
+          tempfile: uploaded_pdf
+        },
+        account_id: account.id
+      )
+    end
     attachment = LockedCV::CreateAttachmentService.call(
       account_id: account.id,
       attachment_data: {
         attachment_name: 'resume_ada.pdf',
-        route: pdf.path
+        route:
       }
     )
     LockedCV::CreateSensitiveDataService.call(

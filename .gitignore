@@ -11,6 +11,7 @@ tmp/
 
 # Local data store
 db/local/*
+storage/uploads/*
 .bundle/
 .vscode/
 

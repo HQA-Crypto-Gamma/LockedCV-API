@@ -13,6 +13,7 @@ describe 'Attachment Endpoints' do
 
   before do
     reset_database!
+    reset_storage!
     @account = LockedCV::CreateAccountService.call(
       account_data: DATA[:accounts].first.transform_keys(&:to_sym)
     )
@@ -22,6 +23,10 @@ describe 'Attachment Endpoints' do
         attachment_data: DATA[:attachments].first.transform_keys(&:to_sym)
       )
     ]
+  end
+
+  after do
+    reset_storage!
   end
 
   describe 'POST /api/v1/accounts/:account_id/attachments' do
@@ -46,6 +51,80 @@ describe 'Attachment Endpoints' do
       _(json_body).must_equal('message' => 'Illegal attributes')
       _(LockedCV::Attachment.count).must_equal before_count
       _(LockedCV::Attachment.where(account_id: 'forged-account').count).must_equal 0
+    end
+  end
+
+  describe 'POST /api/v1/accounts/:account_id/attachments/upload' do
+    it 'HAPPY: uploads a PDF and stores attachment metadata with a relative route' do
+      pdf = Tempfile.new(['lockedcv-api-upload', '.pdf'])
+      write_text_pdf(pdf.path, 'Uploaded PDF text')
+      upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'Resume Ada.pdf')
+
+      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }
+
+      _(last_response.status).must_equal 201
+      _(last_response.headers['Content-Type']).must_include 'application/json'
+      _(json_body['message']).must_equal 'Attachment saved'
+      route = json_body.dig('data', 'data', 'attributes', 'route')
+      _(route).must_match %r{\Aaccounts/#{@account.id}/resume_ada_[0-9a-f]{32}\.pdf\z}
+      _(route).wont_match %r{\A/}
+      _(File.file?(storage_path_for(route))).must_equal true
+    ensure
+      pdf&.close!
+    end
+
+    it 'SAD: rejects non-PDF uploads' do
+      text_file = Tempfile.new(['lockedcv-api-upload', '.txt'])
+      text_file.write('not a pdf')
+      text_file.rewind
+      upload = Rack::Test::UploadedFile.new(text_file.path, 'text/plain', true, original_filename: 'resume.txt')
+
+      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Could not upload attachment')
+    ensure
+      text_file&.close!
+    end
+
+    it 'SAD: rejects missing file uploads' do
+      post "/api/v1/accounts/#{@account.id}/attachments/upload", {}
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Could not upload attachment')
+    end
+
+    it 'SAD: returns 404 and does not store files when account is missing' do
+      pdf = Tempfile.new(['lockedcv-api-upload-missing-account', '.pdf'])
+      write_text_pdf(pdf.path, 'Uploaded PDF text')
+      upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'resume.pdf')
+
+      post '/api/v1/accounts/missing-account/attachments/upload', { file: upload }
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Account not found')
+      _(Dir.exist?(storage_path_for('accounts/missing-account'))).must_equal false
+    ensure
+      pdf&.close!
+    end
+
+    it 'SAD: deletes uploaded files when attachment metadata cannot be saved' do
+      pdf = Tempfile.new(['lockedcv-api-upload-duplicate', '.pdf'])
+      write_text_pdf(pdf.path, 'Uploaded PDF text')
+      upload = Rack::Test::UploadedFile.new(
+        pdf.path,
+        'application/pdf',
+        true,
+        original_filename: DATA[:attachments].first['attachment_name']
+      )
+
+      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Could not upload attachment')
+      _(Dir.exist?(storage_path_for("accounts/#{@account.id}"))).must_equal false
+    ensure
+      pdf&.close!
     end
   end
 
@@ -102,11 +181,22 @@ describe 'Attachment Endpoints' do
     it 'HAPPY: returns masked text for a text-based PDF attachment' do
       pdf = Tempfile.new(['lockedcv-api-attachment', '.pdf'])
       write_text_pdf(pdf.path, 'Ada: ada@example.com, 0912-000-001, 1815-12-10, A123456789')
+      stored_route = nil
+      File.open(pdf.path, 'rb') do |uploaded_pdf|
+        stored_route = LockedCV::StoreAttachmentFile.call(
+          uploaded_file: {
+            filename: 'resume_maskable.pdf',
+            type: 'application/pdf',
+            tempfile: uploaded_pdf
+          },
+          account_id: @account.id
+        )
+      end
       attachment = LockedCV::CreateAttachmentService.call(
         account_id: @account.id,
         attachment_data: {
           attachment_name: 'resume_maskable.pdf',
-          route: pdf.path
+          route: stored_route
         }
       )
       LockedCV::CreateSensitiveDataService.call(
@@ -126,6 +216,29 @@ describe 'Attachment Endpoints' do
       _(json_body['data']['attributes']['masked_text']).must_include '[PHONE_NUMBER]'
       _(json_body['data']['attributes']['masked_text']).must_include '[BIRTHDAY]'
       _(json_body['data']['attributes']['masked_text']).must_include '[IDENTIFICATION_NUMBERS]'
+    ensure
+      pdf&.close!
+    end
+
+    it 'HAPPY: masks text from an uploaded PDF through the storage resolver' do
+      pdf = Tempfile.new(['lockedcv-api-mask-upload', '.pdf'])
+      write_text_pdf(pdf.path, 'Ada Lovelace email ada@example.com phone 0912-000-001')
+      upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'maskable.pdf')
+
+      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }
+      attachment_id = json_body.dig('data', 'data', 'attributes', 'id')
+      LockedCV::CreateSensitiveDataService.call(
+        account_id: @account.id,
+        attachment_id:,
+        sensitive_data: DATA[:sensitive_data].first.transform_keys(&:to_sym)
+      )
+
+      get "/api/v1/accounts/#{@account.id}/attachments/#{attachment_id}/masked_text"
+
+      _(last_response.status).must_equal 200
+      _(json_body['data']['attributes']['masked_text']).must_include '[FIRST_NAME]'
+      _(json_body['data']['attributes']['masked_text']).must_include '[EMAIL]'
+      _(json_body['data']['attributes']['masked_text']).must_include '[PHONE_NUMBER]'
     ensure
       pdf&.close!
     end

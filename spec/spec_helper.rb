@@ -4,6 +4,7 @@ ENV['RACK_ENV'] = 'test'
 
 require 'json'
 require 'date'
+require 'fileutils'
 require 'logger'
 require 'minitest/autorun'
 require 'minitest/rg'
@@ -51,6 +52,14 @@ module LockedCV
     def reset_database!
       ensure_database_schema!
       wipe_database_tables!
+    end
+
+    def reset_storage!
+      FileUtils.rm_rf('storage/uploads')
+    end
+
+    def storage_path_for(route)
+      File.expand_path(File.join('storage/uploads', route), Dir.pwd)
     end
 
     def req_header

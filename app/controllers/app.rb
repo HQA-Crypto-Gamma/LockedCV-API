@@ -25,6 +25,44 @@ module LockedCV
             routing.on 'attachments' do
               @attachment_route = "#{@account_route}/#{account_id}/attachments"
 
+              routing.on 'upload' do
+                # POST api/v1/accounts/[account_id]/attachments/upload
+                routing.post do
+                  uploaded_file = routing.params['file']
+                  raise StoreAttachmentFile::MissingFileError unless uploaded_file
+
+                  account = FindAccountService.call(account_id:)
+                  raise CreateAttachmentService::AccountNotFoundError unless account
+
+                  original_filename = uploaded_file[:filename] || uploaded_file['filename']
+                  route = StoreAttachmentFile.call(uploaded_file:, account_id:)
+                  begin
+                    attachment = CreateAttachmentService.call(
+                      account_id:,
+                      attachment_data: {
+                        attachment_name: original_filename,
+                        route:
+                      }
+                    )
+                  rescue StandardError
+                    StoreAttachmentFile.delete(route:)
+                    raise
+                  end
+
+                  response.status = 201
+                  response['Location'] = "#{@attachment_route}/#{attachment.id}"
+                  { message: 'Attachment saved', data: attachment }.to_json
+                rescue CreateAttachmentService::AccountNotFoundError
+                  routing.halt 404, { message: 'Account not found' }.to_json
+                rescue StoreAttachmentFile::MissingFileError, StoreAttachmentFile::InvalidFileError,
+                       Sequel::ConstraintViolation
+                  routing.halt 400, { message: 'Could not upload attachment' }.to_json
+                rescue StandardError => e
+                  Api.logger.error "UPLOAD ERROR: #{e.message}"
+                  routing.halt 400, { message: 'Could not upload attachment' }.to_json
+                end
+              end
+
               routing.on String do |attachment_id|
                 routing.on 'masked_text' do
                   # GET api/v1/accounts/[account_id]/attachments/[attachment_id]/masked_text
