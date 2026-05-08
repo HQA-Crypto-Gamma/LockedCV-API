@@ -64,7 +64,6 @@ describe 'Service Objects' do
 
   it 'HAPPY: admin assigns a system role to an account' do
     admin_role = LockedCV::Role.create(name: 'admin')
-    member_role = LockedCV::Role.create(name: 'member')
     admin = LockedCV::CreateAccountService.call(
       account_data: DATA[:accounts].first.transform_keys(&:to_sym)
     )
@@ -76,16 +75,15 @@ describe 'Service Objects' do
     result = LockedCV::AssignSystemRoleService.call(
       current_account_id: admin.id,
       target_username: target.username,
-      role_name: member_role.name
+      role_name: admin_role.name
     )
 
     _(result.created?).must_equal true
-    _(target.reload.system_roles.map(&:name)).must_include 'member'
+    _(target.reload.system_roles.map(&:name)).must_equal ['admin']
   end
 
   it 'HAPPY: assigning an already assigned system role is idempotent' do
     admin_role = LockedCV::Role.create(name: 'admin')
-    member_role = LockedCV::Role.create(name: 'member')
     admin = LockedCV::CreateAccountService.call(
       account_data: DATA[:accounts].first.transform_keys(&:to_sym)
     )
@@ -93,12 +91,11 @@ describe 'Service Objects' do
       account_data: DATA[:accounts].last.transform_keys(&:to_sym)
     )
     admin.add_system_role(admin_role)
-    target.add_system_role(member_role)
 
     result = LockedCV::AssignSystemRoleService.call(
       current_account_id: admin.id,
       target_username: target.username,
-      role_name: member_role.name
+      role_name: 'member'
     )
 
     _(result.created?).must_equal false
@@ -106,7 +103,6 @@ describe 'Service Objects' do
   end
 
   it 'SAD: non-admin cannot assign a system role' do
-    LockedCV::Role.create(name: 'member')
     member = LockedCV::CreateAccountService.call(
       account_data: DATA[:accounts].first.transform_keys(&:to_sym)
     )

@@ -13,7 +13,6 @@ describe 'System Role Endpoints' do
   before do
     reset_database!
     @admin_role = LockedCV::Role.create(name: 'admin')
-    @member_role = LockedCV::Role.create(name: 'member')
     @admin = LockedCV::CreateAccountService.call(
       account_data: DATA[:accounts].first.transform_keys(&:to_sym)
     )
@@ -25,19 +24,17 @@ describe 'System Role Endpoints' do
 
   it 'HAPPY: admin assigns a system role' do
     put(
-      "/api/v1/accounts/#{@target.username}/system_roles/member",
+      "/api/v1/accounts/#{@target.username}/system_roles/admin",
       { current_account_id: @admin.id }.to_json,
       req_header
     )
 
     _(last_response.status).must_equal 201
     _(json_body['message']).must_equal 'System role assigned'
-    _(@target.reload.system_roles.map(&:name)).must_include 'member'
+    _(@target.reload.system_roles.map(&:name)).must_equal ['admin']
   end
 
   it 'HAPPY: reassigning the same system role is idempotent' do
-    @target.add_system_role(@member_role)
-
     put(
       "/api/v1/accounts/#{@target.username}/system_roles/member",
       { current_account_id: @admin.id }.to_json,
