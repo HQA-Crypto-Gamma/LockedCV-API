@@ -12,10 +12,8 @@ describe 'Authentication Endpoint' do
 
   before do
     reset_database!
-    @role = LockedCV::Role.create(name: 'member')
     @account_data = DATA[:accounts].first.transform_keys(&:to_sym)
     @account = LockedCV::CreateAccountService.call(account_data: @account_data)
-    @account.add_system_role(@role)
   end
 
   it 'HAPPY: authenticates valid credentials' do
