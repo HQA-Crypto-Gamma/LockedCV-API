@@ -17,6 +17,7 @@ module LockedCV
       role = find_system_role!(role_name)
       target = find_target_account!(target_username)
       already_assigned = target.system_roles_dataset.where(name: role_name).any?
+      remove_other_system_roles(target, role_name)
       target.add_system_role(role) unless already_assigned
 
       Result.new(account: target, created: !already_assigned)
@@ -37,6 +38,13 @@ module LockedCV
 
     def self.find_target_account!(target_username)
       Account.first(username: target_username) or raise UnknownAccountError
+    end
+
+    def self.remove_other_system_roles(target, selected_role_name)
+      target.system_roles_dataset
+            .where(name: Role::SYSTEM_ROLES - [selected_role_name])
+            .all
+            .each { |role| target.remove_system_role(role) }
     end
   end
 end
