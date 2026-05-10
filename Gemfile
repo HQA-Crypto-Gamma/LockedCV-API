@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 source 'https://rubygems.org'
+ruby File.read('.ruby-version').strip
 
 # Web API
 gem 'base64'
@@ -21,6 +22,10 @@ gem 'rbnacl', '~>7.1'
 gem 'sequel', '~>5.55'
 gem 'sequel-seed'
 gem 'table_print', '~>1.0' # Console / REPL formatting (dev only)
+
+group :production do
+  gem 'pg'
+end
 
 group :development, :test do
   gem 'sqlite3', '~>2.0'

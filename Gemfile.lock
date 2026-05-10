@@ -42,6 +42,7 @@ GEM
       hashery (~> 2.0)
       ruby-rc4
       ttfunk
+    pg (1.6.3-x86_64-linux)
     prism (1.9.0)
     pry (0.16.0)
       coderay (~> 1.1)
@@ -111,6 +112,7 @@ GEM
 
 PLATFORMS
   x86_64-linux
+  x86_64-linux-gnu
 
 DEPENDENCIES
   base64
@@ -121,6 +123,7 @@ DEPENDENCIES
   minitest
   minitest-rg
   pdf-reader (~> 2.14)
+  pg
   pry
   puma (~> 7.0)
   rack-test
@@ -137,6 +140,9 @@ DEPENDENCIES
   sequel-seed
   sqlite3 (~> 2.0)
   table_print (~> 1.0)
+
+RUBY VERSION
+   ruby 4.0.2p0
 
 BUNDLED WITH
    2.7.2
