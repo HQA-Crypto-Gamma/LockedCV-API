@@ -48,7 +48,7 @@ task :print_env do
 end
 
 desc 'Run application console (pry)'
-task console: %i[db:migrate print_env] do
+task console: :print_env do
   sh 'pry -r ./spec/test_load_all'
 end
 
