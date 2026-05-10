@@ -12,6 +12,11 @@ Sequel.migration do
       String :password_digest, null: false
       String :phone_number_secure
       String :phone_number_hash, unique: true
+      String :first_name_secure
+      String :last_name_secure
+      String :birthday_secure
+      String :address_secure
+      String :identification_numbers_secure
 
       DateTime :created_at
       DateTime :updated_at
