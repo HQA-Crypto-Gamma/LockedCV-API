@@ -119,4 +119,39 @@ describe 'Account Endpoints' do
       _(json_body).must_equal('message' => 'Account not found')
     end
   end
+
+  describe 'PUT /api/v1/accounts/:id' do
+    it 'HAPPY: updates editable account profile fields' do
+      account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+      payload = {
+        email: 'ada.updated@example.com',
+        phone_number: '0912-999-001',
+        first_name: 'Ada',
+        last_name: 'Byron',
+        birthday: '1815-12-10',
+        address: 'London',
+        identification_numbers: 'ID-999'
+      }
+
+      put "/api/v1/accounts/#{account.id}", payload.to_json, req_header
+
+      attributes = json_body.dig('data', 'data', 'attributes')
+
+      _(last_response.status).must_equal 200
+      _(json_body['message']).must_equal 'Account updated'
+      _(attributes['email']).must_equal payload[:email]
+      _(attributes['first_name']).must_equal payload[:first_name]
+      _(attributes['identification_numbers']).must_equal payload[:identification_numbers]
+      _(attributes.keys).wont_include 'email_secure'
+    end
+
+    it 'SAD: returns 404 for missing account update' do
+      put '/api/v1/accounts/missing-account', { first_name: 'Ada' }.to_json, req_header
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Account not found')
+    end
+  end
 end

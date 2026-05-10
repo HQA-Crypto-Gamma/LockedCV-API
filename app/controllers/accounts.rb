@@ -179,6 +179,21 @@ module LockedCV
         end
 
         # GET api/v1/accounts/[account_id]
+        routing.put do
+          updated_data = HttpRequest.new(routing).body_data
+          account = UpdateAccountService.call(account_id:, account_data: updated_data)
+
+          { message: 'Account updated', data: account }.to_json
+        rescue UpdateAccountService::AccountNotFoundError
+          routing.halt 404, { message: 'Account not found' }.to_json
+        rescue Sequel::MassAssignmentRestriction
+          Api.logger.warn("MASS_ASSIGNMENT_ATTEMPT keys=#{updated_data.keys}")
+          routing.halt 400, { message: 'Illegal attributes' }.to_json
+        rescue StandardError => e
+          Api.logger.error "UNKNOWN ERROR: #{e.message}"
+          routing.halt 500, { message: 'Database error' }.to_json
+        end
+
         routing.get do
           account = FindAccountService.call(account_id:)
           account ? account.to_json : raise('Account not found')
