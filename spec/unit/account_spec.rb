@@ -57,6 +57,42 @@ describe LockedCV::Account do
     _(JSON.parse(stored[:password_digest])).must_be_kind_of Hash
   end
 
+  it 'SECURITY: stores optional account personal data encrypted' do
+    payload = DATA[:accounts].first.transform_keys(&:to_sym).merge(
+      first_name: 'Ada',
+      last_name: 'Lovelace',
+      birthday: '1815-12-10',
+      address: 'London',
+      identification_numbers: 'ID-123'
+    )
+
+    account = LockedCV::Account.create(payload)
+    stored = db[:accounts].where(id: account.id).first
+
+    %i[first_name last_name birthday address identification_numbers].each do |field|
+      _(stored[:"#{field}_secure"]).wont_equal payload[field]
+      _(account.public_send(field)).must_equal payload[field]
+    end
+  end
+
+  it 'HAPPY: allows optional account personal data to be omitted or blank' do
+    payload = DATA[:accounts].first.transform_keys(&:to_sym).merge(
+      first_name: '',
+      last_name: nil,
+      birthday: '',
+      address: nil,
+      identification_numbers: ''
+    )
+
+    account = LockedCV::Account.create(payload)
+
+    _(account.first_name).must_be_nil
+    _(account.last_name).must_be_nil
+    _(account.birthday).must_be_nil
+    _(account.address).must_be_nil
+    _(account.identification_numbers).must_be_nil
+  end
+
   it 'HAPPY: supports many-to-many system roles and role checks' do
     account = LockedCV::Account.create(DATA[:accounts].first.transform_keys(&:to_sym))
     admin_role = LockedCV::Role.create(name: 'admin')
