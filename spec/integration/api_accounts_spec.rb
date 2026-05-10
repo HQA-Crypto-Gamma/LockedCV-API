@@ -29,6 +29,29 @@ describe 'Account Endpoints' do
       _(json_body.dig('data', 'data', 'attributes').keys).wont_include 'password_digest'
     end
 
+    it 'HAPPY: creates an account with optional personal data' do
+      payload = DATA[:accounts].last.transform_keys(&:to_sym).merge(
+        first_name: 'Alan',
+        last_name: 'Turing',
+        birthday: '1912-06-23',
+        address: 'Manchester',
+        identification_numbers: 'NINO-123'
+      )
+
+      post '/api/v1/accounts', payload.to_json, req_header
+
+      attributes = json_body.dig('data', 'data', 'attributes')
+
+      _(last_response.status).must_equal 201
+      _(attributes['first_name']).must_equal payload[:first_name]
+      _(attributes['last_name']).must_equal payload[:last_name]
+      _(attributes['birthday']).must_equal payload[:birthday]
+      _(attributes['address']).must_equal payload[:address]
+      _(attributes['identification_numbers']).must_equal payload[:identification_numbers]
+      _(attributes.keys).wont_include 'first_name_secure'
+      _(attributes.keys).wont_include 'identification_numbers_secure'
+    end
+
     it 'SECURITY: returns 400 and does not create account on mass assignment' do
       payload = DATA[:accounts].last.merge('id' => 'forced-id')
       before_count = LockedCV::Account.count
