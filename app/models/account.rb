@@ -6,11 +6,13 @@ require 'sequel'
 module LockedCV
   # Sequel model for accounts table
   class Account < Sequel::Model(:accounts)
+    OPTIONAL_ENCRYPTED_FIELDS = %i[first_name last_name birthday address identification_numbers].freeze
+
     plugin :uuid, field: :id
     plugin :timestamps
     plugin :association_dependencies
     plugin :whitelist_security
-    set_allowed_columns :username, :email, :phone_number, :password
+    set_allowed_columns :username, :email, :phone_number, :password, *OPTIONAL_ENCRYPTED_FIELDS
 
     one_to_many :attachments, class: :'LockedCV::Attachment', key: :account_id
     many_to_many :system_roles,
@@ -59,7 +61,7 @@ module LockedCV
     end
 
     def phone_number=(plaintext)
-      if plaintext.nil?
+      if plaintext.to_s.strip.empty?
         self[:phone_number_secure] = nil
         self[:phone_number_hash] = nil
       else
@@ -79,6 +81,16 @@ module LockedCV
       false
     end
 
+    OPTIONAL_ENCRYPTED_FIELDS.each do |field|
+      define_method(field) do
+        decrypt_optional_field(field)
+      end
+
+      define_method("#{field}=") do |plaintext|
+        encrypt_optional_field(field, plaintext)
+      end
+    end
+
     # rubocop:disable Metrics/MethodLength
     def to_json(options = {})
       JSON(
@@ -89,7 +101,12 @@ module LockedCV
               id:,
               username:,
               email:,
-              phone_number:
+              phone_number:,
+              first_name:,
+              last_name:,
+              birthday:,
+              address:,
+              identification_numbers:
             }
           }
         },
@@ -97,5 +114,22 @@ module LockedCV
       )
     end
     # rubocop:enable Metrics/MethodLength
+
+    private
+
+    def decrypt_optional_field(field)
+      ciphertext = self[:"#{field}_secure"]
+      return nil if ciphertext.nil?
+
+      SecureDB.decrypt(ciphertext)
+    end
+
+    def encrypt_optional_field(field, plaintext)
+      self[:"#{field}_secure"] = if plaintext.to_s.strip.empty?
+                                   nil
+                                 else
+                                   SecureDB.encrypt(plaintext.to_s)
+                                 end
+    end
   end
 end
