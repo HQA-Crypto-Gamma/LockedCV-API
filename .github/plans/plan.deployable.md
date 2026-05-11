@@ -25,8 +25,8 @@
   - 已設定 production config vars 並在 Heroku production database 執行 migrations。
   - 已手動驗證 `db:bootstrap_admin` 的基本錯誤處理與可重複執行行為。
   - 已手動驗證 production HTTPS / `SECURE_SCHEME` 行為。
-  - 尚未在 Heroku production 執行 `db:bootstrap_admin`。
-  - Deployed App 到 deployed API 的 end-to-end production 行為仍需要 smoke test。
+  - 已在 Heroku production 執行 `db:bootstrap_admin` 並建立第一個 admin。
+  - Deployed App 到 deployed API 的核心 end-to-end production smoke test 已完成。
 
 ## 實作策略（分階段）
 
@@ -73,29 +73,29 @@
    - ✅ 設定 `SECURE_SCHEME=HTTPS`。
    - ✅ 設定 database encryption key 與 lookup hash key。
    - ✅ 設定 production host/base URL 相關 config。
-   - ⬜ 確認 production logs 不輸出 plaintext password、encrypted columns、lookup hashes、secret keys。
+   - ✅ 確認 production logs 不輸出 plaintext password、encrypted columns、lookup hashes、secret keys。
 
 5. `production-migration-and-bootstrap`
    - ✅ 在 Heroku 執行 database migration。
    - ✅ `db:bootstrap_admin` 會建立必要 system roles：`admin`、`member`。
    - ✅ `db:bootstrap_admin` 可建立第一個 production account。
    - ✅ `db:bootstrap_admin` 可將第一個 account 提升為 admin。
-   - ⬜ 在 Heroku production 執行 `db:bootstrap_admin`。
-   - ⬜ 在 Heroku production 驗證 bootstrap task 可重跑且不破壞既有資料。
+   - ✅ 在 Heroku production 執行 `db:bootstrap_admin`。
+   - ✅ 在 Heroku production 驗證 bootstrap task 可重跑且不破壞既有資料。
 
 6. `deployed-api-smoke-checks`
-   - ⬜ 測試 `POST /api/v1/accounts` 可在 deployed API 建立 account。
-   - ⬜ 測試 `POST /api/v1/auth/authenticate` 可登入新 account。
-   - ⬜ 測試 admin 可呼叫 `GET /api/v1/accounts?current_account_id=...`。
-   - ⬜ 測試 admin 可呼叫 `PUT /api/v1/accounts/:username/system_roles/:role_name`。
+   - ✅ 測試 `POST /api/v1/accounts` 可在 deployed API 建立 account。
+   - ✅ 測試 `POST /api/v1/auth/authenticate` 可登入新 account。
+   - ✅ 測試 admin 可呼叫 `GET /api/v1/accounts?current_account_id=...`。
+   - ✅ 測試 admin 可呼叫 `PUT /api/v1/accounts/:username/system_roles/:role_name`。
    - ✅ 已手動驗證 HTTP request 在 production 會被拒絕或導向 HTTPS。
-   - ⬜ 測試 API response 不包含 password/password_digest/encrypted columns/hash columns。
+   - ✅ 測試 API response 不包含 password/password_digest/encrypted columns/hash columns。
 
 7. `app-production-integration`
-   - ⬜ 提供 deployed API base URL 給 App。
-   - ⬜ 確認 App production `API_URL` 指向 deployed API。
-   - ⬜ 確認 deployed App registration 會寫入 API production Postgres。
-   - ⬜ 確認 deployed App admin settings 可讀取/更新 API production resources。
+   - ✅ 提供 deployed API base URL 給 App。
+   - ✅ 確認 App production `API_URL` 指向 deployed API。
+   - ✅ 確認 deployed App registration 會寫入 API production Postgres。
+   - ✅ 確認 deployed App admin settings 可讀取/更新 API production resources。
 
 ## 依賴順序
 
