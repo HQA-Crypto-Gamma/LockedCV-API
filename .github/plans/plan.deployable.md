@@ -23,8 +23,10 @@
   - 已新增 `db:bootstrap_admin` Rake task，可建立或找到指定帳號並授予 `admin`。
   - 已建立 Heroku API app，並使用 Heroku Postgres 作為 production database。
   - 已設定 production config vars 並在 Heroku production database 執行 migrations。
+  - 已手動驗證 `db:bootstrap_admin` 的基本錯誤處理與可重複執行行為。
+  - 已手動驗證 production HTTPS / `SECURE_SCHEME` 行為。
   - 尚未在 Heroku production 執行 `db:bootstrap_admin`。
-  - Deployed App 到 deployed API 的 URL/HTTPS 行為仍需要 smoke test。
+  - Deployed App 到 deployed API 的 end-to-end production 行為仍需要 smoke test。
 
 ## 實作策略（分階段）
 
@@ -53,7 +55,8 @@
    - ✅ Task 可在 account 不存在時用 `USERNAME`、`EMAIL`、互動式密碼建立 account。
    - ✅ Task 會把 target account 加入 `admin` system role。
    - ✅ Task 可重複執行，不會重複建立 role association。
-   - ⬜ 補 task 或 service tests，確認缺少 `USERNAME`、新帳號缺少 `EMAIL`、密碼過短會明確失敗。
+   - ✅ 已手動驗證缺少 `USERNAME`、新帳號缺少 `EMAIL`、密碼過短會明確失敗。
+   - ⬜ 若時間允許，補 task 或 service tests 固定上述 bootstrap 行為。
 
 3. `postgres-production-database`
    - ✅ 確認 Gemfile 有 production Postgres adapter。
@@ -85,7 +88,7 @@
    - ⬜ 測試 `POST /api/v1/auth/authenticate` 可登入新 account。
    - ⬜ 測試 admin 可呼叫 `GET /api/v1/accounts?current_account_id=...`。
    - ⬜ 測試 admin 可呼叫 `PUT /api/v1/accounts/:username/system_roles/:role_name`。
-   - ⬜ 測試 HTTP request 在 production 會被拒絕或導向 HTTPS。
+   - ✅ 已手動驗證 HTTP request 在 production 會被拒絕或導向 HTTPS。
    - ⬜ 測試 API response 不包含 password/password_digest/encrypted columns/hash columns。
 
 7. `app-production-integration`
