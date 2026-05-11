@@ -20,8 +20,10 @@ bundle install
 ### Running the Application
 
 ```bash
-puma
+bundle exec rake run:dev
 ```
+
+The development server runs on port `9000`.
 
 ### Testing
 
@@ -36,7 +38,7 @@ bundle exec rake spec
 Run RuboCop:
 
 ```bash
-bundle exec rubocop
+bundle exec rake style
 ```
 
 ## Architecture
@@ -46,6 +48,8 @@ bundle exec rubocop
 - **Roda framework:** Routes are defined via routing tree in controller classes
 - **Entry point:** `config.ru` boots the main Roda app (`LockedCV::Api`)
 - **Main controller:** `app/controllers/app.rb` contains versioned REST routes (`api/v1/...`)
+- **Route files:** `app/controllers/accounts.rb` and `app/controllers/auth.rb`
+  provide the current API routes through Roda `multi_route`
 
 ### Module Namespace
 
@@ -103,7 +107,12 @@ Migration files:
 
 - `config.ru` — Rack entry point
 - `app/controllers/` — Roda controllers with routing logic
+- `app/lib/` — crypto and password key-stretching helpers
 - `app/models/` — Sequel models (`Account`, `Attachment`, `SensitiveData`, `Role`)
+- `app/services/` — application services for account, role, attachment, PDF,
+  and masking behavior
+- `docs/schema.md` — schema notes and ERD
+- `storage/` — uploaded attachment files
 - `db/local/` — Local SQLite database files (gitignored)
 - `db/seeds/` — YAML seed data for tests
 - `spec/` — Minitest specs using `Rack::Test`
@@ -118,8 +127,30 @@ Migration files:
 
 - All responses use `Content-Type: application/json`
 - Success responses return JSON objects with relevant data
-- Error responses use appropriate HTTP status codes (404, 400) with descriptive error messages
+- Error responses use appropriate HTTP status codes (`400`, `401`, `403`,
+  `404`, `500`) with descriptive error messages
 - POST success returns 201 status with confirmation message and resource ID
+
+### Current API Surface
+
+- `POST /api/v1/auth/authenticate` authenticates an account and returns safe
+  session data for the Web App.
+- `GET /api/v1/accounts?current_account_id=...` lists accounts for admins.
+- `POST /api/v1/accounts` creates a basic account. Account detail verification
+  still needs to be strengthened.
+- `GET /api/v1/accounts/:account_id` returns one account.
+- `PUT /api/v1/accounts/:username/system_roles/:role_name` assigns a system
+  role and requires an admin `current_account_id`.
+- `GET /api/v1/accounts/:account_id/attachments` lists account attachments.
+- `POST /api/v1/accounts/:account_id/attachments` creates attachment metadata.
+- `POST /api/v1/accounts/:account_id/attachments/upload` uploads a PDF and
+  creates attachment metadata.
+- `GET /api/v1/accounts/:account_id/attachments/:attachment_id` returns one
+  attachment.
+- `GET /api/v1/accounts/:account_id/attachments/:attachment_id/masked_text`
+  extracts and masks PDF text.
+- `GET/POST /api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data`
+  reads or creates sensitive data for an attachment.
 
 ### Roda Routing
 
@@ -157,3 +188,7 @@ All markdown files must be kept lint-free:
 
 - Uses `rbnacl` gem for cryptographic operations (encryption + keyed HMAC-SHA256 hashing)
 - Personal data handling for secure resume/document sharing
+- API enforces TLS/SSL through `HttpRequest#secure?`; local development uses
+  `SECURE_SCHEME: HTTP`, while production should use `SECURE_SCHEME: HTTPS`.
+- Do not expose plaintext passwords, password digests, encrypted columns, or
+  lookup hashes in API responses.

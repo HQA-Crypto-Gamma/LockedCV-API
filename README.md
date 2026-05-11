@@ -8,6 +8,8 @@ A Ruby web API for the Crypto γ SEC project that allows accounts to securely sh
 - SQLite data storage via Sequel ORM
 - PII protection for account email/phone via encrypted (`*_secure`) + searchable hash (`*_hash`) columns
 - Role foundation with `roles` and `accounts_roles` (many-to-many)
+- PDF attachment upload and masked-text preview support
+- Admin-only system role assignment and account listing
 - JSON response format
 
 ## Prerequisites
@@ -18,19 +20,53 @@ A Ruby web API for the Crypto γ SEC project that allows accounts to securely sh
 ## Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd LockedCV-API
 ```
 
 2. Install dependencies:
+
 ```bash
 bundle install
 ```
 
+3. Copy local secrets:
+
+```bash
+cp config/secrets-example.yml config/secrets.yml
+```
+
+4. Generate local crypto keys and paste them into `config/secrets.yml`:
+
+```bash
+bundle exec rake newkey:db
+bundle exec rake newkey:hash
+```
+
+5. Prepare the local database:
+
+```bash
+bundle exec rake db:migrate
+bundle exec rake db:seed
+```
+
+6. Bootstrap the first admin account when needed:
+
+```bash
+bundle exec rake db:bootstrap_admin USERNAME=admin EMAIL=admin@example.com
+```
+
+The task ensures the `admin` and `member` system roles exist, creates the
+account if it does not already exist, and grants the `admin` role. `EMAIL` is
+required when creating a new account; when the account already exists, the task
+does not read or update its email.
+
 ## Running the Application
 
 Start the API development server:
+
 ```bash
 bundle exec rake run:dev
 ```
@@ -74,6 +110,23 @@ return `403` with a JSON error message.
 
 ### Account Endpoints
 
+#### List Accounts
+
+**GET** `/api/v1/accounts?current_account_id=:admin_account_id`
+
+```bash
+http -v GET localhost:9000/api/v1/accounts \
+  current_account_id=="<admin_account_uuid>"
+```
+
+Only accounts with the `admin` system role can list accounts.
+
+For a production database with no admin yet, use:
+
+```bash
+bundle exec rake db:bootstrap_admin USERNAME=admin EMAIL=admin@example.com
+```
+
 #### Create Account
 
 **POST** `/api/v1/accounts`
@@ -108,6 +161,18 @@ is a minimal authorization demo; full resource-level authorization is deferred.
 
 ### Attachment Endpoints
 
+#### Upload Attachment File for an Account
+
+**POST** `/api/v1/accounts/:account_id/attachments/upload`
+
+```bash
+http -v --form POST localhost:9000/api/v1/accounts/<account_uuid>/attachments/upload \
+  file@/path/to/resume.pdf
+```
+
+Only PDF uploads are currently supported. Uploaded files are stored under
+`storage/`, and attachment metadata is saved in the database.
+
 #### Create Attachment for an Account
 
 **POST** `/api/v1/accounts/:account_id/attachments`
@@ -133,6 +198,17 @@ http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments
 ```bash
 http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1
 ```
+
+#### Get Masked Attachment Text
+
+**GET** `/api/v1/accounts/:account_id/attachments/:attachment_id/masked_text`
+
+```bash
+http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/masked_text
+```
+
+Extracts PDF text, detects sensitive values, and returns masked text preview
+data for the attachment.
 
 ### Sensitive Data Endpoints
 
@@ -172,7 +248,7 @@ bundle exec rake spec
 Run RuboCop to check code style:
 
 ```bash
-bundle exec rubocop
+bundle exec rake style
 ```
 
 ## Project Structure
@@ -185,16 +261,23 @@ bundle exec rubocop
 │   │   ├── accounts.rb     # Account-scoped API routes
 │   │   ├── auth.rb         # Authentication API routes
 │   │   └── http_request.rb # Request body and TLS/SSL helpers
-│   └── models/
+│   ├── lib/                # Crypto and password key-stretching helpers
+│   ├── models/
 │       ├── account.rb       # Account DB model
 │       ├── attachment.rb    # Attachment DB model
 │       ├── role.rb          # Role DB model
 │       └── sensitive_data.rb # SensitiveData DB model
+│   └── services/            # Application services for API behavior
+├── config/                  # Environment and secrets configuration
 ├── config.ru                # Rack configuration
 ├── db/
+│   ├── migrations/         # Sequel migrations
 │   ├── local/              # Local SQLite database files (gitignored)
 │   └── seeds/              # Test seed data
+├── docs/
+│   └── schema.md           # Current database schema notes
 ├── spec/                    # Test files
+├── storage/                 # Uploaded attachment files
 └── .github/
     └── copilot-instructions.md  # AI assistant guidelines
 ```
