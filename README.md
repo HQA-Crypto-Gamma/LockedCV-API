@@ -52,6 +52,17 @@ bundle exec rake db:migrate
 bundle exec rake db:seed
 ```
 
+6. Bootstrap the first admin account when needed:
+
+```bash
+bundle exec rake db:bootstrap_admin USERNAME=admin EMAIL=admin@example.com
+```
+
+The task ensures the `admin` and `member` system roles exist, creates the
+account if it does not already exist, and grants the `admin` role. `EMAIL` is
+required when creating a new account; when the account already exists, the task
+does not read or update its email.
+
 ## Running the Application
 
 Start the API development server:
@@ -109,6 +120,12 @@ http -v GET localhost:9000/api/v1/accounts \
 ```
 
 Only accounts with the `admin` system role can list accounts.
+
+For a production database with no admin yet, use:
+
+```bash
+bundle exec rake db:bootstrap_admin USERNAME=admin EMAIL=admin@example.com
+```
 
 #### Create Account
 

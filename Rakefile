@@ -116,6 +116,50 @@ namespace :db do
     Sequel::Seeder.apply(@app.DB, 'db/seeds')
   end
 
+  desc 'Bootstrap an admin: ensure roles, create-or-find USERNAME, grant admin'
+  task bootstrap_admin: :load_models do
+    require 'io/console'
+
+    username = ENV.fetch('USERNAME', nil).to_s.strip
+    email = ENV.fetch('EMAIL', nil).to_s.strip
+    abort 'USERNAME=<username> required' if username.empty?
+
+    LockedCV::Role::SYSTEM_ROLES.each { |name| LockedCV::Role.find_or_create(name:) }
+    puts "Roles ensured: #{LockedCV::Role::SYSTEM_ROLES.join(', ')}"
+
+    account = LockedCV::Account.first(username:)
+    if account.nil?
+      abort 'EMAIL=<email> required when creating a new account' if email.empty?
+
+      password =
+        if $stdin.tty?
+          print 'Password (input hidden): '
+          input = $stdin.noecho(&:gets).to_s.chomp
+          puts ''
+          input
+        else
+          warn '(no TTY -- reading password from stdin without echo masking)'
+          $stdin.gets.to_s.chomp
+        end
+      abort 'Password must be at least 8 characters' if password.length < 8
+
+      account = LockedCV::CreateAccountService.call(
+        account_data: { username:, email:, password: }
+      )
+      puts "+ Created account #{username} (id=#{account.id})"
+    else
+      puts "- Account #{username} already exists (id=#{account.id})"
+    end
+
+    admin_role = LockedCV::Role.first(name: 'admin')
+    if account.system_roles_dataset.where(name: 'admin').any?
+      puts "  - already has 'admin'"
+    else
+      account.add_system_role(admin_role)
+      puts "  + granted 'admin'"
+    end
+  end
+
   desc 'Delete all data and reseed'
   task reseed: %i[delete reset_seeds seed]
 end

@@ -20,15 +20,16 @@
   - `PUT /api/v1/accounts/:username/system_roles/:role_name`
 - 目前 production secure scheme 已有基礎設定，會依 `SECURE_SCHEME` 檢查 request scheme。
 - 待強化項目：
-  - 尚未有 `db:bootstrap_admin` Rake task。
-  - Heroku production database 需要切換並驗證 Postgres。
-  - Production secrets、database migration、seed/bootstrap 流程需要明確化。
-  - Deployed App 到 deployed API 的 CORS/URL/HTTPS 行為需要 smoke test。
+  - 已新增 `db:bootstrap_admin` Rake task，可建立或找到指定帳號並授予 `admin`。
+  - 已建立 Heroku API app，並使用 Heroku Postgres 作為 production database。
+  - 已設定 production config vars 並在 Heroku production database 執行 migrations。
+  - 尚未在 Heroku production 執行 `db:bootstrap_admin`。
+  - Deployed App 到 deployed API 的 URL/HTTPS 行為仍需要 smoke test。
 
 ## 實作策略（分階段）
 
 1. **Registration backend review**：確認 `POST /api/v1/accounts` 的 payload、response、錯誤處理能支援 App registration。
-2. **Bootstrap admin task**：新增 `db:bootstrap_admin` Rake task，用 username 或 email 找到 account 並授予 `admin` system role。
+2. **Bootstrap admin task**：新增 `db:bootstrap_admin` Rake task，用 username 找到或建立 account 並授予 `admin` system role。
 3. **Postgres compatibility**：確認 Sequel migrations、UUID、timestamps、constraints 在 Postgres 可執行。
 4. **Heroku API deployment**：建立 API dyno，設定 production config vars，使用 Heroku Postgres。
 5. **Production migration/bootstrap**：在 Heroku 執行 migration，建立必要 roles，提升第一個 admin。
@@ -46,36 +47,38 @@
    - 待複查：README 需要明確標示本階段尚未驗證 account details。
 
 2. `bootstrap-admin-rake-task`
-   - ⬜ 新增 `db:bootstrap_admin` 或同等命名 Rake task。
-   - ⬜ Task 可透過 environment variable 指定 target account，例如 `ADMIN_USERNAME` 或 `ADMIN_EMAIL`.
-   - ⬜ Task 會確保 `admin` role 存在。
-   - ⬜ Task 會把 target account 加入 `admin` system role。
-   - ⬜ Task 需要可重複執行，不應重複建立 role association。
-   - ⬜ 補 task 或 service tests，確認 unknown account 會明確失敗。
+   - ✅ 新增 `db:bootstrap_admin` Rake task。
+   - ✅ Task 可透過 `USERNAME` 指定 target account。
+   - ✅ Task 會確保 system roles `admin`、`member` 存在。
+   - ✅ Task 可在 account 不存在時用 `USERNAME`、`EMAIL`、互動式密碼建立 account。
+   - ✅ Task 會把 target account 加入 `admin` system role。
+   - ✅ Task 可重複執行，不會重複建立 role association。
+   - ⬜ 補 task 或 service tests，確認缺少 `USERNAME`、新帳號缺少 `EMAIL`、密碼過短會明確失敗。
 
 3. `postgres-production-database`
-   - ⬜ 確認 Gemfile 有 production Postgres adapter。
-   - ⬜ 確認 `DATABASE_URL` 可由 Heroku Postgres 提供。
-   - ⬜ 確認 config 不會在 production 刪除或忽略 `DATABASE_URL`。
-   - ⬜ 在 Postgres 跑 migrations。
-   - ⬜ 檢查 UUID、foreign keys、unique constraints、join table 在 Postgres 正常。
-   - ⬜ 確認 local SQLite development/test 不受影響。
+   - ✅ 確認 Gemfile 有 production Postgres adapter。
+   - ✅ 確認 `DATABASE_URL` 可由 Heroku Postgres 提供。
+   - ✅ 確認 config 可讀取 production `DATABASE_URL`。
+   - ✅ 已在 Heroku Postgres 跑 migrations。
+   - ✅ UUID、foreign keys、unique constraints、join table 已通過 migration。
+   - ✅ 確認 local SQLite development/test 不受影響。
 
 4. `api-heroku-deployment`
-   - ⬜ 建立 Heroku API dyno。
-   - ⬜ Provision Heroku Postgres。
-   - ⬜ 設定 `RACK_ENV=production`。
-   - ⬜ 設定 `SECURE_SCHEME=HTTPS`。
-   - ⬜ 設定 database encryption key 與 lookup hash key。
-   - ⬜ 設定 production host/base URL 相關 config。
+   - ✅ 建立 Heroku API dyno。
+   - ✅ Provision Heroku Postgres。
+   - ✅ 設定 `RACK_ENV=production`。
+   - ✅ 設定 `SECURE_SCHEME=HTTPS`。
+   - ✅ 設定 database encryption key 與 lookup hash key。
+   - ✅ 設定 production host/base URL 相關 config。
    - ⬜ 確認 production logs 不輸出 plaintext password、encrypted columns、lookup hashes、secret keys。
 
 5. `production-migration-and-bootstrap`
-   - ⬜ 在 Heroku 執行 database migration。
-   - ⬜ 在 Heroku 建立或 seed system roles：`admin`、`member`。
-   - ⬜ 建立第一個 production account。
-   - ⬜ 執行 `db:bootstrap_admin` 將第一個 account 提升為 admin。
-   - ⬜ 驗證 bootstrap task 可重跑且不破壞既有資料。
+   - ✅ 在 Heroku 執行 database migration。
+   - ✅ `db:bootstrap_admin` 會建立必要 system roles：`admin`、`member`。
+   - ✅ `db:bootstrap_admin` 可建立第一個 production account。
+   - ✅ `db:bootstrap_admin` 可將第一個 account 提升為 admin。
+   - ⬜ 在 Heroku production 執行 `db:bootstrap_admin`。
+   - ⬜ 在 Heroku production 驗證 bootstrap task 可重跑且不破壞既有資料。
 
 6. `deployed-api-smoke-checks`
    - ⬜ 測試 `POST /api/v1/accounts` 可在 deployed API 建立 account。
@@ -102,9 +105,9 @@
 
 ## 待組內決策
 
-- `db:bootstrap_admin` 要用 `ADMIN_USERNAME` 還是 `ADMIN_EMAIL` 指定 target account。
+- ✅ `db:bootstrap_admin` 使用 `USERNAME` 指定 target account；建立新帳號時另外要求 `EMAIL` 與密碼。
 - Production 是否允許 `db:seed` 建立 demo data，或只建立 roles + 手動 registration。
-- Heroku Postgres plan 使用哪個免費/課程允許方案。
+- ✅ 已 provision Heroku Postgres 作為 production database。
 - Production API 是否需要 CORS；若 App 與 API 都是 server-side HTTP calls，可能不需要 browser CORS。
 - Deployment smoke check 是否用 HTTPie/manual commands，或補成可重跑的 rake smoke task。
 
