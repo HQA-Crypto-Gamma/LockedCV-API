@@ -261,6 +261,8 @@ module LockedCV
       rescue Sequel::MassAssignmentRestriction
         Api.logger.warn("MASS_ASSIGNMENT_ATTEMPT keys=#{new_data.keys}")
         routing.halt 400, { message: 'Illegal attributes' }.to_json
+      rescue Sequel::UniqueConstraintViolation
+        routing.halt 400, { message: 'This user is already registered' }.to_json
       rescue StandardError => e
         Api.logger.error "UNKNOWN ERROR: #{e.message}"
         routing.halt 500, { message: 'Database error' }.to_json
