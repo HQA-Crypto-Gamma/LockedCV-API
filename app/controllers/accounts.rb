@@ -178,7 +178,26 @@ module LockedCV
           end
         end
 
-        # GET api/v1/accounts/[account_id]
+        routing.on 'password' do
+          # PUT api/v1/accounts/[account_id]/password
+          routing.put do
+            password_data = HttpRequest.new(routing).body_data
+            ChangePasswordService.call(account_id:, password_data:)
+
+            { message: 'Password updated' }.to_json
+          rescue ChangePasswordService::AccountNotFoundError
+            routing.halt 404, { message: 'Account not found' }.to_json
+          rescue ChangePasswordService::InvalidCurrentPasswordError
+            routing.halt 400, { message: 'Current password is incorrect' }.to_json
+          rescue ChangePasswordService::InvalidPasswordError
+            routing.halt 400, { message: 'Password is required' }.to_json
+          rescue StandardError => e
+            Api.logger.error "UNKNOWN ERROR: #{e.message}"
+            routing.halt 500, { message: 'Database error' }.to_json
+          end
+        end
+
+        # PUT api/v1/accounts/[account_id]
         routing.put do
           updated_data = HttpRequest.new(routing).body_data
           account = UpdateAccountService.call(account_id:, account_data: updated_data)
@@ -242,6 +261,8 @@ module LockedCV
       rescue Sequel::MassAssignmentRestriction
         Api.logger.warn("MASS_ASSIGNMENT_ATTEMPT keys=#{new_data.keys}")
         routing.halt 400, { message: 'Illegal attributes' }.to_json
+      rescue Sequel::UniqueConstraintViolation
+        routing.halt 400, { message: 'This user is already registered' }.to_json
       rescue StandardError => e
         Api.logger.error "UNKNOWN ERROR: #{e.message}"
         routing.halt 500, { message: 'Database error' }.to_json
