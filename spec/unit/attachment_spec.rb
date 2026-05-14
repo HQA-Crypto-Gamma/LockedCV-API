@@ -47,6 +47,54 @@ describe LockedCV::Attachment do
     _(LockedCV::SensitiveData.where(id: sensitive_data.id).first).must_be_nil
   end
 
+  it 'HAPPY: supports masked attachment and masked item associations' do
+    attachment = @account.add_attachment(DATA[:attachments].first.transform_keys(&:to_sym))
+    masked_attachment = attachment.add_masked_attachment(
+      attachment_name: 'masked_resume.pdf',
+      route: "accounts/#{@account.id}/masked/masked_resume.pdf"
+    )
+    masked_item = masked_attachment.add_masked_item(
+      field_name: 'email',
+      value: 'alice.chen@example.com',
+      source: 'sensitive_data',
+      is_masked: true
+    )
+
+    _(attachment.masked_attachments.map(&:id)).must_include masked_attachment.id
+    _(masked_attachment.attachment.id).must_equal attachment.id
+    _(masked_attachment.masked_items.map(&:id)).must_include masked_item.id
+    _(masked_item.masked_attachment.id).must_equal masked_attachment.id
+  end
+
+  it 'SECURITY: stores masked item values encrypted and validates source' do
+    attachment = @account.add_attachment(DATA[:attachments].first.transform_keys(&:to_sym))
+    masked_attachment = attachment.add_masked_attachment(
+      attachment_name: 'masked_resume.pdf',
+      route: "accounts/#{@account.id}/masked/masked_resume.pdf"
+    )
+
+    %w[sensitive_data regex manual].each do |source|
+      masked_attachment.add_masked_item(
+        field_name: 'email',
+        value: "#{source}@example.com",
+        source:,
+        is_masked: true
+      )
+    end
+    stored_row = db[:masked_items].where(source: 'sensitive_data').first
+
+    _(stored_row[:value_secure]).wont_equal 'sensitive_data@example.com'
+    _(LockedCV::MaskedItem.first(source: 'sensitive_data').value).must_equal 'sensitive_data@example.com'
+    _(proc do
+      masked_attachment.add_masked_item(
+        field_name: 'email',
+        value: 'bad@example.com',
+        source: 'unsupported',
+        is_masked: true
+      )
+    end).must_raise Sequel::ValidationFailed
+  end
+
   it 'HAPPY: provides resource-role style helpers on attachment' do
     owner_account = LockedCV::Account.create(DATA[:accounts].last.transform_keys(&:to_sym))
     owner_role = LockedCV::Role.create(name: 'owner')

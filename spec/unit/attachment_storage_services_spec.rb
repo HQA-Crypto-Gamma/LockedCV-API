@@ -121,7 +121,7 @@ describe 'Attachment Storage Services' do
   end
 
   it 'HAPPY: extracts text from a fixture PDF' do
-    text = LockedCV::ExtractPdfText.call(file_path: 'spec/fixtures/files/sample_text.pdf')
+    text = LockedCV::ExtractPdf.text('spec/fixtures/files/sample_text.pdf')
 
     _(text).must_include 'LockedCV fixture PDF'
   end

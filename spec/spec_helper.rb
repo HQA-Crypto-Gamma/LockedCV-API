@@ -28,7 +28,9 @@ DATA[:sensitive_data] = YAML.safe_load_file(
 module LockedCV
   # Shared helpers for spec setup/teardown and database seed loading
   module SpecHelpers
-    REQUIRED_TABLES = %i[accounts attachments sensitive_data roles accounts_roles].freeze
+    REQUIRED_TABLES = %i[
+      accounts attachments sensitive_data masked_attachments masked_items roles accounts_roles
+    ].freeze
 
     def db
       LockedCV::Api.DB
@@ -42,6 +44,8 @@ module LockedCV
     end
 
     def wipe_database_tables!
+      LockedCV::MaskedItem.dataset.delete
+      LockedCV::MaskedAttachment.dataset.delete
       LockedCV::SensitiveData.dataset.delete
       LockedCV::Attachment.dataset.delete
       LockedCV::Api.DB[:accounts_roles].delete
@@ -81,6 +85,37 @@ module LockedCV
         '4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj'
       ]
       stream = "BT /F1 12 Tf 72 720 Td (#{escaped_text}) Tj ET\n"
+      objects << "5 0 obj << /Length #{stream.bytesize} >> stream\n" \
+                 "#{stream}endstream endobj"
+
+      body = +"%PDF-1.4\n"
+      offsets = objects.map do |object|
+        offset = body.bytesize
+        body << "#{object}\n"
+        offset
+      end
+      xref_offset = body.bytesize
+      body << "xref\n0 #{objects.length + 1}\n"
+      body << "0000000000 65535 f \n"
+      offsets.each { |offset| body << format('%010d 00000 n ', offset) << "\n" }
+      body << "trailer << /Root 1 0 R /Size #{objects.length + 1} >>\n"
+      body << "startxref\n#{xref_offset}\n%%EOF\n"
+
+      File.binwrite(path, body)
+    end
+    # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
+
+    # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+    def write_hex_text_pdf(path, text)
+      hex_text = text.bytes.map { |byte| format('%02X', byte) }.join
+      objects = [
+        '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj',
+        '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj',
+        '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] ' \
+        '/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj',
+        '4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj'
+      ]
+      stream = "BT /F1 12 Tf 72 720 Td <#{hex_text}> Tj ET\n"
       objects << "5 0 obj << /Length #{stream.bytesize} >> stream\n" \
                  "#{stream}endstream endobj"
 

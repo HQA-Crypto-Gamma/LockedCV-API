@@ -98,6 +98,23 @@ module LockedCV
               end
             end
 
+            routing.on 'masked_attachments' do
+              # POST api/v1/accounts/[account_id]/attachments/[attachment_id]/masked_attachments
+              routing.post do
+                masked_attachment = ExportMaskedPdf.call(account_id:, attachment_id:)
+
+                response.status = 201
+                response['Location'] =
+                  "#{@attachment_route}/#{attachment_id}/masked_attachments/#{masked_attachment.id}"
+                { message: 'Masked attachment saved', data: masked_attachment }.to_json
+              rescue ExportMaskedPdf::AttachmentNotFoundError
+                routing.halt 404, { message: 'Attachment not found' }.to_json
+              rescue ExportMaskedPdf::ExportError, StandardError => e
+                Api.logger.error "PDF EXPORT ERROR: #{e.message}"
+                routing.halt 400, { message: 'Could not export masked attachment' }.to_json
+              end
+            end
+
             routing.on 'sensitive_data' do
               @sensitive_data_route = "#{@attachment_route}/#{attachment_id}/sensitive_data"
 
