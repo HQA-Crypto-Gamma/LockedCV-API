@@ -269,4 +269,59 @@ describe 'Attachment Endpoints' do
       _(json_body).must_equal('message' => 'Attachment not found')
     end
   end
+
+  describe 'POST /api/v1/accounts/:account_id/attachments/:attachment_id/masked_attachments' do
+    it 'HAPPY: exports a visual-masked text-based PDF attachment record' do
+      upload = Rack::Test::UploadedFile.new(
+        'spec/fixtures/files/fake_resume_alan.pdf',
+        'application/pdf',
+        true,
+        original_filename: 'fake_resume_alan.pdf'
+      )
+
+      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }
+      attachment_id = json_body.dig('data', 'data', 'attributes', 'id')
+      original_route = json_body.dig('data', 'data', 'attributes', 'route')
+      LockedCV::CreateSensitiveDataService.call(
+        account_id: @account.id,
+        attachment_id:,
+        sensitive_data: {
+          first_name: 'Alan',
+          last_name: 'Turing',
+          phone_number: '0912-000-002',
+          birthday: '1912-06-23',
+          email: 'alan@example.com',
+          address: 'Manchester',
+          identification_numbers: 'B987654321'
+        }
+      )
+
+      post "/api/v1/accounts/#{@account.id}/attachments/#{attachment_id}/masked_attachments"
+
+      _(last_response.status).must_equal 201
+      _(json_body['message']).must_equal 'Masked attachment saved'
+      route = json_body.dig('data', 'data', 'attributes', 'route')
+      _(route).must_match %r{\Aaccounts/#{@account.id}/masked/masked_fake_resume_alan_[0-9a-f]{32}\.pdf\z}
+      _(route).wont_match %r{\A/}
+      _(File.file?(storage_path_for(route))).must_equal true
+      _(File.file?(storage_path_for(original_route))).must_equal true
+      _(LockedCV::MaskedAttachment.count).must_equal 1
+      _(LockedCV::MaskedItem.count).must_be :>, 0
+      scrubbed_text = LockedCV::ExtractPdf.text(storage_path_for(route))
+      _(scrubbed_text).wont_include 'Alan Turing'
+      _(scrubbed_text).wont_include 'alan@example.com'
+      _(scrubbed_text).wont_include '0912-000-002'
+      _(scrubbed_text).wont_include 'B987654321'
+      _(scrubbed_text).wont_include '@example.com'
+      _(scrubbed_text).wont_include '0912'
+      _(scrubbed_text).wont_include 'B987'
+    end
+
+    it 'SAD: returns 404 when exporting a missing attachment' do
+      post "/api/v1/accounts/#{@account.id}/attachments/999999/masked_attachments"
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Attachment not found')
+    end
+  end
 end

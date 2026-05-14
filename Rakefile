@@ -83,6 +83,8 @@ namespace :db do
 
   desc 'Destroy data in database; maintain tables'
   task delete: :load_models do
+    LockedCV::MaskedItem.dataset.destroy
+    LockedCV::MaskedAttachment.dataset.destroy
     LockedCV::SensitiveData.dataset.destroy
     LockedCV::Attachment.dataset.destroy
     @app.DB[:accounts_roles].delete

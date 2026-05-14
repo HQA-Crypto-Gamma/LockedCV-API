@@ -13,7 +13,8 @@ module LockedCV
 
     many_to_one :account, class: :'LockedCV::Account', key: :account_id
     one_to_one :sensitive_data, class: :'LockedCV::SensitiveData', key: :attachment_id
-    add_association_dependencies sensitive_data: :destroy
+    one_to_many :masked_attachments, class: :'LockedCV::MaskedAttachment', key: :attachment_id
+    add_association_dependencies sensitive_data: :destroy, masked_attachments: :destroy
 
     def owner
       accounts_in_role('owner').first
