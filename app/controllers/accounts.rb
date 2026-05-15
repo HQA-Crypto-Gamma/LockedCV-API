@@ -214,6 +214,28 @@ module LockedCV
           end
         end
 
+        # DELETE api/v1/accounts/[account_id]
+        routing.delete do
+          body = HttpRequest.new(routing).body_data
+          DeleteAccountService.call(
+            current_account_id: body[:current_account_id],
+            target_account_id: account_id
+          )
+
+          { message: 'Account deleted' }.to_json
+        rescue DeleteAccountService::MissingCurrentAccountError
+          routing.halt 401, { message: 'Missing current_account_id' }.to_json
+        rescue DeleteAccountService::NotAuthorizedError
+          routing.halt 403, { message: 'Only admins can delete accounts' }.to_json
+        rescue DeleteAccountService::CannotDeleteSelfError
+          routing.halt 403, { message: 'Admins cannot delete their own account' }.to_json
+        rescue DeleteAccountService::AccountNotFoundError
+          routing.halt 404, { message: 'Account not found' }.to_json
+        rescue StandardError => e
+          Api.logger.error "UNKNOWN ERROR: #{e.message}"
+          routing.halt 500, { message: 'Database error' }.to_json
+        end
+
         # PUT api/v1/accounts/[account_id]
         routing.put do
           updated_data = HttpRequest.new(routing).body_data

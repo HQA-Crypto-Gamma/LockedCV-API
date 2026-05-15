@@ -154,4 +154,114 @@ describe 'Account Endpoints' do
       _(json_body).must_equal('message' => 'Account not found')
     end
   end
+
+  describe 'DELETE /api/v1/accounts/:id' do
+    before do
+      @admin_role = LockedCV::Role.create(name: 'admin')
+      @admin = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+      @target = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+      )
+      @admin.add_system_role(@admin_role)
+    end
+
+    it 'HAPPY: admin deletes an account' do
+      delete(
+        "/api/v1/accounts/#{@target.id}",
+        { current_account_id: @admin.id }.to_json,
+        req_header
+      )
+
+      _(last_response.status).must_equal 200
+      _(json_body).must_equal('message' => 'Account deleted')
+      _(LockedCV::Account.first(id: @target.id)).must_be_nil
+    end
+
+    it 'HAPPY: deletes dependent attachments and sensitive data' do
+      attachment = LockedCV::CreateAttachmentService.call(
+        account_id: @target.id,
+        attachment_data: {
+          attachment_name: 'target-resume.pdf',
+          route: 'target/target-resume.pdf'
+        }
+      )
+      sensitive_data = LockedCV::CreateSensitiveDataService.call(
+        account_id: @target.id,
+        attachment_id: attachment.id,
+        sensitive_data: {
+          first_name: 'Alan',
+          last_name: 'Turing',
+          phone_number: '0912-000-002',
+          birthday: '1912-06-23',
+          email: 'alan@example.com',
+          address: 'Manchester',
+          identification_numbers: 'NINO-123'
+        }
+      )
+
+      delete(
+        "/api/v1/accounts/#{@target.id}",
+        { current_account_id: @admin.id }.to_json,
+        req_header
+      )
+
+      _(last_response.status).must_equal 200
+      _(LockedCV::Attachment.first(id: attachment.id)).must_be_nil
+      _(LockedCV::SensitiveData.first(id: sensitive_data.id)).must_be_nil
+    end
+
+    it 'SAD: non-admin cannot delete an account' do
+      non_admin = LockedCV::CreateAccountService.call(
+        account_data: {
+          username: 'grace-hopper',
+          email: 'grace@example.com',
+          phone_number: '0912-000-003',
+          password: 'grace-secret'
+        }
+      )
+
+      delete(
+        "/api/v1/accounts/#{@target.id}",
+        { current_account_id: non_admin.id }.to_json,
+        req_header
+      )
+
+      _(last_response.status).must_equal 403
+      _(json_body).must_equal('message' => 'Only admins can delete accounts')
+      _(LockedCV::Account.first(id: @target.id)).wont_be_nil
+    end
+
+    it 'SAD: admin cannot delete their own account' do
+      delete(
+        "/api/v1/accounts/#{@admin.id}",
+        { current_account_id: @admin.id }.to_json,
+        req_header
+      )
+
+      _(last_response.status).must_equal 403
+      _(json_body).must_equal('message' => 'Admins cannot delete their own account')
+      _(LockedCV::Account.first(id: @admin.id)).wont_be_nil
+    end
+
+    it 'SAD: returns 404 for missing account' do
+      delete(
+        '/api/v1/accounts/missing-account',
+        { current_account_id: @admin.id }.to_json,
+        req_header
+      )
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Account not found')
+    end
+
+    it 'SECURITY: missing current_account_id returns 401' do
+      delete "/api/v1/accounts/#{@target.id}", {}.to_json, req_header
+
+      _(last_response.status).must_equal 401
+      _(json_body).must_equal('message' => 'Missing current_account_id')
+      _(LockedCV::Account.first(id: @target.id)).wont_be_nil
+    end
+  end
 end
