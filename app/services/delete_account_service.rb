@@ -11,19 +11,31 @@ module LockedCV
     def self.call(current_account_id:, target_account_id:)
       raise MissingCurrentAccountError unless current_account_id
 
-      current_account = Account.first(id: current_account_id)
-      raise NotAuthorizedError unless current_account&.admin?
+      current_account = authorized_current_account!(current_account_id)
       raise CannotDeleteSelfError if current_account.id == target_account_id
 
-      target = Account.first(id: target_account_id)
-      raise AccountNotFoundError unless target
+      target = target_account!(target_account_id)
+      delete_target!(target)
 
+      target
+    end
+
+    def self.authorized_current_account!(current_account_id)
+      current_account = Account.first(id: current_account_id)
+      raise NotAuthorizedError unless current_account&.admin?
+
+      current_account
+    end
+
+    def self.target_account!(target_account_id)
+      Account.first(id: target_account_id) or raise AccountNotFoundError
+    end
+
+    def self.delete_target!(target)
       Account.db.transaction do
         target.system_roles.each { |role| target.remove_system_role(role) }
         target.destroy
       end
-
-      target
     end
   end
 end
