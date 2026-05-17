@@ -12,8 +12,8 @@ module LockedCV
     end
 
     # NOTE: role-checking belongs in a Policy object once authorization is formalized.
-    def self.call(current_account_id:, target_username:, role_name:)
-      authorize_admin!(current_account_id)
+    def self.call(current_account:, target_username:, role_name:)
+      authorize_admin!(current_account)
       role = find_system_role!(role_name)
       target = find_target_account!(target_username)
       already_assigned = target.system_roles_dataset.where(name: role_name).any?
@@ -23,9 +23,8 @@ module LockedCV
       Result.new(account: target, created: !already_assigned)
     end
 
-    def self.authorize_admin!(current_account_id)
-      current_account = Account.first(id: current_account_id) or raise UnknownAccountError
-      return if current_account.admin?
+    def self.authorize_admin!(current_account)
+      return if current_account&.admin?
 
       raise NotAuthorizedError, 'Only admins can manage system roles'
     end

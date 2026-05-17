@@ -6,6 +6,57 @@ require_relative 'app'
 module LockedCV
   # Account-scoped API routes
   class Api < Roda
+    route('account') do |routing|
+      @account_route = "#{@api_root}/account"
+      current_account = current_account!(routing)
+
+      routing.on 'password' do
+        # PUT api/v1/account/password
+        routing.put do
+          password_data = HttpRequest.new(routing).body_data
+          ChangePasswordService.call(account_id: current_account.id, password_data:)
+
+          { message: 'Password updated' }.to_json
+        rescue ChangePasswordService::InvalidCurrentPasswordError
+          routing.halt 400, { message: 'Current password is incorrect' }.to_json
+        rescue ChangePasswordService::InvalidPasswordError
+          routing.halt 400, { message: 'Password is required' }.to_json
+        rescue StandardError => e
+          Api.logger.error "UNKNOWN ERROR: #{e.message}"
+          routing.halt 500, { message: 'Database error' }.to_json
+        end
+      end
+
+      # PUT api/v1/account
+      routing.put do
+        updated_data = HttpRequest.new(routing).body_data
+        account = UpdateAccountService.call(account_id: current_account.id, account_data: updated_data)
+
+        { message: 'Account updated', data: account }.to_json
+      rescue Sequel::MassAssignmentRestriction
+        Api.logger.warn("MASS_ASSIGNMENT_ATTEMPT keys=#{updated_data.keys}")
+        routing.halt 400, { message: 'Illegal attributes' }.to_json
+      rescue StandardError => e
+        Api.logger.error "UNKNOWN ERROR: #{e.message}"
+        routing.halt 500, { message: 'Database error' }.to_json
+      end
+
+      # GET api/v1/account
+      routing.get do
+        current_account.to_json
+      end
+    end
+
+    route('attachments') do |routing|
+      current_account = current_account!(routing)
+
+      # GET api/v1/attachments
+      routing.get do
+        output = { data: current_account.attachments }
+        JSON.pretty_generate(output)
+      end
+    end
+
     route('accounts') do |routing|
       @account_route = "#{@api_root}/accounts"
 
@@ -14,12 +65,10 @@ module LockedCV
           routing.on String do |role_name|
             # PUT api/v1/accounts/[username]/system_roles/[role_name]
             routing.put do
-              body = HttpRequest.new(routing).body_data
-              current_account_id = body[:current_account_id]
-              routing.halt(401, { message: 'Missing current_account_id' }.to_json) unless current_account_id
+              current_account = require_admin!(routing)
 
               result = AssignSystemRoleService.call(
-                current_account_id:, target_username: account_id, role_name:
+                current_account:, target_username: account_id, role_name:
               )
 
               response.status = result.created? ? 201 : 200
@@ -43,6 +92,7 @@ module LockedCV
           routing.on 'upload' do
             # POST api/v1/accounts/[account_id]/attachments/upload
             routing.post do
+              require_owner!(routing, account_id)
               uploaded_file = routing.params['file']
               raise StoreAttachmentFile::MissingFileError unless uploaded_file
 
@@ -82,6 +132,7 @@ module LockedCV
             routing.on 'masked_text' do
               # GET api/v1/accounts/[account_id]/attachments/[attachment_id]/masked_text
               routing.get do
+                require_owner!(routing, account_id)
                 result = ProcessAttachmentMasking.call(account_id:, attachment_id:)
 
                 {
@@ -101,6 +152,7 @@ module LockedCV
             routing.on 'masked_attachments' do
               # POST api/v1/accounts/[account_id]/attachments/[attachment_id]/masked_attachments
               routing.post do
+                require_owner!(routing, account_id)
                 masked_attachment = ExportMaskedPdf.call(account_id:, attachment_id:)
 
                 response.status = 201
@@ -120,6 +172,7 @@ module LockedCV
 
               # GET api/v1/accounts/[account_id]/attachments/[attachment_id]/sensitive_data
               routing.get do
+                require_owner!(routing, account_id)
                 attachment = FindAttachmentService.call(account_id:, attachment_id:)
                 raise('Attachment not found') unless attachment
 
@@ -131,6 +184,7 @@ module LockedCV
 
               # POST api/v1/accounts/[account_id]/attachments/[attachment_id]/sensitive_data
               routing.post do
+                require_owner!(routing, account_id)
                 new_data = HttpRequest.new(routing).body_data
                 new_doc = CreateSensitiveDataService.call(
                   account_id:,
@@ -153,6 +207,7 @@ module LockedCV
 
             # GET api/v1/accounts/[account_id]/attachments/[attachment_id]
             routing.get do
+              require_owner!(routing, account_id)
               attachment = FindAttachmentService.call(account_id:, attachment_id:)
               attachment ? attachment.to_json : raise('Attachment not found')
             rescue StandardError
@@ -162,6 +217,7 @@ module LockedCV
 
           # GET api/v1/accounts/[account_id]/attachments
           routing.get do
+            require_owner!(routing, account_id)
             account = FindAccountService.call(account_id:)
             raise('Account not found') unless account
 
@@ -173,6 +229,7 @@ module LockedCV
 
           # POST api/v1/accounts/[account_id]/attachments
           routing.post do
+            require_owner!(routing, account_id)
             new_data = HttpRequest.new(routing).body_data
             new_attachment = CreateAttachmentService.call(
               account_id:,
@@ -198,6 +255,7 @@ module LockedCV
         routing.on 'password' do
           # PUT api/v1/accounts/[account_id]/password
           routing.put do
+            require_owner!(routing, account_id)
             password_data = HttpRequest.new(routing).body_data
             ChangePasswordService.call(account_id:, password_data:)
 
@@ -216,15 +274,13 @@ module LockedCV
 
         # DELETE api/v1/accounts/[account_id]
         routing.delete do
-          body = HttpRequest.new(routing).body_data
+          current_account = require_admin!(routing)
           DeleteAccountService.call(
-            current_account_id: body[:current_account_id],
+            current_account:,
             target_account_id: account_id
           )
 
           { message: 'Account deleted' }.to_json
-        rescue DeleteAccountService::MissingCurrentAccountError
-          routing.halt 401, { message: 'Missing current_account_id' }.to_json
         rescue DeleteAccountService::NotAuthorizedError
           routing.halt 403, { message: 'Only admins can delete accounts' }.to_json
         rescue DeleteAccountService::CannotDeleteSelfError
@@ -238,6 +294,7 @@ module LockedCV
 
         # PUT api/v1/accounts/[account_id]
         routing.put do
+          require_owner!(routing, account_id)
           updated_data = HttpRequest.new(routing).body_data
           account = UpdateAccountService.call(account_id:, account_data: updated_data)
 
@@ -253,6 +310,7 @@ module LockedCV
         end
 
         routing.get do
+          require_owner!(routing, account_id)
           account = FindAccountService.call(account_id:)
           account ? account.to_json : raise('Account not found')
         rescue StandardError
@@ -260,11 +318,10 @@ module LockedCV
         end
       end
 
-      # GET api/v1/accounts?current_account_id=[admin_account_id]
+      # GET api/v1/accounts
       routing.get do
-        accounts = ListAccountsService.call(
-          current_account_id: routing.params['current_account_id']
-        )
+        current_account = require_admin!(routing)
+        accounts = ListAccountsService.call(current_account:)
 
         output = {
           data: accounts.map do |account|
@@ -280,8 +337,6 @@ module LockedCV
           end
         }
         JSON.pretty_generate(output)
-      rescue ListAccountsService::MissingCurrentAccountError
-        routing.halt 401, { message: 'Missing current_account_id' }.to_json
       rescue ListAccountsService::NotAuthorizedError
         routing.halt 403, { message: 'Only admins can list accounts' }.to_json
       rescue StandardError => e
@@ -306,6 +361,41 @@ module LockedCV
         Api.logger.error "UNKNOWN ERROR: #{e.message}"
         routing.halt 500, { message: 'Database error' }.to_json
       end
+    end
+
+    private
+
+    def authenticated_account!(routing)
+      payload = HttpRequest.new(routing).authenticated_account
+      routing.halt 401, { message: 'Missing authorization token' }.to_json unless payload
+
+      payload
+    rescue AuthToken::ExpiredTokenError
+      routing.halt 401, { message: 'Expired authorization token' }.to_json
+    rescue AuthToken::InvalidTokenError
+      routing.halt 401, { message: 'Invalid authorization token' }.to_json
+    end
+
+    def current_account!(routing)
+      payload = authenticated_account!(routing)
+      account = Account.first(id: payload['account_id'])
+      return account if account
+
+      routing.halt 401, { message: 'Invalid authorization token' }.to_json
+    end
+
+    def require_owner!(routing, account_id)
+      current_account = authenticated_account!(routing)
+      return current_account if current_account['account_id'] == account_id
+
+      routing.halt 403, { message: 'Forbidden account access' }.to_json
+    end
+
+    def require_admin!(routing)
+      account = current_account!(routing)
+      return account if account&.admin?
+
+      routing.halt 403, { message: 'Only admins can perform this action' }.to_json
     end
   end
 end

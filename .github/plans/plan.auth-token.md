@@ -7,7 +7,7 @@
 - API 需要提供 username/email availability check，避免 App 產生註冊 token 前就接受已被使用的資料。
 - API 需要寄出 verification email；本計畫暫定由 API 呼叫 email provider，讓 provider API key 留在 API deployment config。
 - API authentication 成功時需要回傳 safe account data 加上 auth token。
-- 需要用 Bearer auth token 授權會讀取 account resource 的 API routes，避免 App 在 request path/body 放入 requesting user id 或 username。
+- 需要用 Bearer auth token 授權會讀取 account resource 的 API routes，避免 App 在 request body/query 放入 requesting user id 或 username。
 
 ## 現況分析（2026-05-17）
 
@@ -17,15 +17,16 @@
   - `Securable`：提供 `SecureDB` 與 `AuthToken` 共用的 encryption/decryption/hash primitives。
   - `AuthToken`：可建立與載入含 expiration 的 encrypted token。
   - `AuthenticateAccountService` 與 `POST /api/v1/auth/authenticate`。
+  - Bearer token parser/current account helper。
+  - Account-owned routes 已用 token 檢查 owner 或 admin authorization。
+  - Token-scoped current account routes：`GET/PUT /api/v1/account`、`PUT /api/v1/account/password`。
+  - Token-scoped owned attachments index：`GET /api/v1/attachments`。
   - `Account` model、password digest、roles、attachments、sensitive data。
   - Account registration 目前仍是 `POST /api/v1/accounts` 直接建立 account。
-  - Attachment routes 目前多數以 `account_id` path segment 決定 owner。
 - 目前尚未有：
   - registration availability endpoint。
   - email provider client/service。
-  - Bearer token parser/verifier。
-  - token-based current account helper。
-  - 「依 token 找自己的 resources」的 owner-scoped index endpoint。
+  - broader owned resources endpoint（若 attachments 之外還有其他 resource domain）。
 
 ## 設計決策草案
 
@@ -42,8 +43,8 @@
 3. **Email provider client**：選定 provider，建立 service object，並用 WebMock 測試 provider request。
 4. **AuthToken library**：建立 token payload、加密/簽章、過期時間、decode/verify 流程。
 5. **Authentication response update**：登入成功時回傳 `auth_token`。
-6. **Bearer authorization helpers**：解析 `HTTP_AUTHENTICATION` header，要求格式為 `Bearer <TOKEN>`，建立 current account helper。
-7. **Protect resource routes**：針對 account-owned resources 加上 token 檢查；可疑情況一律 `403`。
+6. **Bearer authorization helpers**：解析 `Authorization` header，要求格式為 `Bearer <TOKEN>`，建立 current account helper。
+7. **Protect resource routes**：針對 account-owned resources 加上 token 檢查；沒有登入/壞 token 回 `401`，有登入但非 owner/admin 回 `403`。
 8. **Owned resource index**：新增 token-scoped resource index endpoint，讓 App 不需要送 requesting user id。
 
 ## Todo 清單
@@ -91,28 +92,27 @@
    - 已補 integration/unit specs 確認 token 存在且可被 API verify。
    - 待做：更新 README/Copilot API contract docs。
 
-7. `bearer-auth-helpers`
-   - 新增 request helper/service 解析 `HTTP_AUTHENTICATION` header。
+7. ✅ `bearer-auth-helpers`（已完成）
+   - 已新增 request helper 解析 `Authorization` header。
    - 僅接受 `Bearer <TOKEN>`。
-   - 缺 header、格式錯誤、token invalid/expired 一律 `403`。
-   - 建立 helper：`current_account_from_token!`。
-   - 建立 helper：確認 resource owner 與 token account 相同。
+   - 缺 header、格式錯誤、token invalid/expired 回 `401`。
+   - 已建立 helper：讀取 token payload、確認 resource owner 與 token account 相同、確認 admin caller。
 
-8. `protect-account-resource-routes`
+8. ✅ `protect-account-resource-routes`（已完成，tests 待補）
    - 盤點現有需要保護的 routes：
      - account profile read/update/password。
      - attachments list/get/upload/create/masked text/masked export。
      - sensitive data read/create。
-   - 第一階段可先保護 App 目前會使用的 routes，再逐步補齊全部 account-owned resource routes。
-   - 可疑情況一律 `403`，包含 token account 不等於 path account/resource owner。
-   - Admin-only routes 仍保留 admin role check，但 caller identity 也應來自 token。
+   - 已保護 account-owned routes；token account 不等於 path account 時回 `403`。
+   - Admin-only routes 已改由 token 找 caller，不再信任 request body/query 的 `current_account_id`。
+   - 待補 specs：missing token `401`、invalid/expired token `401`、non-owner `403`、non-admin `403`、missing resource `404`。
 
-9. `owned-resources-index`
-   - 新增 token-scoped resource index endpoint，避免 App 傳 requesting user id。
-   - 建議 route：`GET /api/v1/attachments`
-   - API 由 Bearer token 找 current account，再回傳該 account 的 attachment/resource list。
+9. ✅ `owned-resources-index`（已完成 attachments 版本，tests 待補）
+   - 已新增 token-scoped attachments index endpoint，避免 App 傳 requesting user id。
+   - Route：`GET /api/v1/attachments`
+   - API 由 Bearer token 找 current account，再回傳該 account 的 attachment list。
    - 後續如果 resource 不只 attachments，可再新增 `GET /api/v1/resources` 或更清楚的 domain route。
-   - 補 integration specs：只回 token owner resources；沒有 token/錯 token回 `403`。
+   - 待補 integration specs：只回 token owner resources；沒有 token/錯 token 回 `401`。
 
 ## API Contract 草案
 
