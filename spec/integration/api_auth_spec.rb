@@ -31,6 +31,11 @@ describe 'Authentication Endpoint' do
     _(json_body.dig('data', 'attributes', 'username')).must_equal @account.username
     _(json_body.dig('data', 'attributes', 'email')).must_equal @account.email
     _(json_body.dig('data', 'attributes', 'roles')).must_equal ['member']
+    auth_token = json_body.dig('data', 'attributes', 'auth_token')
+    payload = LockedCV::AuthToken.load(auth_token).payload
+    _(payload['account_id']).must_equal @account.id
+    _(payload['username']).must_equal @account.username
+    _(payload['email']).must_equal @account.email
     _(json_body.dig('data', 'attributes').keys).wont_include 'password'
     _(json_body.dig('data', 'attributes').keys).wont_include 'password_digest'
   end

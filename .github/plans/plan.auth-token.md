@@ -84,11 +84,12 @@
    - 解密失敗、格式錯誤、過期 token 會 raise token-specific errors。
    - 已補 unit specs：encrypted token、round trip、fresh token、expired token、invalid token、tampered token、generated key setup。
 
-6. `authenticate-response-token`
-   - 更新 `POST /api/v1/auth/authenticate` success response，加入 `auth_token`。
-   - 保留 safe account data，不回傳 password/password_digest/encrypted/hash columns。
-   - 補 integration specs 確認 token 存在且可被 API verify。
-   - 更新 API contract docs/README/Copilot instructions（實作時再做）。
+6. ✅ `authenticate-response-token`（已完成）
+   - 已更新 `POST /api/v1/auth/authenticate` success response，加入 `auth_token`。
+   - 已保留 safe account data，不回傳 password/password_digest/encrypted/hash columns。
+   - Token payload 目前包含 `account_id`、`username`、`email`，不包含 roles，避免 role changes 造成 stale token claims。
+   - 已補 integration/unit specs 確認 token 存在且可被 API verify。
+   - 待做：更新 README/Copilot API contract docs。
 
 7. `bearer-auth-helpers`
    - 新增 request helper/service 解析 `HTTP_AUTHENTICATION` header。
