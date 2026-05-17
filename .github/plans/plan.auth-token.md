@@ -14,6 +14,8 @@
 - 專案：`LockedCV-API`
 - 目前已有：
   - `SecureDB`：負責 DB 欄位加密與 keyed hash。
+  - `Securable`：提供 `SecureDB` 與 `AuthToken` 共用的 encryption/decryption/hash primitives。
+  - `AuthToken`：可建立與載入含 expiration 的 encrypted token。
   - `AuthenticateAccountService` 與 `POST /api/v1/auth/authenticate`。
   - `Account` model、password digest、roles、attachments、sensitive data。
   - Account registration 目前仍是 `POST /api/v1/accounts` 直接建立 account。
@@ -21,7 +23,6 @@
 - 目前尚未有：
   - registration availability endpoint。
   - email provider client/service。
-  - API-side auth token library。
   - Bearer token parser/verifier。
   - token-based current account helper。
   - 「依 token 找自己的 resources」的 owner-scoped index endpoint。
@@ -47,10 +48,11 @@
 
 ## Todo 清單
 
-1. `securable-crypto-extraction`
-   - 從 `SecureDB` 抽出 `Securable`，集中處理 NaCl encryption/decryption、Base64 encoding、key loading。
-   - 保留 `SecureDB.encrypt` / `SecureDB.decrypt` / `SecureDB.hash` public API，避免一次破壞 existing models。
-   - 補 unit specs 確認 refactor 後 encrypted DB fields 與 hash lookup 行為不變。
+1. ✅ `securable-crypto-extraction`（已完成）
+   - 已從 `SecureDB` 抽出 `Securable`，集中處理 NaCl encryption/decryption、Base64 encoding、key loading。
+   - 已保留 `SecureDB.encrypt` / `SecureDB.decrypt` / `SecureDB.hash` public API，避免一次破壞 existing models。
+   - 已補 `MSG_KEY` config example 與 `rake newkey:msg`。
+   - 已驗證既有 `SecureDB` specs 與完整 API specs 通過。
 
 2. `registration-availability-api`
    - 新增 service：檢查 username 與 email 是否可用。
@@ -75,16 +77,12 @@
    - 用 WebMock mock provider HTTP request。
    - 測試 happy path、provider 4xx/5xx、timeout/network error。
 
-5. `auth-token-library`
-   - 新增 `AuthToken` library。
-   - Token payload 至少包含：
-     - `account_id`
-     - `username` 或 `roles`（是否放 roles 待決策）
-     - `exp` expiration timestamp
-     - token purpose/version
-   - 使用 `Securable` 進行 token crypto。
-   - 解密失敗、格式錯誤、過期、account 不存在都視為 invalid token。
-   - 補 unit specs：round trip、tampered token、expired token、unknown account。
+5. ✅ `auth-token-library`（已完成）
+   - 已新增 `AuthToken` library。
+   - Token envelope 目前包含 payload 與 `exp` expiration timestamp。
+   - 已使用 `Securable` 進行 token crypto。
+   - 解密失敗、格式錯誤、過期 token 會 raise token-specific errors。
+   - 已補 unit specs：encrypted token、round trip、fresh token、expired token、invalid token、tampered token、generated key setup。
 
 6. `authenticate-response-token`
    - 更新 `POST /api/v1/auth/authenticate` success response，加入 `auth_token`。
@@ -212,6 +210,7 @@ Suspicious cases return `403`:
 
 - Email provider 選擇：Resend.com、Mailgun、MailTrap 或其他 Heroku partner provider。
 - Provider API key 在 Heroku credentials 中的名稱，以及 provider 要求的 auth header 格式。
+- Deployed API 需要設定 `MSG_KEY` Heroku config var；可用 `bundle exec rake newkey:msg` 產生。
 - Auth token expiration 長度。
 - Auth token payload 是否包含 roles、email、token version、issued-at、capabilities。
 - Registration token 是否也要有 expiration（bonus）。
