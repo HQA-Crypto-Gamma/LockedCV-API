@@ -8,7 +8,7 @@ A Ruby web API for the Crypto γ SEC project that allows accounts to securely sh
 - SQLite data storage via Sequel ORM
 - PII protection for account email/phone via encrypted (`*_secure`) + searchable hash (`*_hash`) columns
 - Role foundation with `roles` and `accounts_roles` (many-to-many)
-- PDF attachment upload and masked-text preview support
+- PDF attachment upload, masked-text preview, and masked PDF export support
 - Admin-only system role assignment and account listing
 - JSON response format
 
@@ -147,6 +147,45 @@ http -v --json POST localhost:9000/api/v1/accounts \
 http -v GET localhost:9000/api/v1/accounts/<account_uuid>
 ```
 
+#### Update Account
+
+**PUT** `/api/v1/accounts/:account_id`
+
+```bash
+http -v --json PUT localhost:9000/api/v1/accounts/<account_uuid> \
+  email="jane.updated@example.com" \
+  phone_number="987-654-3210" \
+  first_name="Jane" \
+  last_name="Smith" \
+  birthday="1990-01-01" \
+  address="Taipei" \
+  identification_numbers="A123456789"
+```
+
+#### Change Account Password
+
+**PUT** `/api/v1/accounts/:account_id/password`
+
+```bash
+http -v --json PUT localhost:9000/api/v1/accounts/<account_uuid>/password \
+  current_password="my-secret-password" \
+  password="my-new-secret-password"
+```
+
+The current password must be correct before the password is replaced.
+
+#### Delete Account
+
+**DELETE** `/api/v1/accounts/:account_id`
+
+```bash
+http -v --json DELETE localhost:9000/api/v1/accounts/<account_uuid> \
+  current_account_id="<admin_account_uuid>"
+```
+
+Only accounts with the `admin` system role can delete accounts. Admins cannot
+delete their own account.
+
 #### Assign System Role
 
 **PUT** `/api/v1/accounts/:username/system_roles/:role_name`
@@ -180,7 +219,7 @@ Only PDF uploads are currently supported. Uploaded files are stored under
 ```bash
 http -v --json POST localhost:9000/api/v1/accounts/<account_uuid>/attachments \
   attachment_name="resume_jane.pdf" \
-  route="/uploads/resume_jane.pdf"
+  route="accounts/<account_uuid>/resume_jane.pdf"
 ```
 
 #### Get All Attachments for an Account
@@ -209,6 +248,18 @@ http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/masked_t
 
 Extracts PDF text, detects sensitive values, and returns masked text preview
 data for the attachment.
+
+#### Export Masked PDF Attachment
+
+**POST** `/api/v1/accounts/:account_id/attachments/:attachment_id/masked_attachments`
+
+```bash
+http -v --json POST \
+  localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/masked_attachments
+```
+
+Creates a generated masked PDF file and saves masked output metadata. This is a
+text-based visual masking approximation, not a formal PDF redaction engine.
 
 ### Sensitive Data Endpoints
 
@@ -265,6 +316,8 @@ bundle exec rake style
 │   ├── models/
 │       ├── account.rb       # Account DB model
 │       ├── attachment.rb    # Attachment DB model
+│       ├── masked_attachment.rb # Masked PDF output DB model
+│       ├── masked_item.rb   # Masked value metadata DB model
 │       ├── role.rb          # Role DB model
 │       └── sensitive_data.rb # SensitiveData DB model
 │   └── services/            # Application services for API behavior
@@ -284,7 +337,8 @@ bundle exec rake style
 
 ## Data Storage
 
-Application data is stored in SQLite database files under `db/local/`.
+Application data is stored in SQLite database files under `db/local/`. Uploaded
+and generated PDF files are stored under `storage/uploads/`.
 
 ## License
 

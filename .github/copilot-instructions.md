@@ -70,6 +70,9 @@ Current schema implemented in migrations:
    - `email_hash` (String, deterministic hash, unique)
    - `phone_number_secure` (String, encrypted, optional)
    - `phone_number_hash` (String, deterministic hash, optional, unique)
+   - `first_name_secure`, `last_name_secure` (String, encrypted, optional)
+   - `birthday_secure`, `address_secure`,
+     `identification_numbers_secure` (String, encrypted, optional)
    - `password_digest` (String)
    - `created_at`, `updated_at` (DateTime)
 2. `attachments`
@@ -94,6 +97,20 @@ Current schema implemented in migrations:
    - `account_id` (UUID, FK -> `accounts.id`)
    - `role_id` (Integer, FK -> `roles.id`)
    - Composite PK: `[:account_id, :role_id]`
+6. `masked_attachments`
+   - `id` (Integer, PK)
+   - `attachment_id` (Integer, FK -> `attachments.id`)
+   - `attachment_name` (String)
+   - `route` (String, unique)
+   - `created_at`, `updated_at` (DateTime)
+7. `masked_items`
+   - `id` (Integer, PK)
+   - `masked_attachment_id` (Integer, FK -> `masked_attachments.id`)
+   - `field_name` (String)
+   - `value_secure` (String, encrypted)
+   - `is_masked` (Boolean)
+   - `source` (String: `sensitive_data`, `regex`, or `manual`)
+   - `created_at`, `updated_at` (DateTime)
 
 Migration files:
 
@@ -102,13 +119,16 @@ Migration files:
 - `db/migrations/003_create_sensitive_data.rb`
 - `db/migrations/004_create_roles.rb`
 - `db/migrations/005_account_roles.rb`
+- `db/migrations/006_create_masked_attachments.rb`
+- `db/migrations/007_create_masked_items.rb`
 
 ### Directory Structure
 
 - `config.ru` — Rack entry point
 - `app/controllers/` — Roda controllers with routing logic
 - `app/lib/` — crypto and password key-stretching helpers
-- `app/models/` — Sequel models (`Account`, `Attachment`, `SensitiveData`, `Role`)
+- `app/models/` — Sequel models (`Account`, `Attachment`,
+  `MaskedAttachment`, `MaskedItem`, `SensitiveData`, `Role`)
 - `app/services/` — application services for account, role, attachment, PDF,
   and masking behavior
 - `docs/schema.md` — schema notes and ERD
@@ -139,6 +159,11 @@ Migration files:
 - `POST /api/v1/accounts` creates a basic account. Account detail verification
   still needs to be strengthened.
 - `GET /api/v1/accounts/:account_id` returns one account.
+- `PUT /api/v1/accounts/:account_id` updates editable account profile fields.
+- `PUT /api/v1/accounts/:account_id/password` changes an account password after
+  verifying the current password.
+- `DELETE /api/v1/accounts/:account_id` deletes an account and requires an
+  admin `current_account_id`. Admins cannot delete their own account.
 - `PUT /api/v1/accounts/:username/system_roles/:role_name` assigns a system
   role and requires an admin `current_account_id`.
 - `GET /api/v1/accounts/:account_id/attachments` lists account attachments.
@@ -149,6 +174,8 @@ Migration files:
   attachment.
 - `GET /api/v1/accounts/:account_id/attachments/:attachment_id/masked_text`
   extracts and masks PDF text.
+- `POST /api/v1/accounts/:account_id/attachments/:attachment_id/masked_attachments`
+  exports a generated masked PDF and records masked output metadata.
 - `GET/POST /api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data`
   reads or creates sensitive data for an attachment.
 
@@ -188,6 +215,8 @@ All markdown files must be kept lint-free:
 
 - Uses `rbnacl` gem for cryptographic operations (encryption + keyed HMAC-SHA256 hashing)
 - Personal data handling for secure resume/document sharing
+- Masked PDF export is a text-based visual masking approximation for
+  text-based PDFs, not a formal PDF redaction engine.
 - API enforces TLS/SSL through `HttpRequest#secure?`; local development uses
   `SECURE_SCHEME: HTTP`, while production should use `SECURE_SCHEME: HTTPS`.
 - Do not expose plaintext passwords, password digests, encrypted columns, or
