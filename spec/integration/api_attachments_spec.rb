@@ -34,7 +34,7 @@ describe 'Attachment Endpoints' do
     it 'HAPPY: creates an attachment for an account' do
       payload = DATA[:attachments].last.transform_keys(&:to_sym)
 
-      post "/api/v1/accounts/#{@account.id}/attachments", payload.to_json, req_header
+      post "/api/v1/accounts/#{@account.id}/attachments", payload.to_json, auth_req_header(@account)
 
       _(last_response.status).must_equal 201
       _(last_response.headers['Content-Type']).must_include 'application/json'
@@ -46,7 +46,7 @@ describe 'Attachment Endpoints' do
       payload = DATA[:attachments].last.merge('account_id' => 'forged-account')
       before_count = LockedCV::Attachment.count
 
-      post "/api/v1/accounts/#{@account.id}/attachments", payload.to_json, req_header
+      post "/api/v1/accounts/#{@account.id}/attachments", payload.to_json, auth_req_header(@account)
 
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Illegal attributes')
@@ -61,7 +61,7 @@ describe 'Attachment Endpoints' do
       write_text_pdf(pdf.path, 'Uploaded PDF text')
       upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'Resume Ada.pdf')
 
-      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }
+      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }, auth_header(@account)
 
       _(last_response.status).must_equal 201
       _(last_response.headers['Content-Type']).must_include 'application/json'
@@ -80,7 +80,7 @@ describe 'Attachment Endpoints' do
       text_file.rewind
       upload = Rack::Test::UploadedFile.new(text_file.path, 'text/plain', true, original_filename: 'resume.txt')
 
-      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }
+      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }, auth_header(@account)
 
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Could not upload attachment')
@@ -89,7 +89,7 @@ describe 'Attachment Endpoints' do
     end
 
     it 'SAD: rejects missing file uploads' do
-      post "/api/v1/accounts/#{@account.id}/attachments/upload", {}
+      post "/api/v1/accounts/#{@account.id}/attachments/upload", {}, auth_header(@account)
 
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Could not upload attachment')
@@ -100,10 +100,10 @@ describe 'Attachment Endpoints' do
       write_text_pdf(pdf.path, 'Uploaded PDF text')
       upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'resume.pdf')
 
-      post '/api/v1/accounts/missing-account/attachments/upload', { file: upload }
+      post '/api/v1/accounts/missing-account/attachments/upload', { file: upload }, auth_header(@account)
 
-      _(last_response.status).must_equal 404
-      _(json_body).must_equal('message' => 'Account not found')
+      _(last_response.status).must_equal 403
+      _(json_body).must_equal('message' => 'Forbidden account access')
       _(Dir.exist?(storage_path_for('accounts/missing-account'))).must_equal false
     ensure
       pdf&.close!
@@ -119,7 +119,7 @@ describe 'Attachment Endpoints' do
         original_filename: DATA[:attachments].first['attachment_name']
       )
 
-      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }
+      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }, auth_header(@account)
 
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Could not upload attachment')
@@ -129,9 +129,9 @@ describe 'Attachment Endpoints' do
     end
   end
 
-  describe 'GET /api/v1/accounts/:account_id/attachments' do
-    it 'HAPPY: gets all attachments for an account' do
-      get "/api/v1/accounts/#{@account.id}/attachments"
+  describe 'GET /api/v1/attachments' do
+    it 'HAPPY: gets all attachments for current account' do
+      get '/api/v1/attachments', {}, auth_header(@account)
 
       _(last_response.status).must_equal 200
       _(last_response.headers['Content-Type']).must_include 'application/json'
@@ -139,20 +139,18 @@ describe 'Attachment Endpoints' do
       _(attachment_names).must_include DATA[:attachments].first['attachment_name']
     end
 
-    it 'SAD: returns 404 for missing account' do
-      get '/api/v1/accounts/999999/attachments'
+    it 'SECURITY: returns 401 without bearer token' do
+      get '/api/v1/attachments'
 
-      _(last_response.status).must_equal 404
-      _(json_body).must_equal('message' => 'Could not find attachments')
+      _(last_response.status).must_equal 401
+      _(json_body).must_equal('message' => 'Missing authorization token')
     end
 
-    it 'SECURITY: rejects SQL injection in account_id when fetching attachments' do
-      injected_account_id = CGI.escape("#{@account.id}' OR '1'='1")
+    it 'SECURITY: returns 401 for invalid bearer token' do
+      get '/api/v1/attachments', {}, { 'HTTP_AUTHORIZATION' => 'Bearer invalid-token' }
 
-      get "/api/v1/accounts/#{injected_account_id}/attachments"
-
-      _(last_response.status).must_equal 404
-      _(json_body).must_equal('message' => 'Could not find attachments')
+      _(last_response.status).must_equal 401
+      _(json_body).must_equal('message' => 'Invalid authorization token')
     end
   end
 
@@ -160,7 +158,7 @@ describe 'Attachment Endpoints' do
     it 'HAPPY: gets one attachment' do
       attachment = @attachments.first
 
-      get "/api/v1/accounts/#{@account.id}/attachments/#{attachment.id}"
+      get "/api/v1/accounts/#{@account.id}/attachments/#{attachment.id}", {}, auth_header(@account)
 
       _(last_response.status).must_equal 200
       _(json_body.dig('data', 'type')).must_equal 'attachment'
@@ -168,7 +166,7 @@ describe 'Attachment Endpoints' do
     end
 
     it 'SAD: returns 404 for missing attachment' do
-      get "/api/v1/accounts/#{@account.id}/attachments/999999"
+      get "/api/v1/accounts/#{@account.id}/attachments/999999", {}, auth_header(@account)
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Attachment not found')
@@ -180,16 +178,16 @@ describe 'Attachment Endpoints' do
       )
       attachment = @attachments.first
 
-      get "/api/v1/accounts/#{other_account.id}/attachments/#{attachment.id}"
+      get "/api/v1/accounts/#{other_account.id}/attachments/#{attachment.id}", {}, auth_header(@account)
 
-      _(last_response.status).must_equal 404
-      _(json_body).must_equal('message' => 'Attachment not found')
+      _(last_response.status).must_equal 403
+      _(json_body).must_equal('message' => 'Forbidden account access')
     end
 
     it 'SECURITY: rejects SQL injection in attachment_id when fetching attachment' do
       injected_attachment_id = CGI.escape("#{@attachments.first.id}' OR '1'='1")
 
-      get "/api/v1/accounts/#{@account.id}/attachments/#{injected_attachment_id}"
+      get "/api/v1/accounts/#{@account.id}/attachments/#{injected_attachment_id}", {}, auth_header(@account)
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Attachment not found')
@@ -224,7 +222,7 @@ describe 'Attachment Endpoints' do
         sensitive_data: DATA[:sensitive_data].first.transform_keys(&:to_sym)
       )
 
-      get "/api/v1/accounts/#{@account.id}/attachments/#{attachment.id}/masked_text"
+      get "/api/v1/accounts/#{@account.id}/attachments/#{attachment.id}/masked_text", {}, auth_header(@account)
 
       _(last_response.status).must_equal 200
       _(last_response.headers['Content-Type']).must_include 'application/json'
@@ -244,7 +242,7 @@ describe 'Attachment Endpoints' do
       write_text_pdf(pdf.path, 'Ada Lovelace email ada@example.com phone 0912-000-001')
       upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'maskable.pdf')
 
-      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }
+      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }, auth_header(@account)
       attachment_id = json_body.dig('data', 'data', 'attributes', 'id')
       LockedCV::CreateSensitiveDataService.call(
         account_id: @account.id,
@@ -252,7 +250,7 @@ describe 'Attachment Endpoints' do
         sensitive_data: DATA[:sensitive_data].first.transform_keys(&:to_sym)
       )
 
-      get "/api/v1/accounts/#{@account.id}/attachments/#{attachment_id}/masked_text"
+      get "/api/v1/accounts/#{@account.id}/attachments/#{attachment_id}/masked_text", {}, auth_header(@account)
 
       _(last_response.status).must_equal 200
       _(json_body['data']['attributes']['masked_text']).must_include '[FIRST_NAME]'
@@ -263,7 +261,7 @@ describe 'Attachment Endpoints' do
     end
 
     it 'SAD: returns 404 when masking a missing attachment' do
-      get "/api/v1/accounts/#{@account.id}/attachments/999999/masked_text"
+      get "/api/v1/accounts/#{@account.id}/attachments/999999/masked_text", {}, auth_header(@account)
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Attachment not found')
@@ -279,7 +277,7 @@ describe 'Attachment Endpoints' do
         original_filename: 'fake_resume_alan.pdf'
       )
 
-      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }
+      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }, auth_header(@account)
       attachment_id = json_body.dig('data', 'data', 'attributes', 'id')
       original_route = json_body.dig('data', 'data', 'attributes', 'route')
       LockedCV::CreateSensitiveDataService.call(
@@ -296,7 +294,7 @@ describe 'Attachment Endpoints' do
         }
       )
 
-      post "/api/v1/accounts/#{@account.id}/attachments/#{attachment_id}/masked_attachments"
+      post "/api/v1/accounts/#{@account.id}/attachments/#{attachment_id}/masked_attachments", nil, auth_header(@account)
 
       _(last_response.status).must_equal 201
       _(json_body['message']).must_equal 'Masked attachment saved'
@@ -318,7 +316,7 @@ describe 'Attachment Endpoints' do
     end
 
     it 'SAD: returns 404 when exporting a missing attachment' do
-      post "/api/v1/accounts/#{@account.id}/attachments/999999/masked_attachments"
+      post "/api/v1/accounts/#{@account.id}/attachments/999999/masked_attachments", nil, auth_header(@account)
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Attachment not found')

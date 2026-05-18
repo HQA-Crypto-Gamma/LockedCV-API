@@ -178,4 +178,10 @@ namespace :newkey do
     require_app('lib', config: false)
     puts "HASH_KEY: #{LockedCV::SecureDB.generate_key}"
   end
+
+  desc 'Create sample cryptographic key for encrypted auth tokens'
+  task :msg do
+    require_app('lib', config: false)
+    puts "MSG_KEY: #{LockedCV::AuthToken.generate_key}"
+  end
 end

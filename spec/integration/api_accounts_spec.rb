@@ -84,13 +84,13 @@ describe 'Account Endpoints' do
     end
   end
 
-  describe 'GET /api/v1/accounts/:id' do
-    it 'HAPPY: gets a single account' do
+  describe 'GET /api/v1/account' do
+    it 'HAPPY: gets the current account from bearer token' do
       account = LockedCV::CreateAccountService.call(
         account_data: DATA[:accounts].first.transform_keys(&:to_sym)
       )
 
-      get "/api/v1/accounts/#{account.id}"
+      get '/api/v1/account', {}, auth_header(account)
 
       _(last_response.status).must_equal 200
       _(last_response.headers['Content-Type']).must_include 'application/json'
@@ -100,28 +100,23 @@ describe 'Account Endpoints' do
       _(json_body.dig('data', 'attributes').keys).wont_include 'password_digest'
     end
 
-    it 'SAD: returns 404 for missing account' do
-      get '/api/v1/accounts/999999'
+    it 'SECURITY: returns 401 without bearer token' do
+      get '/api/v1/account'
 
-      _(last_response.status).must_equal 404
-      _(json_body).must_equal('message' => 'Account not found')
+      _(last_response.status).must_equal 401
+      _(json_body).must_equal('message' => 'Missing authorization token')
     end
 
-    it 'SECURITY: rejects SQL injection in account id' do
-      account = LockedCV::CreateAccountService.call(
-        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
-      )
-      injected_account_id = CGI.escape("#{account.id}' OR '1'='1")
+    it 'SECURITY: returns 401 for invalid bearer token' do
+      get '/api/v1/account', {}, { 'HTTP_AUTHORIZATION' => 'Bearer invalid-token' }
 
-      get "/api/v1/accounts/#{injected_account_id}"
-
-      _(last_response.status).must_equal 404
-      _(json_body).must_equal('message' => 'Account not found')
+      _(last_response.status).must_equal 401
+      _(json_body).must_equal('message' => 'Invalid authorization token')
     end
   end
 
-  describe 'PUT /api/v1/accounts/:id' do
-    it 'HAPPY: updates editable account profile fields' do
+  describe 'PUT /api/v1/account' do
+    it 'HAPPY: updates current account profile fields' do
       account = LockedCV::CreateAccountService.call(
         account_data: DATA[:accounts].first.transform_keys(&:to_sym)
       )
@@ -135,7 +130,7 @@ describe 'Account Endpoints' do
         identification_numbers: 'ID-999'
       }
 
-      put "/api/v1/accounts/#{account.id}", payload.to_json, req_header
+      put '/api/v1/account', payload.to_json, auth_req_header(account)
 
       attributes = json_body.dig('data', 'data', 'attributes')
 
@@ -147,11 +142,11 @@ describe 'Account Endpoints' do
       _(attributes.keys).wont_include 'email_secure'
     end
 
-    it 'SAD: returns 404 for missing account update' do
-      put '/api/v1/accounts/missing-account', { first_name: 'Ada' }.to_json, req_header
+    it 'SECURITY: returns 401 without bearer token' do
+      put '/api/v1/account', { first_name: 'Ada' }.to_json, req_header
 
-      _(last_response.status).must_equal 404
-      _(json_body).must_equal('message' => 'Account not found')
+      _(last_response.status).must_equal 401
+      _(json_body).must_equal('message' => 'Missing authorization token')
     end
   end
 
@@ -170,8 +165,8 @@ describe 'Account Endpoints' do
     it 'HAPPY: admin deletes an account' do
       delete(
         "/api/v1/accounts/#{@target.id}",
-        { current_account_id: @admin.id }.to_json,
-        req_header
+        nil,
+        auth_header(@admin)
       )
 
       _(last_response.status).must_equal 200
@@ -203,8 +198,8 @@ describe 'Account Endpoints' do
 
       delete(
         "/api/v1/accounts/#{@target.id}",
-        { current_account_id: @admin.id }.to_json,
-        req_header
+        nil,
+        auth_header(@admin)
       )
 
       _(last_response.status).must_equal 200
@@ -224,8 +219,8 @@ describe 'Account Endpoints' do
 
       delete(
         "/api/v1/accounts/#{@target.id}",
-        { current_account_id: non_admin.id }.to_json,
-        req_header
+        nil,
+        auth_header(non_admin)
       )
 
       _(last_response.status).must_equal 403
@@ -236,8 +231,8 @@ describe 'Account Endpoints' do
     it 'SAD: admin cannot delete their own account' do
       delete(
         "/api/v1/accounts/#{@admin.id}",
-        { current_account_id: @admin.id }.to_json,
-        req_header
+        nil,
+        auth_header(@admin)
       )
 
       _(last_response.status).must_equal 403
@@ -248,19 +243,19 @@ describe 'Account Endpoints' do
     it 'SAD: returns 404 for missing account' do
       delete(
         '/api/v1/accounts/missing-account',
-        { current_account_id: @admin.id }.to_json,
-        req_header
+        nil,
+        auth_header(@admin)
       )
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Account not found')
     end
 
-    it 'SECURITY: missing current_account_id returns 401' do
-      delete "/api/v1/accounts/#{@target.id}", {}.to_json, req_header
+    it 'SECURITY: missing bearer token returns 401' do
+      delete "/api/v1/accounts/#{@target.id}"
 
       _(last_response.status).must_equal 401
-      _(json_body).must_equal('message' => 'Missing current_account_id')
+      _(json_body).must_equal('message' => 'Missing authorization token')
       _(LockedCV::Account.first(id: @target.id)).wont_be_nil
     end
   end

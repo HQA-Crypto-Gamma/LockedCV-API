@@ -11,6 +11,8 @@ password storage, role assignment, and deferred authorization work.
 erDiagram
     ACCOUNTS ||--o{ ATTACHMENTS : "owns"
     ATTACHMENTS ||--o| SENSITIVE_DATA : "has"
+    ATTACHMENTS ||--o{ MASKED_ATTACHMENTS : "exports"
+    MASKED_ATTACHMENTS ||--o{ MASKED_ITEMS : "records"
 
     ACCOUNTS ||--o{ ACCOUNTS_ROLES : "has role via"
     ROLES ||--o{ ACCOUNTS_ROLES : "assigned to"
@@ -23,6 +25,11 @@ erDiagram
         string   password_digest        "SCrypt via Password value object"
         string   phone_number_secure    "encrypted with SecureDB, optional"
         string   phone_number_hash   UK "HMAC-SHA256 keyed hash, optional"
+        string   first_name_secure      "encrypted with SecureDB, optional"
+        string   last_name_secure       "encrypted with SecureDB, optional"
+        string   birthday_secure        "encrypted with SecureDB, optional"
+        string   address_secure         "encrypted with SecureDB, optional"
+        string   identification_numbers_secure "encrypted with SecureDB, optional"
         datetime created_at
         datetime updated_at
     }
@@ -61,15 +68,39 @@ erDiagram
         uuid account_id FK "composite PK"
         int  role_id    FK "composite PK"
     }
+
+    MASKED_ATTACHMENTS {
+        int      id              PK
+        int      attachment_id   FK
+        string   attachment_name
+        string   route           UK "unique generated storage route"
+        datetime created_at
+        datetime updated_at
+    }
+
+    MASKED_ITEMS {
+        int      id                   PK
+        int      masked_attachment_id FK
+        string   field_name              "masked field or detected type"
+        string   value_secure            "encrypted with SecureDB"
+        boolean  is_masked               "default true"
+        string   source                  "sensitive_data | regex | manual"
+        datetime created_at
+        datetime updated_at
+    }
 ```
 
 ## Notes
 
 ### Encryption at Rest
 
-- **`accounts.email_secure`** and **`accounts.phone_number_secure`** store
-  encrypted account PII through `SecureDB.encrypt`. The ciphertext is
-  non-deterministic and reversible only with `DB_KEY`.
+- **`accounts.email_secure`**, **`accounts.phone_number_secure`**, and optional
+  profile columns such as **`accounts.first_name_secure`**,
+  **`accounts.last_name_secure`**, **`accounts.birthday_secure`**,
+  **`accounts.address_secure`**, and
+  **`accounts.identification_numbers_secure`** store encrypted account PII
+  through `SecureDB.encrypt`. The ciphertext is non-deterministic and
+  reversible only with `DB_KEY`.
 - **`accounts.email_hash`** and **`accounts.phone_number_hash`** store keyed
   HMAC lookup hashes through `SecureDB.hash`. These values are deterministic,
   which supports equality lookup and uniqueness checks without storing
@@ -77,6 +108,20 @@ erDiagram
 - **`sensitive_data.*_secure`** columns store resume/document PII only as
   encrypted values. The model exposes plaintext getters/setters, but the
   database persists only ciphertext.
+- **`masked_items.value_secure`** stores each value used in a generated masked
+  output only as encrypted ciphertext. It records what was masked without
+  exposing plaintext values in the database.
+
+### Masked PDF Outputs
+
+- `masked_attachments` stores generated masked PDF metadata for an original
+  attachment. Its `route` points to the generated file under storage.
+- `masked_items` stores the field/type, encrypted matched value, masking flag,
+  and source for values applied to a generated masked attachment.
+- Supported `masked_items.source` values are `sensitive_data`, `regex`, and
+  `manual`; the model validates this list.
+- Masked PDF export is a text-based visual masking approximation for
+  text-based PDFs, not a formal PDF redaction engine.
 
 ### Password Storage
 
@@ -125,6 +170,8 @@ layer are defined.
 - **`attachments`** has a unique constraint on `(account_id, attachment_name)`.
 - **`sensitive_data.attachment_id`** is unique, so each attachment has at most
   one sensitive data record.
+- **`masked_attachments.route`** is unique, so each generated output has a
+  distinct storage route.
 - **`roles.name`** is unique.
 - **`accounts_roles`** uses a composite primary key on `(account_id, role_id)`,
   preventing duplicate role assignments.
@@ -133,7 +180,9 @@ layer are defined.
 
 - `Account#destroy` destroys associated attachments through
   `association_dependencies`.
-- `Attachment#destroy` destroys associated sensitive data through
+- `Attachment#destroy` destroys associated sensitive data and masked
+  attachments through `association_dependencies`.
+- `MaskedAttachment#destroy` destroys associated masked items through
   `association_dependencies`.
 - Role assignment rows are stored in `accounts_roles`; duplicate assignments
   are prevented by the composite primary key.

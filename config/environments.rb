@@ -5,6 +5,7 @@ require 'figaro'
 require 'logger'
 require 'sequel'
 require './app/lib/secure_db'
+require './app/lib/auth_token'
 
 module LockedCV
   # Main API class, inherits from Roda
@@ -31,6 +32,7 @@ module LockedCV
 
       # Load crypto keys
       SecureDB.setup(ENV.delete('DB_KEY'), ENV.delete('HASH_KEY'))
+      AuthToken.setup(ENV.delete('MSG_KEY'))
 
       # Custom events logging
       LOGGER = Logger.new($stderr)

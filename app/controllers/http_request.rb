@@ -17,5 +17,15 @@ module LockedCV
       raw = @routing.body.read
       raw.empty? ? {} : JSON.parse(raw, symbolize_names: true)
     end
+
+    def authenticated_account
+      header = @routing.env['HTTP_AUTHORIZATION']
+      return nil unless header
+
+      scheme, token = header.split(' ', 2)
+      return nil unless scheme&.casecmp('Bearer')&.zero? && token
+
+      AuthToken.load(token).payload
+    end
   end
 end
