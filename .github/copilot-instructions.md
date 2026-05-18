@@ -2,6 +2,18 @@
 
 This file provides guidance to GitHub Copilot when working with the LockedCV API codebase.
 
+## Startup Context for AI Assistants
+
+Before making changes, read:
+
+1. `README.md`
+2. `.github/copilot-instructions.md`
+3. `local.md` if it exists in the repo root
+
+`local.md` is intentionally gitignored. It is for local handoff notes such as
+current task status, user preferences, deployment reminders, or decisions not
+ready to commit.
+
 ## Project Overview
 
 LockedCV is a Ruby Web API that allows accounts to securely share resumes or other personal documents with automatic personal information hiding. It uses the Roda framework with a SQLite data store via Sequel ORM.
@@ -31,6 +43,12 @@ Run all tests:
 
 ```bash
 bundle exec rake spec
+```
+
+When migrations change, run:
+
+```bash
+bundle exec rake db:migrate
 ```
 
 ### Linting
@@ -154,19 +172,27 @@ Migration files:
 ### Current API Surface
 
 - `POST /api/v1/auth/authenticate` authenticates an account and returns safe
-  session data for the Web App.
-- `GET /api/v1/accounts?current_account_id=...` lists accounts for admins.
+  session data plus `auth_token` for the Web App.
+- Protected routes use `Authorization: Bearer <TOKEN>`.
+- `GET /api/v1/account` returns the current account from the token.
+- `PUT /api/v1/account` updates the current account from the token.
+- `PUT /api/v1/account/password` changes the current account password.
+- `GET /api/v1/attachments` lists the current account attachments from the
+  token.
+- `GET /api/v1/accounts` lists accounts for admins; caller identity comes from
+  the Bearer token.
 - `POST /api/v1/accounts` creates a basic account. Account detail verification
   still needs to be strengthened.
-- `GET /api/v1/accounts/:account_id` returns one account.
-- `PUT /api/v1/accounts/:account_id` updates editable account profile fields.
-- `PUT /api/v1/accounts/:account_id/password` changes an account password after
-  verifying the current password.
+- `GET /api/v1/accounts/:account_id`, `PUT /api/v1/accounts/:account_id`, and
+  `PUT /api/v1/accounts/:account_id/password` are legacy account-scoped routes;
+  they require the path account to match the Bearer token owner.
 - `DELETE /api/v1/accounts/:account_id` deletes an account and requires an
-  admin `current_account_id`. Admins cannot delete their own account.
+  admin Bearer token. The path account is the target. Admins cannot delete
+  their own account.
 - `PUT /api/v1/accounts/:username/system_roles/:role_name` assigns a system
-  role and requires an admin `current_account_id`.
-- `GET /api/v1/accounts/:account_id/attachments` lists account attachments.
+  role and requires an admin Bearer token. The path username is the target.
+- `GET /api/v1/accounts/:account_id/attachments` is a legacy account-scoped
+  route that requires the path account to match the Bearer token owner.
 - `POST /api/v1/accounts/:account_id/attachments` creates attachment metadata.
 - `POST /api/v1/accounts/:account_id/attachments/upload` uploads a PDF and
   creates attachment metadata.
@@ -221,3 +247,6 @@ All markdown files must be kept lint-free:
   `SECURE_SCHEME: HTTP`, while production should use `SECURE_SCHEME: HTTPS`.
 - Do not expose plaintext passwords, password digests, encrypted columns, or
   lookup hashes in API responses.
+- Missing, invalid, or expired auth tokens return `401`; authenticated callers
+  without permission return `403`; missing resources return `404` unless a route
+  intentionally hides existence.

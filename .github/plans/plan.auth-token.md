@@ -98,21 +98,21 @@
    - 缺 header、格式錯誤、token invalid/expired 回 `401`。
    - 已建立 helper：讀取 token payload、確認 resource owner 與 token account 相同、確認 admin caller。
 
-8. ✅ `protect-account-resource-routes`（已完成，tests 待補）
+8. ✅ `protect-account-resource-routes`（已完成）
    - 盤點現有需要保護的 routes：
      - account profile read/update/password。
      - attachments list/get/upload/create/masked text/masked export。
      - sensitive data read/create。
    - 已保護 account-owned routes；token account 不等於 path account 時回 `403`。
    - Admin-only routes 已改由 token 找 caller，不再信任 request body/query 的 `current_account_id`。
-   - 待補 specs：missing token `401`、invalid/expired token `401`、non-owner `403`、non-admin `403`、missing resource `404`。
+   - 已補 specs：missing token `401`、invalid token `401`、non-owner/admin `403`、missing target resource `404`。
 
-9. ✅ `owned-resources-index`（已完成 attachments 版本，tests 待補）
+9. ✅ `owned-resources-index`（已完成 attachments 版本）
    - 已新增 token-scoped attachments index endpoint，避免 App 傳 requesting user id。
    - Route：`GET /api/v1/attachments`
    - API 由 Bearer token 找 current account，再回傳該 account 的 attachment list。
    - 後續如果 resource 不只 attachments，可再新增 `GET /api/v1/resources` 或更清楚的 domain route。
-   - 待補 integration specs：只回 token owner resources；沒有 token/錯 token 回 `401`。
+   - 已補 integration specs：只回 token owner resources；沒有 token/錯 token 回 `401`。
 
 ## API Contract 草案
 
@@ -187,10 +187,10 @@ Success `200` adds `auth_token`:
 Header:
 
 ```text
-HTTP_AUTHENTICATION: Bearer <TOKEN>
+Authorization: Bearer <TOKEN>
 ```
 
-Suspicious cases return `403`:
+Missing or invalid auth returns `401`; authenticated callers without permission return `403`:
 
 ```json
 {
@@ -223,6 +223,6 @@ Suspicious cases return `403`:
 - App 可先檢查 username/email 是否可用。
 - App 可要求 API 寄出 verification email，且 API 不建立 temporary account。
 - API authentication success 回傳 auth token。
-- API 可從 `HTTP_AUTHENTICATION: Bearer <TOKEN>` 驗證 current account。
+- API 可從 `Authorization: Bearer <TOKEN>` 驗證 current account。
 - 至少一個 account-owned resource index 不需要 App 傳 requesting user id。
 - Email provider call 與 token behavior 都有測試。

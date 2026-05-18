@@ -10,6 +10,7 @@ A Ruby web API for the Crypto γ SEC project that allows accounts to securely sh
 - Role foundation with `roles` and `accounts_roles` (many-to-many)
 - PDF attachment upload, masked-text preview, and masked PDF export support
 - Admin-only system role assignment and account listing
+- Token-based authorization with `Authorization: Bearer <TOKEN>`
 - JSON response format
 
 ## Prerequisites
@@ -43,6 +44,7 @@ cp config/secrets-example.yml config/secrets.yml
 ```bash
 bundle exec rake newkey:db
 bundle exec rake newkey:hash
+bundle exec rake newkey:msg
 ```
 
 5. Prepare the local database:
@@ -105,18 +107,66 @@ http -v --json POST localhost:9000/api/v1/auth/authenticate \
 ```
 
 Successful authentication returns safe account information for the client
-session, including account ID, username, email, and roles. Invalid credentials
-return `403` with a JSON error message.
+session, including account ID, username, email, roles, and an `auth_token`.
+Invalid credentials return `403` with a JSON error message.
+
+Use the returned token on protected API requests:
+
+```bash
+http -v GET localhost:9000/api/v1/account \
+  Authorization:"Bearer <auth_token>"
+```
+
+Missing, invalid, or expired tokens return `401`. Authenticated callers without
+permission return `403`.
 
 ### Account Endpoints
 
+#### Get Current Account
+
+**GET** `/api/v1/account`
+
+```bash
+http -v GET localhost:9000/api/v1/account \
+  Authorization:"Bearer <auth_token>"
+```
+
+#### Update Current Account
+
+**PUT** `/api/v1/account`
+
+```bash
+http -v --json PUT localhost:9000/api/v1/account \
+  Authorization:"Bearer <auth_token>" \
+  email="jane.updated@example.com" \
+  phone_number="987-654-3210" \
+  first_name="Jane" \
+  last_name="Smith" \
+  birthday="1990-01-01" \
+  address="Taipei" \
+  identification_numbers="A123456789"
+```
+
+#### Change Current Account Password
+
+**PUT** `/api/v1/account/password`
+
+```bash
+http -v --json PUT localhost:9000/api/v1/account/password \
+  Authorization:"Bearer <auth_token>" \
+  current_password="my-secret-password" \
+  password="my-new-secret-password"
+```
+
+The current password must be correct before the password is replaced.
+
 #### List Accounts
 
-**GET** `/api/v1/accounts?current_account_id=:admin_account_id`
+**GET** `/api/v1/accounts`
 
 ```bash
 http -v GET localhost:9000/api/v1/accounts \
-  current_account_id=="<admin_account_uuid>"
+  Authorization:"Bearer <admin_auth_token>"
 ```
 
 Only accounts with the `admin` system role can list accounts.
@@ -139,20 +189,25 @@ http -v --json POST localhost:9000/api/v1/accounts \
   password="my-secret-password"
 ```
 
-#### Get Account by ID
+#### Legacy Get Account by ID
 
 **GET** `/api/v1/accounts/:account_id`
 
 ```bash
-http -v GET localhost:9000/api/v1/accounts/<account_uuid>
+http -v GET localhost:9000/api/v1/accounts/<account_uuid> \
+  Authorization:"Bearer <auth_token>"
 ```
 
-#### Update Account
+This legacy account-scoped route remains for compatibility and still requires
+the path account to match the Bearer token owner.
+
+#### Legacy Update Account
 
 **PUT** `/api/v1/accounts/:account_id`
 
 ```bash
 http -v --json PUT localhost:9000/api/v1/accounts/<account_uuid> \
+  Authorization:"Bearer <auth_token>" \
   email="jane.updated@example.com" \
   phone_number="987-654-3210" \
   first_name="Jane" \
@@ -162,25 +217,32 @@ http -v --json PUT localhost:9000/api/v1/accounts/<account_uuid> \
   identification_numbers="A123456789"
 ```
 
-#### Change Account Password
+This legacy account-scoped route remains for compatibility and still requires
+the path account to match the Bearer token owner.
+
+#### Legacy Change Account Password
 
 **PUT** `/api/v1/accounts/:account_id/password`
 
 ```bash
 http -v --json PUT localhost:9000/api/v1/accounts/<account_uuid>/password \
+  Authorization:"Bearer <auth_token>" \
   current_password="my-secret-password" \
   password="my-new-secret-password"
 ```
 
 The current password must be correct before the password is replaced.
 
+This legacy account-scoped route remains for compatibility and still requires
+the path account to match the Bearer token owner.
+
 #### Delete Account
 
 **DELETE** `/api/v1/accounts/:account_id`
 
 ```bash
-http -v --json DELETE localhost:9000/api/v1/accounts/<account_uuid> \
-  current_account_id="<admin_account_uuid>"
+http -v DELETE localhost:9000/api/v1/accounts/<target_account_uuid> \
+  Authorization:"Bearer <admin_auth_token>"
 ```
 
 Only accounts with the `admin` system role can delete accounts. Admins cannot
@@ -192,11 +254,10 @@ delete their own account.
 
 ```bash
 http -v --json PUT localhost:9000/api/v1/accounts/jane_smith/system_roles/member \
-  current_account_id="<admin_account_uuid>"
+  Authorization:"Bearer <admin_auth_token>"
 ```
 
-Only accounts with the `admin` system role can assign system roles. This route
-is a minimal authorization demo; full resource-level authorization is deferred.
+Only accounts with the `admin` system role can assign system roles.
 
 ### Attachment Endpoints
 
@@ -206,6 +267,7 @@ is a minimal authorization demo; full resource-level authorization is deferred.
 
 ```bash
 http -v --form POST localhost:9000/api/v1/accounts/<account_uuid>/attachments/upload \
+  Authorization:"Bearer <auth_token>" \
   file@/path/to/resume.pdf
 ```
 
@@ -218,24 +280,42 @@ Only PDF uploads are currently supported. Uploaded files are stored under
 
 ```bash
 http -v --json POST localhost:9000/api/v1/accounts/<account_uuid>/attachments \
+  Authorization:"Bearer <auth_token>" \
   attachment_name="resume_jane.pdf" \
   route="accounts/<account_uuid>/resume_jane.pdf"
 ```
 
 #### Get All Attachments for an Account
 
+**GET** `/api/v1/attachments`
+
+```bash
+http -v GET localhost:9000/api/v1/attachments \
+  Authorization:"Bearer <auth_token>"
+```
+
+This is the token-scoped endpoint used by the App. The API finds the requesting
+account from the Bearer token.
+
+#### Legacy Get All Attachments for an Account
+
 **GET** `/api/v1/accounts/:account_id/attachments`
 
 ```bash
-http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments
+http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments \
+  Authorization:"Bearer <auth_token>"
 ```
+
+This legacy account-scoped route remains for compatibility and still requires
+the path account to match the Bearer token owner.
 
 #### Get Attachment by ID
 
 **GET** `/api/v1/accounts/:account_id/attachments/:attachment_id`
 
 ```bash
-http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1
+http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1 \
+  Authorization:"Bearer <auth_token>"
 ```
 
 #### Get Masked Attachment Text
@@ -243,7 +323,8 @@ http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1
 **GET** `/api/v1/accounts/:account_id/attachments/:attachment_id/masked_text`
 
 ```bash
-http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/masked_text
+http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/masked_text \
+  Authorization:"Bearer <auth_token>"
 ```
 
 Extracts PDF text, detects sensitive values, and returns masked text preview
@@ -255,7 +336,8 @@ data for the attachment.
 
 ```bash
 http -v --json POST \
-  localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/masked_attachments
+  localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/masked_attachments \
+  Authorization:"Bearer <auth_token>"
 ```
 
 Creates a generated masked PDF file and saves masked output metadata. This is a
@@ -269,6 +351,7 @@ text-based visual masking approximation, not a formal PDF redaction engine.
 
 ```bash
 http -v --json POST localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/sensitive_data \
+  Authorization:"Bearer <auth_token>" \
   first_name="Jane" \
   last_name="Smith" \
   phone_number="987-654-3210" \
@@ -283,7 +366,8 @@ http -v --json POST localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/
 **GET** `/api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data`
 
 ```bash
-http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/sensitive_data
+http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/sensitive_data \
+  Authorization:"Bearer <auth_token>"
 ```
 
 ## Development
