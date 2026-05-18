@@ -19,7 +19,7 @@ module LockedCV
     end
 
     def authenticated_account
-      header = @routing.headers['AUTHORIZATION']
+      header = @routing.env['HTTP_AUTHORIZATION']
       return nil unless header
 
       scheme, token = header.split(' ', 2)

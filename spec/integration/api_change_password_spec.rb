@@ -17,7 +17,7 @@ describe 'Change Password Endpoint' do
   end
 
   it 'HAPPY: changes an account password' do
-    put "/api/v1/accounts/#{@account.id}/password", password_payload.to_json, req_header
+    put '/api/v1/account/password', password_payload.to_json, auth_req_header(@account)
 
     @account.refresh
 
@@ -28,7 +28,7 @@ describe 'Change Password Endpoint' do
   end
 
   it 'SECURITY: does not include password data in the response' do
-    put "/api/v1/accounts/#{@account.id}/password", password_payload.to_json, req_header
+    put '/api/v1/account/password', password_payload.to_json, auth_req_header(@account)
 
     _(last_response.status).must_equal 200
     _(last_response.body).wont_include 'password_digest'
@@ -36,9 +36,9 @@ describe 'Change Password Endpoint' do
   end
 
   it 'SAD: rejects an incorrect current password' do
-    put "/api/v1/accounts/#{@account.id}/password",
+    put '/api/v1/account/password',
         password_payload(current_password: 'wrong-secret').to_json,
-        req_header
+        auth_req_header(@account)
 
     @account.refresh
 
@@ -49,19 +49,19 @@ describe 'Change Password Endpoint' do
   end
 
   it 'SAD: rejects a blank new password' do
-    put "/api/v1/accounts/#{@account.id}/password",
+    put '/api/v1/account/password',
         password_payload(password: '').to_json,
-        req_header
+        auth_req_header(@account)
 
     _(last_response.status).must_equal 400
     _(json_body).must_equal('message' => 'Password is required')
   end
 
-  it 'SAD: returns 404 for a missing account' do
-    put '/api/v1/accounts/missing-account/password', password_payload.to_json, req_header
+  it 'SECURITY: returns 401 without bearer token' do
+    put '/api/v1/account/password', password_payload.to_json, req_header
 
-    _(last_response.status).must_equal 404
-    _(json_body).must_equal('message' => 'Account not found')
+    _(last_response.status).must_equal 401
+    _(json_body).must_equal('message' => 'Missing authorization token')
   end
 
   def password_payload(overrides = {})

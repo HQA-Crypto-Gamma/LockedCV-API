@@ -25,8 +25,8 @@ describe 'System Role Endpoints' do
   it 'HAPPY: admin assigns a system role' do
     put(
       "/api/v1/accounts/#{@target.username}/system_roles/admin",
-      { current_account_id: @admin.id }.to_json,
-      req_header
+      {}.to_json,
+      auth_req_header(@admin)
     )
 
     _(last_response.status).must_equal 201
@@ -37,8 +37,8 @@ describe 'System Role Endpoints' do
   it 'HAPPY: reassigning the same system role is idempotent' do
     put(
       "/api/v1/accounts/#{@target.username}/system_roles/member",
-      { current_account_id: @admin.id }.to_json,
-      req_header
+      {}.to_json,
+      auth_req_header(@admin)
     )
 
     _(last_response.status).must_equal 200
@@ -57,8 +57,8 @@ describe 'System Role Endpoints' do
 
     put(
       "/api/v1/accounts/#{@target.username}/system_roles/member",
-      { current_account_id: non_admin.id }.to_json,
-      req_header
+      {}.to_json,
+      auth_req_header(non_admin)
     )
 
     _(last_response.status).must_equal 403
@@ -68,8 +68,8 @@ describe 'System Role Endpoints' do
   it 'SAD: rejects unknown system role' do
     put(
       "/api/v1/accounts/#{@target.username}/system_roles/owner",
-      { current_account_id: @admin.id }.to_json,
-      req_header
+      {}.to_json,
+      auth_req_header(@admin)
     )
 
     _(last_response.status).must_equal 400
@@ -79,15 +79,15 @@ describe 'System Role Endpoints' do
   it 'SAD: returns 404 for unknown target account' do
     put(
       '/api/v1/accounts/missing-account/system_roles/member',
-      { current_account_id: @admin.id }.to_json,
-      req_header
+      {}.to_json,
+      auth_req_header(@admin)
     )
 
     _(last_response.status).must_equal 404
     _(json_body).must_equal('message' => 'Account not found')
   end
 
-  it 'SECURITY: missing current_account_id returns 401' do
+  it 'SECURITY: missing bearer token returns 401' do
     put(
       "/api/v1/accounts/#{@target.username}/system_roles/member",
       {}.to_json,
@@ -95,6 +95,6 @@ describe 'System Role Endpoints' do
     )
 
     _(last_response.status).must_equal 401
-    _(json_body).must_equal('message' => 'Missing current_account_id')
+    _(json_body).must_equal('message' => 'Missing authorization token')
   end
 end

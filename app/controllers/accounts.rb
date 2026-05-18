@@ -65,7 +65,7 @@ module LockedCV
           routing.on String do |role_name|
             # PUT api/v1/accounts/[username]/system_roles/[role_name]
             routing.put do
-              current_account = require_admin!(routing)
+              current_account = require_admin!(routing, 'Only admins can manage system roles')
 
               result = AssignSystemRoleService.call(
                 current_account:, target_username: account_id, role_name:
@@ -274,7 +274,7 @@ module LockedCV
 
         # DELETE api/v1/accounts/[account_id]
         routing.delete do
-          current_account = require_admin!(routing)
+          current_account = require_admin!(routing, 'Only admins can delete accounts')
           DeleteAccountService.call(
             current_account:,
             target_account_id: account_id
@@ -320,7 +320,7 @@ module LockedCV
 
       # GET api/v1/accounts
       routing.get do
-        current_account = require_admin!(routing)
+        current_account = require_admin!(routing, 'Only admins can list accounts')
         accounts = ListAccountsService.call(current_account:)
 
         output = {
@@ -391,11 +391,11 @@ module LockedCV
       routing.halt 403, { message: 'Forbidden account access' }.to_json
     end
 
-    def require_admin!(routing)
+    def require_admin!(routing, forbidden_message = 'Only admins can perform this action')
       account = current_account!(routing)
       return account if account&.admin?
 
-      routing.halt 403, { message: 'Only admins can perform this action' }.to_json
+      routing.halt 403, { message: forbidden_message }.to_json
     end
   end
 end
