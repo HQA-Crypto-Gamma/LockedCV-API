@@ -12,7 +12,7 @@ module LockedCV
         routing.post do
           credentials = HttpRequest.new(routing).body_data
           AuthenticateAccountService.call(credentials).to_json
-        rescue AuthenticateAccount::UnauthorizedError
+        rescue AuthenticateAccountService::UnauthorizedError
           Api.logger.warn('Authentication failed: invalid credentials')
           routing.halt 403, { message: 'Invalid credentials' }.to_json
         end
