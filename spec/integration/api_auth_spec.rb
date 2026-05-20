@@ -114,9 +114,84 @@ describe 'Authentication Endpoint' do
       assert_not_requested(:post, @mailgun_url)
     end
 
+    it 'SAD: rejects missing email' do
+      post '/api/v1/auth/register', @registration.merge(email: '').to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Email is required')
+      assert_not_requested(:post, @mailgun_url)
+    end
+
+    it 'SAD: rejects missing username' do
+      post '/api/v1/auth/register', @registration.merge(username: '').to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Username is required')
+      assert_not_requested(:post, @mailgun_url)
+    end
+
+    it 'SAD: rejects registered email' do
+      account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+
+      post '/api/v1/auth/register', @registration.merge(email: account.email).to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Email already registered')
+      assert_not_requested(:post, @mailgun_url)
+    end
+
+    it 'SAD: rejects taken username' do
+      account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+
+      post '/api/v1/auth/register', @registration.merge(username: account.username).to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Username already taken')
+      assert_not_requested(:post, @mailgun_url)
+    end
+
+    it 'HAPPY: trims registration fields before sending verification email' do
+      padded_registration = {
+        username: '  grace-hopper  ',
+        email: '  grace@example.com  ',
+        verification_url: '  https://lockedcv.example.test/auth/register/token  '
+      }
+
+      WebMock.stub_request(:post, @mailgun_url)
+             .with do |request|
+               form = URI.decode_www_form(request.body).to_h
+               form['to'] == @registration[:email] &&
+                 form['html'].include?('Welcome to LockedCV, grace-hopper!') &&
+                 form['html'].include?(@registration[:verification_url])
+             end
+             .to_return(status: 200, body: { id: 'message-id' }.to_json)
+
+      post '/api/v1/auth/register', padded_registration.to_json, req_header
+
+      _(last_response.status).must_equal 202
+      _(json_body).must_equal('message' => 'Verification email sent')
+      assert_requested(:post, @mailgun_url, times: 1)
+      _(LockedCV::Account.count).must_equal 0
+    end
+
     it 'SAD: returns 500 when Mailgun rejects the email' do
       WebMock.stub_request(:post, @mailgun_url)
              .to_return(status: 500, body: 'provider down')
+
+      post '/api/v1/auth/register', @registration.to_json, req_header
+
+      _(last_response.status).must_equal 500
+      _(json_body).must_equal('message' => 'Could not send verification email')
+      _(LockedCV::Account.count).must_equal 0
+    end
+
+    it 'SAD: returns 500 when Mailgun request fails' do
+      WebMock.stub_request(:post, @mailgun_url)
+             .to_raise(HTTP::Error.new('network down'))
 
       post '/api/v1/auth/register', @registration.to_json, req_header
 
