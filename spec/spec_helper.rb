@@ -10,6 +10,7 @@ require 'minitest/autorun'
 require 'minitest/rg'
 require 'rack/test'
 require 'stringio'
+require 'webmock/minitest'
 require 'yaml'
 
 require_relative 'test_load_all'

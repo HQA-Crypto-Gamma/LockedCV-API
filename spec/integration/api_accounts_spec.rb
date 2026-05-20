@@ -15,6 +15,89 @@ describe 'Account Endpoints' do
     reset_database!
   end
 
+  describe 'POST /api/v1/accounts/registration/check' do
+    it 'HAPPY: returns available for unused username and email' do
+      payload = {
+        username: 'new-user',
+        email: 'new-user@example.com'
+      }
+
+      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+
+      _(last_response.status).must_equal 200
+      _(json_body).must_equal('available' => true)
+    end
+
+    it 'SAD: returns 400 for registered email' do
+      account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+      payload = {
+        username: 'new-user',
+        email: account.email
+      }
+
+      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Email already registered')
+    end
+
+    it 'SAD: returns 400 for registered username' do
+      account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+      payload = {
+        username: account.username,
+        email: 'new-user@example.com'
+      }
+
+      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Username already taken')
+    end
+
+    it 'SAD: returns 400 for missing email' do
+      payload = {
+        username: 'new-user',
+        email: ''
+      }
+
+      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Email is required')
+    end
+
+    it 'SAD: returns 400 for missing username' do
+      payload = {
+        username: '',
+        email: 'new-user@example.com'
+      }
+
+      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Username is required')
+    end
+
+    it 'SAD: trims registration values before checking availability' do
+      account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+      payload = {
+        username: "  #{account.username}  ",
+        email: "  #{account.email}  "
+      }
+
+      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Email already registered')
+    end
+  end
+
   describe 'POST /api/v1/accounts' do
     it 'HAPPY: creates an account' do
       payload = DATA[:accounts].last.transform_keys(&:to_sym)

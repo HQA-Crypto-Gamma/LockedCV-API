@@ -60,6 +60,23 @@ module LockedCV
     route('accounts') do |routing|
       @account_route = "#{@api_root}/accounts"
 
+      routing.on 'registration' do
+        routing.is 'check' do
+          # POST api/v1/accounts/registration/check
+          routing.post do
+            registration = HttpRequest.new(routing).body_data
+            CheckRegistrationAvailability.new(registration).call
+
+            { available: true }.to_json
+          rescue CheckRegistrationAvailability::InvalidRegistration => e
+            routing.halt 400, { message: e.message }.to_json
+          rescue StandardError => e
+            Api.logger.error "UNKNOWN ERROR: #{e.message}"
+            routing.halt 500, { message: 'Unknown server error' }.to_json
+          end
+        end
+      end
+
       routing.on String do |account_id|
         routing.on 'system_roles' do
           routing.on String do |role_name|
