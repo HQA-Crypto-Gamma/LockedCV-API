@@ -57,6 +57,45 @@ describe 'Account Endpoints' do
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Username already taken')
     end
+
+    it 'SAD: returns 400 for missing email' do
+      payload = {
+        username: 'new-user',
+        email: ''
+      }
+
+      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Email is required')
+    end
+
+    it 'SAD: returns 400 for missing username' do
+      payload = {
+        username: '',
+        email: 'new-user@example.com'
+      }
+
+      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Username is required')
+    end
+
+    it 'SAD: trims registration values before checking availability' do
+      account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+      payload = {
+        username: "  #{account.username}  ",
+        email: "  #{account.email}  "
+      }
+
+      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Email already registered')
+    end
   end
 
   describe 'POST /api/v1/accounts' do
