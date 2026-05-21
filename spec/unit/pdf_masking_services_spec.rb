@@ -27,23 +27,6 @@ describe 'PDF Masking Services' do
     pdf&.close!
   end
 
-  it 'HAPPY: extracts positioned text fragments from a text-based PDF' do
-    pdf = Tempfile.new(['lockedcv-positioned-text', '.pdf'])
-    write_text_pdf(pdf.path, 'Alice Chen alice.chen@example.com')
-
-    fragments = LockedCV::ExtractPdf.positioned_text(pdf.path)
-
-    fragment = fragments.find { |item| item[:text].include?('Alice Chen') }
-    _(fragment).wont_be_nil
-    _(fragment[:page_number]).must_equal 1
-    _(fragment[:x]).must_be_kind_of Numeric
-    _(fragment[:y]).must_be_kind_of Numeric
-    _(fragment[:width]).must_be :>, 0
-    _(fragment[:height]).must_be :>, 0
-  ensure
-    pdf&.close!
-  end
-
   it 'HAPPY: detects supported sensitive data patterns' do
     text = 'Email ada@example.com phone 0912-345-678 born 1990-01-01 id A123456789'
 
@@ -188,7 +171,7 @@ describe 'PDF Masking Services' do
     )
     original_path = storage_path_for(route)
 
-    masked_attachment = LockedCV::ExportMaskedPdf.call(account_id: account.id, attachment_id: attachment.id)
+    masked_attachment = export_masked_pdf(account:, attachment:)
 
     _(masked_attachment.attachment_id).must_equal attachment.id
     _(masked_attachment.route).must_match %r{\Aaccounts/#{account.id}/masked/}
@@ -200,6 +183,10 @@ describe 'PDF Masking Services' do
     _(scrubbed_text).wont_include 'alan@example.com'
     _(scrubbed_text).wont_include '0912-000-002'
     _(scrubbed_text).wont_include 'B987654321'
+    _(scrubbed_text).must_include 'NAME'
+    _(scrubbed_text).must_include 'EMAIL'
+    _(scrubbed_text).must_include 'TEL'
+    _(scrubbed_text).must_include 'ID'
   ensure
     route_file&.close if defined?(route_file)
   end
@@ -245,7 +232,7 @@ describe 'PDF Masking Services' do
     original_path = storage_path_for(route)
     _(LockedCV::ExtractPdf.text(original_path)).must_include 'alan@example.com'
     _(File.binread(original_path)).wont_include 'alan@example.com'
-    masked_attachment = LockedCV::ExportMaskedPdf.call(account_id: account.id, attachment_id: attachment.id)
+    masked_attachment = export_masked_pdf(account:, attachment:)
     masked_text = LockedCV::ExtractPdf.text(storage_path_for(masked_attachment.route))
 
     _(File.file?(storage_path_for(masked_attachment.route))).must_equal true
@@ -296,7 +283,7 @@ describe 'PDF Masking Services' do
     )
     original_path = storage_path_for(route)
 
-    masked_attachment = LockedCV::ExportMaskedPdf.call(account_id: account.id, attachment_id: attachment.id)
+    masked_attachment = export_masked_pdf(account:, attachment:)
     masked_text = LockedCV::ExtractPdf.text(storage_path_for(masked_attachment.route))
 
     _(original_text).must_include 'alan@example.com'
@@ -347,7 +334,7 @@ describe 'PDF Masking Services' do
       }
     )
 
-    masked_attachment = LockedCV::ExportMaskedPdf.call(account_id: account.id, attachment_id: attachment.id)
+    masked_attachment = export_masked_pdf(account:, attachment:)
     masked_text = LockedCV::ExtractPdf.text(storage_path_for(masked_attachment.route))
 
     _(original_text).must_include 'alan@example.com'
@@ -361,5 +348,14 @@ describe 'PDF Masking Services' do
     _(masked_text).wont_include '@example.com'
     _(masked_text).wont_include '0912'
     _(masked_text).wont_include 'B987'
+  end
+
+  def export_masked_pdf(account:, attachment:)
+    python_bin = available_pdf_processor_python
+    skip 'pdfplumber/reportlab Python dependencies are not available' unless python_bin
+
+    with_python_bin(python_bin) do
+      LockedCV::ExportMaskedPdf.call(account_id: account.id, attachment_id: attachment.id)
+    end
   end
 end

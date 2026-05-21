@@ -9,6 +9,7 @@ local.md
 # Temp files
 _*
 tmp/
+spec/fixtures/generated/*.pdf
 
 # Local data store
 db/local/*
@@ -23,3 +24,5 @@ config/secrets.yml
 # Project AI skills should be committed
 !.github/skills/
 !.github/skills/**
+
+tools/output/

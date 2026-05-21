@@ -5,9 +5,9 @@ ruby File.read('.ruby-version').strip
 
 # Web API
 gem 'base64'
+gem 'http', '~> 5.1'
 gem 'json'
 gem 'logger', '~> 1.0'
-gem 'http', '~> 5.1'
 gem 'pdf-reader', '~> 2.14'
 gem 'puma', '~>7.0'
 gem 'roda', '~>3.0'
