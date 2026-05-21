@@ -27,23 +27,6 @@ describe 'PDF Masking Services' do
     pdf&.close!
   end
 
-  it 'HAPPY: extracts positioned text fragments from a text-based PDF' do
-    pdf = Tempfile.new(['lockedcv-positioned-text', '.pdf'])
-    write_text_pdf(pdf.path, 'Alice Chen alice.chen@example.com')
-
-    fragments = LockedCV::ExtractPdf.positioned_text(pdf.path)
-
-    fragment = fragments.find { |item| item[:text].include?('Alice Chen') }
-    _(fragment).wont_be_nil
-    _(fragment[:page_number]).must_equal 1
-    _(fragment[:x]).must_be_kind_of Numeric
-    _(fragment[:y]).must_be_kind_of Numeric
-    _(fragment[:width]).must_be :>, 0
-    _(fragment[:height]).must_be :>, 0
-  ensure
-    pdf&.close!
-  end
-
   it 'HAPPY: detects supported sensitive data patterns' do
     text = 'Email ada@example.com phone 0912-345-678 born 1990-01-01 id A123456789'
 

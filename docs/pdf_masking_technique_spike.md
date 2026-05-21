@@ -173,8 +173,6 @@ Remaining notes:
   `reportlab` installed.
 - `ExportMaskedPdf` is still an approximate masked-PDF export, not a formal PDF
   redaction engine.
-- Older Ruby-only PDF rebuild helpers remain in the codebase for now and can be
-  cleaned up separately after the integration settles.
 
 ## System-Based Review Artifact
 
@@ -215,3 +213,42 @@ Latest text-layer check result:
 The expected visual review result is a pdfplumber-generated masked PDF with
 label boxes where sensitive values were, restored divider lines, approximate
 original layout, and no obvious layout reflow caused by labels.
+
+## Cleanup Decision
+
+Old Ruby-only PDF rebuild services removed after the pdfplumber integration:
+
+```text
+app/services/build_visual_masked_pdf.rb
+app/services/find_pdf_mask_boxes.rb
+```
+
+These services were part of the previous `PDF::Reader` positioned-text rebuild
+path. Reference checks showed no remaining `app/` or `spec/` usage for
+`BuildVisualMaskedPdf` or `FindPdfMaskBoxes` after `ExportMaskedPdf` was
+updated to call `BuildPdfplumberMaskedPdf`.
+
+`ExtractPdf` was kept because `ExtractPdf.text` is still used by:
+
+- masked-text preview generation through `ProcessAttachmentMasking`
+- `ExportMaskedPdf` match collection
+- text-layer assertions in tests
+- local review artifact text-layer checks
+
+Only `ExtractPdf.positioned_text` was removed. Reference checks showed the
+method was no longer used by production code and only had an obsolete unit test
+for the old Ruby rebuild path.
+
+Reference search summary after cleanup:
+
+- `BuildVisualMaskedPdf`: no remaining references.
+- `FindPdfMaskBoxes`: no remaining references.
+- `positioned_text`: no remaining references.
+- `ExtractPdf.text`: still referenced by app services and tests, so retained.
+
+Tests run after cleanup:
+
+```bash
+bundle exec rake spec
+bundle exec rake style
+```
