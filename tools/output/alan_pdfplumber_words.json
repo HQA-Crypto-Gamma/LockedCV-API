@@ -1,0 +1,2369 @@
+[
+  {
+    "page_number": 1,
+    "width": 612,
+    "height": 792,
+    "words": [
+      {
+        "text": "Alan",
+        "x0": 244.884,
+        "x1": 292.558,
+        "top": 36.553999999999974,
+        "bottom": 58.553999999999974,
+        "fontname": "Helvetica-Bold",
+        "size": 22.0,
+        "sensitive": true
+      },
+      {
+        "text": "Turing",
+        "x0": 298.674,
+        "x1": 367.116,
+        "top": 36.553999999999974,
+        "bottom": 58.553999999999974,
+        "fontname": "Helvetica-Bold",
+        "size": 22.0,
+        "sensitive": true
+      },
+      {
+        "text": "alan@example.com",
+        "x0": 163.9,
+        "x1": 252.41000000000003,
+        "top": 66.23000000000002,
+        "bottom": 76.23000000000002,
+        "fontname": "Helvetica",
+        "size": 10.0,
+        "sensitive": true
+      },
+      {
+        "text": "|",
+        "x0": 255.19,
+        "x1": 257.79,
+        "top": 66.23000000000002,
+        "bottom": 76.23000000000002,
+        "fontname": "Helvetica",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "0912-000-002",
+        "x0": 260.57,
+        "x1": 322.83000000000004,
+        "top": 66.23000000000002,
+        "bottom": 76.23000000000002,
+        "fontname": "Helvetica",
+        "size": 10.0,
+        "sensitive": true
+      },
+      {
+        "text": "|",
+        "x0": 325.61,
+        "x1": 328.21000000000004,
+        "top": 66.23000000000002,
+        "bottom": 76.23000000000002,
+        "fontname": "Helvetica",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "B987654321",
+        "x0": 330.99,
+        "x1": 387.70000000000005,
+        "top": 66.23000000000002,
+        "bottom": 76.23000000000002,
+        "fontname": "Helvetica",
+        "size": 10.0,
+        "sensitive": true
+      },
+      {
+        "text": "|",
+        "x0": 390.48,
+        "x1": 393.08000000000004,
+        "top": 66.23000000000002,
+        "bottom": 76.23000000000002,
+        "fontname": "Helvetica",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Manchester",
+        "x0": 395.86,
+        "x1": 448.1000000000001,
+        "top": 66.23000000000002,
+        "bottom": 76.23000000000002,
+        "fontname": "Helvetica",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "PROFILE",
+        "x0": 50.4,
+        "x1": 98.074,
+        "top": 88.47700000000009,
+        "bottom": 99.47700000000009,
+        "fontname": "Helvetica-Bold",
+        "size": 11.0,
+        "sensitive": false
+      },
+      {
+        "text": "Alan",
+        "x0": 50.4,
+        "x1": 69.4095,
+        "top": 118.4665,
+        "bottom": 127.9665,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": true
+      },
+      {
+        "text": "Turing",
+        "x0": 72.0505,
+        "x1": 98.97349999999999,
+        "top": 118.4665,
+        "bottom": 127.9665,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": true
+      },
+      {
+        "text": "is",
+        "x0": 101.61449999999999,
+        "x1": 108.4735,
+        "top": 118.4665,
+        "bottom": 127.9665,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "a",
+        "x0": 111.11449999999999,
+        "x1": 116.39649999999999,
+        "top": 118.4665,
+        "bottom": 127.9665,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "detail-oriented",
+        "x0": 119.0375,
+        "x1": 179.22949999999997,
+        "top": 118.4665,
+        "bottom": 127.9665,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "computing",
+        "x0": 181.87049999999996,
+        "x1": 225.69400000000002,
+        "top": 118.4665,
+        "bottom": 127.9665,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "and",
+        "x0": 228.335,
+        "x1": 244.18100000000004,
+        "top": 118.4665,
+        "bottom": 127.9665,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "information",
+        "x0": 246.82200000000003,
+        "x1": 293.809,
+        "top": 118.4665,
+        "bottom": 127.9665,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "security",
+        "x0": 296.45000000000005,
+        "x1": 329.1775,
+        "top": 118.4665,
+        "bottom": 127.9665,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "student",
+        "x0": 331.81850000000003,
+        "x1": 362.9785,
+        "top": 118.4665,
+        "bottom": 127.9665,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "with",
+        "x0": 365.6195,
+        "x1": 382.5105,
+        "top": 118.4665,
+        "bottom": 127.9665,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "experience",
+        "x0": 385.1515,
+        "x1": 431.6159999999999,
+        "top": 118.4665,
+        "bottom": 127.9665,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "in",
+        "x0": 434.2569999999999,
+        "x1": 441.64799999999985,
+        "top": 118.4665,
+        "bottom": 127.9665,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "secure",
+        "x0": 444.2889999999999,
+        "x1": 472.7984999999998,
+        "top": 118.4665,
+        "bottom": 127.9665,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "web",
+        "x0": 475.43949999999984,
+        "x1": 492.8624999999998,
+        "top": 118.4665,
+        "bottom": 127.9665,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "APIs,",
+        "x0": 495.5034999999998,
+        "x1": 518.2084999999998,
+        "top": 118.4665,
+        "bottom": 127.9665,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "PDF",
+        "x0": 50.4,
+        "x1": 69.4,
+        "top": 131.42650000000003,
+        "bottom": 140.92650000000003,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "processing,",
+        "x0": 72.041,
+        "x1": 120.6145,
+        "top": 131.42650000000003,
+        "bottom": 140.92650000000003,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "and",
+        "x0": 123.25550000000001,
+        "x1": 139.10150000000002,
+        "top": 131.42650000000003,
+        "bottom": 140.92650000000003,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "data",
+        "x0": 141.7425,
+        "x1": 160.2295,
+        "top": 131.42650000000003,
+        "bottom": 140.92650000000003,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "privacy",
+        "x0": 162.8705,
+        "x1": 192.957,
+        "top": 131.42650000000003,
+        "bottom": 140.92650000000003,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "workflows.",
+        "x0": 195.59799999999998,
+        "x1": 239.9345,
+        "top": 131.42650000000003,
+        "bottom": 140.92650000000003,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Interested",
+        "x0": 242.5755,
+        "x1": 284.822,
+        "top": 131.42650000000003,
+        "bottom": 140.92650000000003,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "in",
+        "x0": 287.463,
+        "x1": 294.854,
+        "top": 131.42650000000003,
+        "bottom": 140.92650000000003,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "building",
+        "x0": 297.495,
+        "x1": 330.2319999999999,
+        "top": 131.42650000000003,
+        "bottom": 140.92650000000003,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "tools",
+        "x0": 332.87299999999993,
+        "x1": 352.9369999999999,
+        "top": 131.42650000000003,
+        "bottom": 140.92650000000003,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "that",
+        "x0": 355.5779999999999,
+        "x1": 371.4239999999999,
+        "top": 131.42650000000003,
+        "bottom": 140.92650000000003,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "help",
+        "x0": 374.06499999999994,
+        "x1": 392.01999999999987,
+        "top": 131.42650000000003,
+        "bottom": 140.92650000000003,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "users",
+        "x0": 394.6609999999999,
+        "x1": 417.88849999999985,
+        "top": 131.42650000000003,
+        "bottom": 140.92650000000003,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "protect",
+        "x0": 420.52949999999987,
+        "x1": 449.57099999999986,
+        "top": 131.42650000000003,
+        "bottom": 140.92650000000003,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "personal",
+        "x0": 452.2119999999999,
+        "x1": 488.64449999999977,
+        "top": 131.42650000000003,
+        "bottom": 140.92650000000003,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "information",
+        "x0": 491.2854999999998,
+        "x1": 538.2724999999998,
+        "top": 131.42650000000003,
+        "bottom": 140.92650000000003,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "before",
+        "x0": 50.4,
+        "x1": 77.3325,
+        "top": 144.38649999999996,
+        "bottom": 153.88649999999996,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "sharing",
+        "x0": 79.9735,
+        "x1": 111.12400000000001,
+        "top": 144.38649999999996,
+        "bottom": 153.88649999999996,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "resumes.",
+        "x0": 113.765,
+        "x1": 152.82899999999998,
+        "top": 144.38649999999996,
+        "bottom": 153.88649999999996,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "EDUCATION",
+        "x0": 50.4,
+        "x1": 115.78400000000002,
+        "top": 164.79700000000003,
+        "bottom": 175.79700000000003,
+        "fontname": "Helvetica-Bold",
+        "size": 11.0,
+        "sensitive": false
+      },
+      {
+        "text": "National",
+        "x0": 50.4,
+        "x1": 89.85,
+        "top": 194.3900000000001,
+        "bottom": 204.3900000000001,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Cheng",
+        "x0": 92.63,
+        "x1": 123.74,
+        "top": 194.3900000000001,
+        "bottom": 204.3900000000001,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Kung",
+        "x0": 126.52000000000001,
+        "x1": 152.07,
+        "top": 194.3900000000001,
+        "bottom": 204.3900000000001,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "University",
+        "x0": 154.85,
+        "x1": 203.20000000000002,
+        "top": 194.3900000000001,
+        "bottom": 204.3900000000001,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Sep",
+        "x0": 473.402,
+        "x1": 490.30249999999995,
+        "top": 194.78650000000005,
+        "bottom": 204.28650000000005,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "2022",
+        "x0": 492.9435,
+        "x1": 514.0715,
+        "top": 194.78650000000005,
+        "bottom": 204.28650000000005,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "-",
+        "x0": 516.7125,
+        "x1": 519.876,
+        "top": 194.78650000000005,
+        "bottom": 204.28650000000005,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Jun",
+        "x0": 522.5169999999999,
+        "x1": 537.831,
+        "top": 194.78650000000005,
+        "bottom": 204.28650000000005,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "2026",
+        "x0": 540.472,
+        "x1": 561.6,
+        "top": 194.78650000000005,
+        "bottom": 204.28650000000005,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "B.B.A.",
+        "x0": 50.4,
+        "x1": 77.3325,
+        "top": 209.18650000000002,
+        "bottom": 218.68650000000002,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "in",
+        "x0": 79.9735,
+        "x1": 87.36449999999999,
+        "top": 209.18650000000002,
+        "bottom": 218.68650000000002,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Industrial",
+        "x0": 90.0055,
+        "x1": 128.547,
+        "top": 209.18650000000002,
+        "bottom": 218.68650000000002,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "and",
+        "x0": 131.188,
+        "x1": 147.034,
+        "top": 209.18650000000002,
+        "bottom": 218.68650000000002,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Information",
+        "x0": 149.67499999999998,
+        "x1": 197.19400000000002,
+        "top": 209.18650000000002,
+        "bottom": 218.68650000000002,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Management",
+        "x0": 199.835,
+        "x1": 255.27700000000007,
+        "top": 209.18650000000002,
+        "bottom": 218.68650000000002,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Selected",
+        "x0": 50.4,
+        "x1": 89.4735,
+        "top": 225.02649999999994,
+        "bottom": 234.52649999999994,
+        "fontname": "Helvetica-Bold",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Coursework",
+        "x0": 92.11449999999999,
+        "x1": 147.01500000000001,
+        "top": 225.02649999999994,
+        "bottom": 234.52649999999994,
+        "fontname": "Helvetica-Bold",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Database",
+        "x0": 154.8,
+        "x1": 195.46,
+        "top": 225.02649999999994,
+        "bottom": 234.52649999999994,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Systems,",
+        "x0": 198.101,
+        "x1": 237.165,
+        "top": 225.02649999999994,
+        "bottom": 234.52649999999994,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Web",
+        "x0": 239.806,
+        "x1": 259.338,
+        "top": 225.02649999999994,
+        "bottom": 234.52649999999994,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Application",
+        "x0": 261.97900000000004,
+        "x1": 308.44350000000003,
+        "top": 225.02649999999994,
+        "bottom": 234.52649999999994,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Security,",
+        "x0": 311.08450000000005,
+        "x1": 348.03950000000003,
+        "top": 225.02649999999994,
+        "bottom": 234.52649999999994,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Information",
+        "x0": 350.68050000000005,
+        "x1": 398.1995,
+        "top": 225.02649999999994,
+        "bottom": 234.52649999999994,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Management",
+        "x0": 400.8405,
+        "x1": 456.28249999999997,
+        "top": 225.02649999999994,
+        "bottom": 234.52649999999994,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "WORK",
+        "x0": 50.4,
+        "x1": 85.226,
+        "top": 249.03700000000003,
+        "bottom": 260.03700000000003,
+        "fontname": "Helvetica-Bold",
+        "size": 11.0,
+        "sensitive": false
+      },
+      {
+        "text": "EXPERIENCE",
+        "x0": 88.28399999999999,
+        "x1": 159.19000000000003,
+        "top": 249.03700000000003,
+        "bottom": 260.03700000000003,
+        "fontname": "Helvetica-Bold",
+        "size": 11.0,
+        "sensitive": false
+      },
+      {
+        "text": "Software",
+        "x0": 50.4,
+        "x1": 92.63,
+        "top": 278.63,
+        "bottom": 288.63,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Engineer",
+        "x0": 95.41,
+        "x1": 138.2,
+        "top": 278.63,
+        "bottom": 288.63,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Intern,",
+        "x0": 140.98000000000002,
+        "x1": 171.54000000000002,
+        "top": 278.63,
+        "bottom": 288.63,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Example",
+        "x0": 174.32000000000002,
+        "x1": 215.45000000000005,
+        "top": 278.63,
+        "bottom": 288.63,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Analytics",
+        "x0": 218.23000000000005,
+        "x1": 262.69000000000005,
+        "top": 278.63,
+        "bottom": 288.63,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Lab",
+        "x0": 265.47,
+        "x1": 283.25000000000006,
+        "top": 278.63,
+        "bottom": 288.63,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Jul",
+        "x0": 476.575,
+        "x1": 488.71599999999995,
+        "top": 279.02650000000006,
+        "bottom": 288.5265,
+        "fontname": "Helvetica",
+        "size": 9.499999999999943,
+        "sensitive": false
+      },
+      {
+        "text": "2025",
+        "x0": 491.35699999999997,
+        "x1": 512.485,
+        "top": 279.02650000000006,
+        "bottom": 288.5265,
+        "fontname": "Helvetica",
+        "size": 9.499999999999943,
+        "sensitive": false
+      },
+      {
+        "text": "-",
+        "x0": 515.126,
+        "x1": 518.2895,
+        "top": 279.02650000000006,
+        "bottom": 288.5265,
+        "fontname": "Helvetica",
+        "size": 9.499999999999943,
+        "sensitive": false
+      },
+      {
+        "text": "Aug",
+        "x0": 520.9304999999999,
+        "x1": 537.831,
+        "top": 279.02650000000006,
+        "bottom": 288.5265,
+        "fontname": "Helvetica",
+        "size": 9.499999999999943,
+        "sensitive": false
+      },
+      {
+        "text": "2025",
+        "x0": 540.472,
+        "x1": 561.6,
+        "top": 279.02650000000006,
+        "bottom": 288.5265,
+        "fontname": "Helvetica",
+        "size": 9.499999999999943,
+        "sensitive": false
+      },
+      {
+        "text": "Built",
+        "x0": 68.4,
+        "x1": 86.294,
+        "top": 292.2244,
+        "bottom": 301.4244,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "a",
+        "x0": 88.8516,
+        "x1": 93.9668,
+        "top": 292.2244,
+        "bottom": 301.4244,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Roda-based",
+        "x0": 96.52440000000001,
+        "x1": 146.63680000000002,
+        "top": 292.2244,
+        "bottom": 301.4244,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "API",
+        "x0": 149.19440000000003,
+        "x1": 164.0248,
+        "top": 292.2244,
+        "bottom": 301.4244,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "prototype",
+        "x0": 166.5824,
+        "x1": 204.93719999999996,
+        "top": 292.2244,
+        "bottom": 301.4244,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "for",
+        "x0": 207.49479999999997,
+        "x1": 218.23119999999997,
+        "top": 292.2244,
+        "bottom": 301.4244,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "file",
+        "x0": 220.78879999999998,
+        "x1": 232.54639999999995,
+        "top": 292.2244,
+        "bottom": 301.4244,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "upload,",
+        "x0": 235.10399999999996,
+        "x1": 265.27999999999986,
+        "top": 292.2244,
+        "bottom": 301.4244,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "attachment",
+        "x0": 267.8375999999999,
+        "x1": 313.3499999999998,
+        "top": 292.2244,
+        "bottom": 301.4244,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "metadata,",
+        "x0": 315.9075999999999,
+        "x1": 356.8199999999998,
+        "top": 292.2244,
+        "bottom": 301.4244,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "and",
+        "x0": 359.3775999999998,
+        "x1": 374.72319999999985,
+        "top": 292.2244,
+        "bottom": 301.4244,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "secure",
+        "x0": 377.2807999999999,
+        "x1": 404.88999999999993,
+        "top": 292.2244,
+        "bottom": 301.4244,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "masking",
+        "x0": 407.44759999999997,
+        "x1": 441.69919999999996,
+        "top": 292.2244,
+        "bottom": 301.4244,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "workflows.",
+        "x0": 444.2568,
+        "x1": 487.19320000000005,
+        "top": 292.2244,
+        "bottom": 301.4244,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Collaborated",
+        "x0": 68.4,
+        "x1": 120.55480000000001,
+        "top": 305.18440000000004,
+        "bottom": 314.3844,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "with",
+        "x0": 123.11240000000001,
+        "x1": 139.47,
+        "top": 305.18440000000004,
+        "bottom": 314.3844,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "a",
+        "x0": 142.0276,
+        "x1": 147.1428,
+        "top": 305.18440000000004,
+        "bottom": 314.3844,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "three-person",
+        "x0": 149.7004,
+        "x1": 201.85519999999997,
+        "top": 305.18440000000004,
+        "bottom": 314.3844,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "team",
+        "x0": 204.41279999999998,
+        "x1": 224.86439999999996,
+        "top": 305.18440000000004,
+        "bottom": 314.3844,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "to",
+        "x0": 227.42199999999997,
+        "x1": 235.09479999999996,
+        "top": 305.18440000000004,
+        "bottom": 314.3844,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "design",
+        "x0": 237.65239999999997,
+        "x1": 264.7555999999999,
+        "top": 305.18440000000004,
+        "bottom": 314.3844,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "test",
+        "x0": 267.31319999999994,
+        "x1": 282.1435999999999,
+        "top": 305.18440000000004,
+        "bottom": 314.3844,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "fixtures,",
+        "x0": 284.7011999999999,
+        "x1": 316.91039999999987,
+        "top": 305.18440000000004,
+        "bottom": 314.3844,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "route",
+        "x0": 319.4679999999999,
+        "x1": 340.43479999999994,
+        "top": 305.18440000000004,
+        "bottom": 314.3844,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "behavior,",
+        "x0": 342.99239999999986,
+        "x1": 380.832,
+        "top": 305.18440000000004,
+        "bottom": 314.3844,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "and",
+        "x0": 383.3896,
+        "x1": 398.7352,
+        "top": 305.18440000000004,
+        "bottom": 314.3844,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "storage",
+        "x0": 401.29279999999994,
+        "x1": 431.9748,
+        "top": 305.18440000000004,
+        "bottom": 314.3844,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "conventions.",
+        "x0": 434.53240000000005,
+        "x1": 486.1812000000001,
+        "top": 305.18440000000004,
+        "bottom": 314.3844,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Teaching",
+        "x0": 50.4,
+        "x1": 94.3,
+        "top": 326.15,
+        "bottom": 336.15,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Assistant,",
+        "x0": 97.08,
+        "x1": 144.87,
+        "top": 326.15,
+        "bottom": 336.15,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Data",
+        "x0": 147.65,
+        "x1": 169.32,
+        "top": 326.15,
+        "bottom": 336.15,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Systems",
+        "x0": 172.1,
+        "x1": 213.23000000000005,
+        "top": 326.15,
+        "bottom": 336.15,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Course",
+        "x0": 216.01000000000005,
+        "x1": 250.46000000000006,
+        "top": 326.15,
+        "bottom": 336.15,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Feb",
+        "x0": 473.934,
+        "x1": 490.3025,
+        "top": 326.5465,
+        "bottom": 336.0465,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "2025",
+        "x0": 492.94350000000003,
+        "x1": 514.0715,
+        "top": 326.5465,
+        "bottom": 336.0465,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "-",
+        "x0": 516.7125,
+        "x1": 519.876,
+        "top": 326.5465,
+        "bottom": 336.0465,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Jun",
+        "x0": 522.517,
+        "x1": 537.831,
+        "top": 326.5465,
+        "bottom": 336.0465,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "2025",
+        "x0": 540.472,
+        "x1": 561.6,
+        "top": 326.5465,
+        "bottom": 336.0465,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Prepared",
+        "x0": 68.4,
+        "x1": 106.23960000000001,
+        "top": 339.74440000000004,
+        "bottom": 348.94440000000003,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "small",
+        "x0": 108.7972,
+        "x1": 130.26080000000002,
+        "top": 339.74440000000004,
+        "bottom": 348.94440000000003,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Ruby",
+        "x0": 132.8184,
+        "x1": 154.2912,
+        "top": 339.74440000000004,
+        "bottom": 348.94440000000003,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "examples",
+        "x0": 156.84879999999998,
+        "x1": 196.2156,
+        "top": 339.74440000000004,
+        "bottom": 348.94440000000003,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "for",
+        "x0": 198.7732,
+        "x1": 209.5096,
+        "top": 339.74440000000004,
+        "bottom": 348.94440000000003,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "students",
+        "x0": 212.0672,
+        "x1": 246.84319999999997,
+        "top": 339.74440000000004,
+        "bottom": 348.94440000000003,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "learning",
+        "x0": 249.40079999999998,
+        "x1": 282.1251999999999,
+        "top": 339.74440000000004,
+        "bottom": 348.94440000000003,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "MVC",
+        "x0": 284.68279999999993,
+        "x1": 305.1251999999999,
+        "top": 339.74440000000004,
+        "bottom": 348.94440000000003,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "structure,",
+        "x0": 307.68279999999993,
+        "x1": 346.0283999999999,
+        "top": 339.74440000000004,
+        "bottom": 348.94440000000003,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "ORM",
+        "x0": 348.5859999999999,
+        "x1": 370.04959999999994,
+        "top": 339.74440000000004,
+        "bottom": 348.94440000000003,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "models,",
+        "x0": 372.6071999999999,
+        "x1": 404.81639999999993,
+        "top": 339.74440000000004,
+        "bottom": 348.94440000000003,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "and",
+        "x0": 407.3739999999999,
+        "x1": 422.71959999999996,
+        "top": 339.74440000000004,
+        "bottom": 348.94440000000003,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "secure",
+        "x0": 425.2771999999999,
+        "x1": 452.88640000000004,
+        "top": 339.74440000000004,
+        "bottom": 348.94440000000003,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "database",
+        "x0": 455.44399999999996,
+        "x1": 493.2928000000001,
+        "top": 339.74440000000004,
+        "bottom": 348.94440000000003,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "access.",
+        "x0": 495.85040000000004,
+        "x1": 527.0384000000001,
+        "top": 339.74440000000004,
+        "bottom": 348.94440000000003,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "PROJECTS",
+        "x0": 50.4,
+        "x1": 109.69000000000001,
+        "top": 363.517,
+        "bottom": 374.517,
+        "fontname": "Helvetica-Bold",
+        "size": 11.0,
+        "sensitive": false
+      },
+      {
+        "text": "LockedCV",
+        "x0": 50.4,
+        "x1": 99.3,
+        "top": 393.11,
+        "bottom": 403.11,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Resume",
+        "x0": 102.08000000000001,
+        "x1": 140.98000000000002,
+        "top": 393.11,
+        "bottom": 403.11,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Masking",
+        "x0": 143.76000000000002,
+        "x1": 183.77000000000004,
+        "top": 393.11,
+        "bottom": 403.11,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Tool",
+        "x0": 186.55,
+        "x1": 207.66000000000003,
+        "top": 393.11,
+        "bottom": 403.11,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Apr",
+        "x0": 472.889,
+        "x1": 487.671,
+        "top": 393.5065,
+        "bottom": 403.0065,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "2026",
+        "x0": 490.312,
+        "x1": 511.44,
+        "top": 393.5065,
+        "bottom": 403.0065,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "-",
+        "x0": 514.081,
+        "x1": 517.2445,
+        "top": 393.5065,
+        "bottom": 403.0065,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "May",
+        "x0": 519.8855,
+        "x1": 537.831,
+        "top": 393.5065,
+        "bottom": 403.0065,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "2026",
+        "x0": 540.472,
+        "x1": 561.6,
+        "top": 393.5065,
+        "bottom": 403.0065,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Designed",
+        "x0": 68.4,
+        "x1": 107.2608,
+        "top": 406.7044,
+        "bottom": 415.9044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "a",
+        "x0": 109.81840000000001,
+        "x1": 114.93360000000001,
+        "top": 406.7044,
+        "bottom": 415.9044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "masking",
+        "x0": 117.49120000000002,
+        "x1": 151.7428,
+        "top": 406.7044,
+        "bottom": 415.9044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "pipeline",
+        "x0": 154.3004,
+        "x1": 186.00359999999998,
+        "top": 406.7044,
+        "bottom": 415.9044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "that",
+        "x0": 188.56119999999999,
+        "x1": 203.9068,
+        "top": 406.7044,
+        "bottom": 415.9044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "extracts",
+        "x0": 206.4644,
+        "x1": 238.6736,
+        "top": 406.7044,
+        "bottom": 415.9044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "text",
+        "x0": 241.2312,
+        "x1": 256.0616,
+        "top": 406.7044,
+        "bottom": 415.9044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "from",
+        "x0": 258.6192,
+        "x1": 277.01919999999996,
+        "top": 406.7044,
+        "bottom": 415.9044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "text-based",
+        "x0": 279.57680000000005,
+        "x1": 322.53159999999997,
+        "top": 406.7044,
+        "bottom": 415.9044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "PDF",
+        "x0": 325.0892,
+        "x1": 343.4891999999999,
+        "top": 406.7044,
+        "bottom": 415.9044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "resumes",
+        "x0": 346.04679999999996,
+        "x1": 381.31960000000004,
+        "top": 406.7044,
+        "bottom": 415.9044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "and",
+        "x0": 383.8772,
+        "x1": 399.22280000000006,
+        "top": 406.7044,
+        "bottom": 415.9044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "identifies",
+        "x0": 401.7804,
+        "x1": 438.08360000000005,
+        "top": 406.7044,
+        "bottom": 415.9044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "sensitive",
+        "x0": 440.6412,
+        "x1": 476.4292000000001,
+        "top": 406.7044,
+        "bottom": 415.9044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "data.",
+        "x0": 478.9868,
+        "x1": 499.4476000000001,
+        "top": 406.7044,
+        "bottom": 415.9044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Implemented",
+        "x0": 68.4,
+        "x1": 121.57600000000001,
+        "top": 419.6644,
+        "bottom": 428.8644,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "fake",
+        "x0": 124.1336,
+        "x1": 141.5216,
+        "top": 419.6644,
+        "bottom": 428.8644,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "test",
+        "x0": 144.07920000000001,
+        "x1": 158.90959999999998,
+        "top": 419.6644,
+        "bottom": 428.8644,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "data",
+        "x0": 161.4672,
+        "x1": 179.37039999999996,
+        "top": 419.6644,
+        "bottom": 428.8644,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "using",
+        "x0": 181.92799999999997,
+        "x1": 203.91599999999994,
+        "top": 419.6644,
+        "bottom": 428.8644,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "alan@example.com,",
+        "x0": 206.47359999999995,
+        "x1": 290.4603999999998,
+        "top": 419.6644,
+        "bottom": 428.8644,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": true
+      },
+      {
+        "text": "0912-000-002,",
+        "x0": 293.0179999999998,
+        "x1": 352.85479999999984,
+        "top": 419.6644,
+        "bottom": 428.8644,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": true
+      },
+      {
+        "text": "and",
+        "x0": 355.4123999999998,
+        "x1": 370.75799999999987,
+        "top": 419.6644,
+        "bottom": 428.8644,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "B987654321",
+        "x0": 373.3155999999998,
+        "x1": 425.4887999999999,
+        "top": 419.6644,
+        "bottom": 428.8644,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": true
+      },
+      {
+        "text": "for",
+        "x0": 428.04639999999995,
+        "x1": 438.7827999999999,
+        "top": 419.6644,
+        "bottom": 428.8644,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "repeatable",
+        "x0": 441.34039999999993,
+        "x1": 484.8104,
+        "top": 419.6644,
+        "bottom": 428.8644,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "tests.",
+        "x0": 487.36799999999994,
+        "x1": 509.356,
+        "top": 419.6644,
+        "bottom": 428.8644,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "LingoBeats",
+        "x0": 50.4,
+        "x1": 104.85,
+        "top": 437.75,
+        "bottom": 447.75,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Music",
+        "x0": 107.63,
+        "x1": 135.97,
+        "top": 437.75,
+        "bottom": 447.75,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Learning",
+        "x0": 138.75,
+        "x1": 180.98000000000002,
+        "top": 437.75,
+        "bottom": 447.75,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "App",
+        "x0": 183.76000000000002,
+        "x1": 203.2,
+        "top": 437.75,
+        "bottom": 447.75,
+        "fontname": "Helvetica-Bold",
+        "size": 10.0,
+        "sensitive": false
+      },
+      {
+        "text": "Sep",
+        "x0": 471.825,
+        "x1": 488.72549999999995,
+        "top": 438.1465,
+        "bottom": 447.6465,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "2024",
+        "x0": 491.3665,
+        "x1": 512.4945,
+        "top": 438.1465,
+        "bottom": 447.6465,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "-",
+        "x0": 515.1355,
+        "x1": 518.299,
+        "top": 438.1465,
+        "bottom": 447.6465,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Dec",
+        "x0": 520.9399999999999,
+        "x1": 537.831,
+        "top": 438.1465,
+        "bottom": 447.6465,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "2024",
+        "x0": 540.472,
+        "x1": 561.6,
+        "top": 438.1465,
+        "bottom": 447.6465,
+        "fontname": "Helvetica",
+        "size": 9.5,
+        "sensitive": false
+      },
+      {
+        "text": "Integrated",
+        "x0": 68.4,
+        "x1": 109.8276,
+        "top": 451.3444,
+        "bottom": 460.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "third-party",
+        "x0": 112.38520000000001,
+        "x1": 153.7944,
+        "top": 451.3444,
+        "bottom": 460.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "API",
+        "x0": 156.35199999999998,
+        "x1": 171.1824,
+        "top": 451.3444,
+        "bottom": 460.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "responses",
+        "x0": 173.73999999999995,
+        "x1": 216.1795999999999,
+        "top": 451.3444,
+        "bottom": 460.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "and",
+        "x0": 218.73719999999992,
+        "x1": 234.08279999999988,
+        "top": 451.3444,
+        "bottom": 460.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "transformed",
+        "x0": 236.6403999999999,
+        "x1": 285.7223999999999,
+        "top": 451.3444,
+        "bottom": 460.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "raw",
+        "x0": 288.27999999999986,
+        "x1": 303.1011999999999,
+        "top": 451.3444,
+        "bottom": 460.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "data",
+        "x0": 305.65879999999987,
+        "x1": 323.56199999999984,
+        "top": 451.3444,
+        "bottom": 460.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "into",
+        "x0": 326.1195999999999,
+        "x1": 340.9499999999999,
+        "top": 451.3444,
+        "bottom": 460.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "application-level",
+        "x0": 343.5075999999998,
+        "x1": 409.46239999999995,
+        "top": 451.3444,
+        "bottom": 460.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "domain",
+        "x0": 412.01999999999987,
+        "x1": 442.1867999999999,
+        "top": 451.3444,
+        "bottom": 460.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "objects.",
+        "x0": 444.7443999999999,
+        "x1": 476.44759999999997,
+        "top": 451.3444,
+        "bottom": 460.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "SKILLS",
+        "x0": 50.4,
+        "x1": 89.516,
+        "top": 475.11699999999996,
+        "bottom": 486.11699999999996,
+        "fontname": "Helvetica-Bold",
+        "size": 11.0,
+        "sensitive": false
+      },
+      {
+        "text": "CERTIFICATIONS",
+        "x0": 316.8,
+        "x1": 409.079,
+        "top": 475.11699999999996,
+        "bottom": 486.11699999999996,
+        "fontname": "Helvetica-Bold",
+        "size": 11.0,
+        "sensitive": false
+      },
+      {
+        "text": "Ruby",
+        "x0": 50.4,
+        "x1": 71.87279999999998,
+        "top": 505.3444,
+        "bottom": 514.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "/",
+        "x0": 74.43039999999999,
+        "x1": 76.98799999999999,
+        "top": 505.3444,
+        "bottom": 514.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Roda",
+        "x0": 79.54560000000001,
+        "x1": 101.5336,
+        "top": 505.3444,
+        "bottom": 514.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "/",
+        "x0": 104.09120000000001,
+        "x1": 106.64880000000001,
+        "top": 505.3444,
+        "bottom": 514.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Sequel",
+        "x0": 109.2064,
+        "x1": 137.846,
+        "top": 505.3444,
+        "bottom": 514.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "PDF",
+        "x0": 50.4,
+        "x1": 68.8,
+        "top": 518.3044,
+        "bottom": 527.5044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "text",
+        "x0": 71.35759999999999,
+        "x1": 86.188,
+        "top": 518.3044,
+        "bottom": 527.5044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "extraction",
+        "x0": 88.7456,
+        "x1": 128.6276,
+        "top": 518.3044,
+        "bottom": 527.5044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "REST",
+        "x0": 50.4,
+        "x1": 74.9364,
+        "top": 531.2644,
+        "bottom": 540.4644000000001,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "API",
+        "x0": 77.494,
+        "x1": 92.32439999999998,
+        "top": 531.2644,
+        "bottom": 540.4644000000001,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "testing",
+        "x0": 94.882,
+        "x1": 121.9852,
+        "top": 531.2644,
+        "bottom": 540.4644000000001,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Git",
+        "x0": 50.4,
+        "x1": 62.157599999999995,
+        "top": 544.2244000000001,
+        "bottom": 553.4244,
+        "fontname": "Helvetica",
+        "size": 9.200000000000017,
+        "sensitive": false
+      },
+      {
+        "text": "branch",
+        "x0": 64.7152,
+        "x1": 92.8396,
+        "top": 544.2244000000001,
+        "bottom": 553.4244,
+        "fontname": "Helvetica",
+        "size": 9.200000000000017,
+        "sensitive": false
+      },
+      {
+        "text": "workflow",
+        "x0": 95.3972,
+        "x1": 131.17600000000002,
+        "top": 544.2244000000001,
+        "bottom": 553.4244,
+        "fontname": "Helvetica",
+        "size": 9.200000000000017,
+        "sensitive": false
+      },
+      {
+        "text": "Minitest",
+        "x0": 50.4,
+        "x1": 82.094,
+        "top": 557.1844,
+        "bottom": 566.3844,
+        "fontname": "Helvetica",
+        "size": 9.200000000000017,
+        "sensitive": false
+      },
+      {
+        "text": "and",
+        "x0": 84.6516,
+        "x1": 99.9972,
+        "top": 557.1844,
+        "bottom": 566.3844,
+        "fontname": "Helvetica",
+        "size": 9.200000000000017,
+        "sensitive": false
+      },
+      {
+        "text": "fixtures",
+        "x0": 102.5548,
+        "x1": 132.2064,
+        "top": 557.1844,
+        "bottom": 566.3844,
+        "fontname": "Helvetica",
+        "size": 9.200000000000017,
+        "sensitive": false
+      },
+      {
+        "text": "Web",
+        "x0": 316.8,
+        "x1": 335.71520000000004,
+        "top": 505.3444,
+        "bottom": 514.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Security",
+        "x0": 338.2728,
+        "x1": 371.50320000000005,
+        "top": 505.3444,
+        "bottom": 514.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Workshop",
+        "x0": 374.06080000000003,
+        "x1": 415.47,
+        "top": 505.3444,
+        "bottom": 514.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Certificate",
+        "x0": 418.0276,
+        "x1": 459.4368,
+        "top": 505.3444,
+        "bottom": 514.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "2026",
+        "x0": 541.1392,
+        "x1": 561.5999999999999,
+        "top": 505.3444,
+        "bottom": 514.5444,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Cloud",
+        "x0": 316.8,
+        "x1": 340.8304,
+        "top": 518.3044,
+        "bottom": 527.5044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Deployment",
+        "x0": 343.38800000000003,
+        "x1": 392.47,
+        "top": 518.3044,
+        "bottom": 527.5044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Fundamentals",
+        "x0": 395.0276,
+        "x1": 453.3188,
+        "top": 518.3044,
+        "bottom": 527.5044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "2025",
+        "x0": 541.1392,
+        "x1": 561.5999999999999,
+        "top": 518.3044,
+        "bottom": 527.5044,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "English",
+        "x0": 316.8,
+        "x1": 346.96680000000003,
+        "top": 531.2644,
+        "bottom": 540.4644000000001,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Resume",
+        "x0": 349.5244,
+        "x1": 383.776,
+        "top": 531.2644,
+        "bottom": 540.4644000000001,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Writing",
+        "x0": 386.33360000000005,
+        "x1": 414.95480000000003,
+        "top": 531.2644,
+        "bottom": 540.4644000000001,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Program",
+        "x0": 417.5124,
+        "x1": 452.7851999999999,
+        "top": 531.2644,
+        "bottom": 540.4644000000001,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "2024",
+        "x0": 541.1392,
+        "x1": 561.5999999999999,
+        "top": 531.2644,
+        "bottom": 540.4644000000001,
+        "fontname": "Helvetica",
+        "size": 9.199999999999989,
+        "sensitive": false
+      },
+      {
+        "text": "Reference",
+        "x0": 50.4,
+        "x1": 89.6105,
+        "top": 749.2595,
+        "bottom": 757.7595,
+        "fontname": "Helvetica",
+        "size": 8.5,
+        "sensitive": false
+      },
+      {
+        "text": "ID:",
+        "x0": 91.9735,
+        "x1": 102.8365,
+        "top": 749.2595,
+        "bottom": 757.7595,
+        "fontname": "Helvetica",
+        "size": 8.5,
+        "sensitive": false
+      },
+      {
+        "text": "CV-ALAN-2026",
+        "x0": 105.1995,
+        "x1": 163.773,
+        "top": 749.2595,
+        "bottom": 757.7595,
+        "fontname": "Helvetica",
+        "size": 8.5,
+        "sensitive": true
+      },
+      {
+        "text": "Prepared",
+        "x0": 387.3075,
+        "x1": 422.26800000000003,
+        "top": 749.2595,
+        "bottom": 757.7595,
+        "fontname": "Helvetica",
+        "size": 8.5,
+        "sensitive": false
+      },
+      {
+        "text": "by",
+        "x0": 424.63100000000003,
+        "x1": 433.607,
+        "top": 749.2595,
+        "bottom": 757.7595,
+        "fontname": "Helvetica",
+        "size": 8.5,
+        "sensitive": false
+      },
+      {
+        "text": "Alan",
+        "x0": 435.97,
+        "x1": 452.9785,
+        "top": 749.2595,
+        "bottom": 757.7595,
+        "fontname": "Helvetica",
+        "size": 8.5,
+        "sensitive": true
+      },
+      {
+        "text": "Turing",
+        "x0": 455.3415,
+        "x1": 479.4305,
+        "top": 749.2595,
+        "bottom": 757.7595,
+        "fontname": "Helvetica",
+        "size": 8.5,
+        "sensitive": true
+      },
+      {
+        "text": "|",
+        "x0": 481.7935,
+        "x1": 484.0035,
+        "top": 749.2595,
+        "bottom": 757.7595,
+        "fontname": "Helvetica",
+        "size": 8.5,
+        "sensitive": false
+      },
+      {
+        "text": "alan@example.com",
+        "x0": 486.3665,
+        "x1": 561.6,
+        "top": 749.2595,
+        "bottom": 757.7595,
+        "fontname": "Helvetica",
+        "size": 8.5,
+        "sensitive": true
+      }
+    ]
+  }
+]
