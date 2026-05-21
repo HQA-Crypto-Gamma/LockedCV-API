@@ -15,6 +15,89 @@ describe 'Account Endpoints' do
     reset_database!
   end
 
+  describe 'POST /api/v1/accounts/registration/check' do
+    it 'HAPPY: returns available for unused username and email' do
+      payload = {
+        username: 'new-user',
+        email: 'new-user@example.com'
+      }
+
+      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+
+      _(last_response.status).must_equal 200
+      _(json_body).must_equal('available' => true)
+    end
+
+    it 'SAD: returns 400 for registered email' do
+      account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+      payload = {
+        username: 'new-user',
+        email: account.email
+      }
+
+      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Email already registered')
+    end
+
+    it 'SAD: returns 400 for registered username' do
+      account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+      payload = {
+        username: account.username,
+        email: 'new-user@example.com'
+      }
+
+      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Username already taken')
+    end
+
+    it 'SAD: returns 400 for missing email' do
+      payload = {
+        username: 'new-user',
+        email: ''
+      }
+
+      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Email is required')
+    end
+
+    it 'SAD: returns 400 for missing username' do
+      payload = {
+        username: '',
+        email: 'new-user@example.com'
+      }
+
+      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Username is required')
+    end
+
+    it 'SAD: trims registration values before checking availability' do
+      account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+      payload = {
+        username: "  #{account.username}  ",
+        email: "  #{account.email}  "
+      }
+
+      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Email already registered')
+    end
+  end
+
   describe 'POST /api/v1/accounts' do
     it 'HAPPY: creates an account' do
       payload = DATA[:accounts].last.transform_keys(&:to_sym)
@@ -84,13 +167,13 @@ describe 'Account Endpoints' do
     end
   end
 
-  describe 'GET /api/v1/accounts/:id' do
-    it 'HAPPY: gets a single account' do
+  describe 'GET /api/v1/account' do
+    it 'HAPPY: gets the current account from bearer token' do
       account = LockedCV::CreateAccountService.call(
         account_data: DATA[:accounts].first.transform_keys(&:to_sym)
       )
 
-      get "/api/v1/accounts/#{account.id}"
+      get '/api/v1/account', {}, auth_header(account)
 
       _(last_response.status).must_equal 200
       _(last_response.headers['Content-Type']).must_include 'application/json'
@@ -100,28 +183,23 @@ describe 'Account Endpoints' do
       _(json_body.dig('data', 'attributes').keys).wont_include 'password_digest'
     end
 
-    it 'SAD: returns 404 for missing account' do
-      get '/api/v1/accounts/999999'
+    it 'SECURITY: returns 401 without bearer token' do
+      get '/api/v1/account'
 
-      _(last_response.status).must_equal 404
-      _(json_body).must_equal('message' => 'Account not found')
+      _(last_response.status).must_equal 401
+      _(json_body).must_equal('message' => 'Missing authorization token')
     end
 
-    it 'SECURITY: rejects SQL injection in account id' do
-      account = LockedCV::CreateAccountService.call(
-        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
-      )
-      injected_account_id = CGI.escape("#{account.id}' OR '1'='1")
+    it 'SECURITY: returns 401 for invalid bearer token' do
+      get '/api/v1/account', {}, { 'HTTP_AUTHORIZATION' => 'Bearer invalid-token' }
 
-      get "/api/v1/accounts/#{injected_account_id}"
-
-      _(last_response.status).must_equal 404
-      _(json_body).must_equal('message' => 'Account not found')
+      _(last_response.status).must_equal 401
+      _(json_body).must_equal('message' => 'Invalid authorization token')
     end
   end
 
-  describe 'PUT /api/v1/accounts/:id' do
-    it 'HAPPY: updates editable account profile fields' do
+  describe 'PUT /api/v1/account' do
+    it 'HAPPY: updates current account profile fields' do
       account = LockedCV::CreateAccountService.call(
         account_data: DATA[:accounts].first.transform_keys(&:to_sym)
       )
@@ -135,7 +213,7 @@ describe 'Account Endpoints' do
         identification_numbers: 'ID-999'
       }
 
-      put "/api/v1/accounts/#{account.id}", payload.to_json, req_header
+      put '/api/v1/account', payload.to_json, auth_req_header(account)
 
       attributes = json_body.dig('data', 'data', 'attributes')
 
@@ -147,11 +225,121 @@ describe 'Account Endpoints' do
       _(attributes.keys).wont_include 'email_secure'
     end
 
-    it 'SAD: returns 404 for missing account update' do
-      put '/api/v1/accounts/missing-account', { first_name: 'Ada' }.to_json, req_header
+    it 'SECURITY: returns 401 without bearer token' do
+      put '/api/v1/account', { first_name: 'Ada' }.to_json, req_header
+
+      _(last_response.status).must_equal 401
+      _(json_body).must_equal('message' => 'Missing authorization token')
+    end
+  end
+
+  describe 'DELETE /api/v1/accounts/:id' do
+    before do
+      @admin_role = LockedCV::Role.create(name: 'admin')
+      @admin = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+      @target = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+      )
+      @admin.add_system_role(@admin_role)
+    end
+
+    it 'HAPPY: admin deletes an account' do
+      delete(
+        "/api/v1/accounts/#{@target.id}",
+        nil,
+        auth_header(@admin)
+      )
+
+      _(last_response.status).must_equal 200
+      _(json_body).must_equal('message' => 'Account deleted')
+      _(LockedCV::Account.first(id: @target.id)).must_be_nil
+    end
+
+    it 'HAPPY: deletes dependent attachments and sensitive data' do
+      attachment = LockedCV::CreateAttachmentService.call(
+        account_id: @target.id,
+        attachment_data: {
+          attachment_name: 'target-resume.pdf',
+          route: 'target/target-resume.pdf'
+        }
+      )
+      sensitive_data = LockedCV::CreateSensitiveDataService.call(
+        account_id: @target.id,
+        attachment_id: attachment.id,
+        sensitive_data: {
+          first_name: 'Alan',
+          last_name: 'Turing',
+          phone_number: '0912-000-002',
+          birthday: '1912-06-23',
+          email: 'alan@example.com',
+          address: 'Manchester',
+          identification_numbers: 'NINO-123'
+        }
+      )
+
+      delete(
+        "/api/v1/accounts/#{@target.id}",
+        nil,
+        auth_header(@admin)
+      )
+
+      _(last_response.status).must_equal 200
+      _(LockedCV::Attachment.first(id: attachment.id)).must_be_nil
+      _(LockedCV::SensitiveData.first(id: sensitive_data.id)).must_be_nil
+    end
+
+    it 'SAD: non-admin cannot delete an account' do
+      non_admin = LockedCV::CreateAccountService.call(
+        account_data: {
+          username: 'grace-hopper',
+          email: 'grace@example.com',
+          phone_number: '0912-000-003',
+          password: 'grace-secret'
+        }
+      )
+
+      delete(
+        "/api/v1/accounts/#{@target.id}",
+        nil,
+        auth_header(non_admin)
+      )
+
+      _(last_response.status).must_equal 403
+      _(json_body).must_equal('message' => 'Only admins can delete accounts')
+      _(LockedCV::Account.first(id: @target.id)).wont_be_nil
+    end
+
+    it 'SAD: admin cannot delete their own account' do
+      delete(
+        "/api/v1/accounts/#{@admin.id}",
+        nil,
+        auth_header(@admin)
+      )
+
+      _(last_response.status).must_equal 403
+      _(json_body).must_equal('message' => 'Admins cannot delete their own account')
+      _(LockedCV::Account.first(id: @admin.id)).wont_be_nil
+    end
+
+    it 'SAD: returns 404 for missing account' do
+      delete(
+        '/api/v1/accounts/missing-account',
+        nil,
+        auth_header(@admin)
+      )
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Account not found')
+    end
+
+    it 'SECURITY: missing bearer token returns 401' do
+      delete "/api/v1/accounts/#{@target.id}"
+
+      _(last_response.status).must_equal 401
+      _(json_body).must_equal('message' => 'Missing authorization token')
+      _(LockedCV::Account.first(id: @target.id)).wont_be_nil
     end
   end
 end

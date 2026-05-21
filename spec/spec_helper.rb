@@ -10,6 +10,7 @@ require 'minitest/autorun'
 require 'minitest/rg'
 require 'rack/test'
 require 'stringio'
+require 'webmock/minitest'
 require 'yaml'
 
 require_relative 'test_load_all'
@@ -27,6 +28,7 @@ DATA[:sensitive_data] = YAML.safe_load_file(
 
 module LockedCV
   # Shared helpers for spec setup/teardown and database seed loading
+  # rubocop:disable Metrics/ModuleLength
   module SpecHelpers
     REQUIRED_TABLES = %i[
       accounts attachments sensitive_data masked_attachments masked_items roles accounts_roles
@@ -68,6 +70,20 @@ module LockedCV
 
     def req_header
       { 'CONTENT_TYPE' => 'application/json' }
+    end
+
+    def auth_header(account)
+      token = LockedCV::AuthToken.new(
+        'account_id' => account.id,
+        'username' => account.username,
+        'email' => account.email
+      ).to_s
+
+      { 'HTTP_AUTHORIZATION' => "Bearer #{token}" }
+    end
+
+    def auth_req_header(account)
+      req_header.merge(auth_header(account))
     end
 
     def json_body
@@ -151,4 +167,5 @@ module LockedCV
       LockedCV::Api.const_set(:LOGGER, original_logger)
     end
   end
+  # rubocop:enable Metrics/ModuleLength
 end

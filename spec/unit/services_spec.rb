@@ -33,8 +33,17 @@ describe 'Service Objects' do
       username: payload[:username],
       password: payload[:password]
     )
+    attributes = authenticated.dig(:data, :attributes)
 
-    _(authenticated.id).must_equal account.id
+    _(authenticated.dig(:data, :type)).must_equal 'authenticated_account'
+    _(attributes[:id]).must_equal account.id
+    _(attributes[:username]).must_equal account.username
+    _(attributes[:email]).must_equal account.email
+    _(attributes[:roles]).must_equal ['member']
+    token_payload = LockedCV::AuthToken.load(attributes[:auth_token]).payload
+    _(token_payload['account_id']).must_equal account.id
+    _(token_payload['username']).must_equal account.username
+    _(token_payload['email']).must_equal account.email
   end
 
   it 'SAD: raises when authenticating with an invalid password' do
@@ -73,7 +82,7 @@ describe 'Service Objects' do
     admin.add_system_role(admin_role)
 
     result = LockedCV::AssignSystemRoleService.call(
-      current_account_id: admin.id,
+      current_account: admin,
       target_username: target.username,
       role_name: admin_role.name
     )
@@ -93,7 +102,7 @@ describe 'Service Objects' do
     admin.add_system_role(admin_role)
 
     result = LockedCV::AssignSystemRoleService.call(
-      current_account_id: admin.id,
+      current_account: admin,
       target_username: target.username,
       role_name: 'member'
     )
@@ -113,7 +122,7 @@ describe 'Service Objects' do
     _(
       proc do
         LockedCV::AssignSystemRoleService.call(
-          current_account_id: member.id,
+          current_account: member,
           target_username: target.username,
           role_name: 'member'
         )

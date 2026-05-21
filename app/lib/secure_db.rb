@@ -1,52 +1,31 @@
 # frozen_string_literal: true
 
-require 'base64'
-require 'rbnacl'
+require_relative 'securable'
 
 module LockedCV
-  # Encrypt and Decrypt from Database
+  # Encrypt and decrypt values stored in the database.
   class SecureDB
-    class NoDbKeyError < StandardError; end
-    class NoHashKeyError < StandardError; end
+    extend Securable
 
-    # Generate key for Rake tasks (typically not called at runtime)
-    def self.generate_key
-      key = RbNaCl::Random.random_bytes(RbNaCl::SecretBox.key_bytes)
-      Base64.strict_encode64 key
-    end
+    NoDbKeyError = Securable::NoKeyError
+    NoHashKeyError = Securable::NoHashKeyError
 
     def self.setup(base_key, hash_key)
-      raise NoDbKeyError unless base_key
-      raise NoHashKeyError unless hash_key
-
-      @key = Base64.strict_decode64(base_key)
-      @hash_key = Base64.strict_decode64(hash_key)
+      setup_secret_key(base_key)
+      setup_hash_key(hash_key)
     end
 
-    # Encrypt or else return nil if data is nil
     def self.encrypt(plaintext)
-      return nil unless plaintext
-
-      simple_box = RbNaCl::SimpleBox.from_secret_key(@key)
-      ciphertext = simple_box.encrypt(plaintext)
-      Base64.strict_encode64(ciphertext)
+      base_encrypt(plaintext)
     end
 
-    # Decrypt or else return nil if database value is nil already
     def self.decrypt(ciphertext64)
-      return nil unless ciphertext64
-
-      ciphertext = Base64.strict_decode64(ciphertext64)
-      simple_box = RbNaCl::SimpleBox.from_secret_key(@key)
-      simple_box.decrypt(ciphertext).force_encoding(Encoding::UTF_8)
+      base_decrypt(ciphertext64)
     end
 
     # Keyed hash for deterministic lookup on encrypted columns
     def self.hash(plaintext)
-      return nil unless plaintext
-
-      digest = RbNaCl::HMAC::SHA256.auth(@hash_key, plaintext)
-      Base64.strict_encode64(digest)
+      base_hash(plaintext)
     end
   end
 end
