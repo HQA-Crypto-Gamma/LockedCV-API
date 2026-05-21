@@ -294,7 +294,16 @@ describe 'Attachment Endpoints' do
         }
       )
 
-      post "/api/v1/accounts/#{@account.id}/attachments/#{attachment_id}/masked_attachments", nil, auth_header(@account)
+      python_bin = available_pdf_processor_python
+      skip 'pdfplumber/reportlab Python dependencies are not available' unless python_bin
+
+      with_python_bin(python_bin) do
+        post(
+          "/api/v1/accounts/#{@account.id}/attachments/#{attachment_id}/masked_attachments",
+          nil,
+          auth_header(@account)
+        )
+      end
 
       _(last_response.status).must_equal 201
       _(json_body['message']).must_equal 'Masked attachment saved'

@@ -188,7 +188,7 @@ describe 'PDF Masking Services' do
     )
     original_path = storage_path_for(route)
 
-    masked_attachment = LockedCV::ExportMaskedPdf.call(account_id: account.id, attachment_id: attachment.id)
+    masked_attachment = export_masked_pdf(account:, attachment:)
 
     _(masked_attachment.attachment_id).must_equal attachment.id
     _(masked_attachment.route).must_match %r{\Aaccounts/#{account.id}/masked/}
@@ -200,6 +200,10 @@ describe 'PDF Masking Services' do
     _(scrubbed_text).wont_include 'alan@example.com'
     _(scrubbed_text).wont_include '0912-000-002'
     _(scrubbed_text).wont_include 'B987654321'
+    _(scrubbed_text).must_include 'NAME'
+    _(scrubbed_text).must_include 'EMAIL'
+    _(scrubbed_text).must_include 'TEL'
+    _(scrubbed_text).must_include 'ID'
   ensure
     route_file&.close if defined?(route_file)
   end
@@ -245,7 +249,7 @@ describe 'PDF Masking Services' do
     original_path = storage_path_for(route)
     _(LockedCV::ExtractPdf.text(original_path)).must_include 'alan@example.com'
     _(File.binread(original_path)).wont_include 'alan@example.com'
-    masked_attachment = LockedCV::ExportMaskedPdf.call(account_id: account.id, attachment_id: attachment.id)
+    masked_attachment = export_masked_pdf(account:, attachment:)
     masked_text = LockedCV::ExtractPdf.text(storage_path_for(masked_attachment.route))
 
     _(File.file?(storage_path_for(masked_attachment.route))).must_equal true
@@ -296,7 +300,7 @@ describe 'PDF Masking Services' do
     )
     original_path = storage_path_for(route)
 
-    masked_attachment = LockedCV::ExportMaskedPdf.call(account_id: account.id, attachment_id: attachment.id)
+    masked_attachment = export_masked_pdf(account:, attachment:)
     masked_text = LockedCV::ExtractPdf.text(storage_path_for(masked_attachment.route))
 
     _(original_text).must_include 'alan@example.com'
@@ -347,7 +351,7 @@ describe 'PDF Masking Services' do
       }
     )
 
-    masked_attachment = LockedCV::ExportMaskedPdf.call(account_id: account.id, attachment_id: attachment.id)
+    masked_attachment = export_masked_pdf(account:, attachment:)
     masked_text = LockedCV::ExtractPdf.text(storage_path_for(masked_attachment.route))
 
     _(original_text).must_include 'alan@example.com'
@@ -361,5 +365,14 @@ describe 'PDF Masking Services' do
     _(masked_text).wont_include '@example.com'
     _(masked_text).wont_include '0912'
     _(masked_text).wont_include 'B987'
+  end
+
+  def export_masked_pdf(account:, attachment:)
+    python_bin = available_pdf_processor_python
+    skip 'pdfplumber/reportlab Python dependencies are not available' unless python_bin
+
+    with_python_bin(python_bin) do
+      LockedCV::ExportMaskedPdf.call(account_id: account.id, attachment_id: attachment.id)
+    end
   end
 end

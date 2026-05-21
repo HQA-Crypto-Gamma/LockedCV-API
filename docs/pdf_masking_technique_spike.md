@@ -10,9 +10,8 @@ app/lib/pdf_processors/pdfplumber_masked_pdf.py
 ```
 
 It lives under `app/lib/pdf_processors/` because it is application support code
-intended for a later Ruby service integration, but it is not connected to the
-Roda API flow yet. The processor is independently runnable and does not
-hard-code fixture paths.
+called by the Ruby wrapper service, while remaining independently runnable for
+manual smoke tests. It does not hard-code fixture paths.
 
 Manual smoke-test command:
 
@@ -58,7 +57,8 @@ Smoke-test result:
 
 Remaining limitations:
 
-- The Ruby application does not call this processor yet.
+- The processor is called through the Ruby wrapper service, not directly by
+  controllers.
 - It is still an approximate PDF rebuild, not full content-stream redaction.
 - It does not restore images, icons, complex curves, or embedded font fidelity.
 - Matching is based on extracted pdfplumber words, so unusual PDF encodings or
@@ -118,4 +118,100 @@ Dependency notes:
 
 - Ruby uses stdlib `json`, `open3`, `securerandom`, and `fileutils`.
 - Python still requires `pdfplumber` and `reportlab`.
-- The wrapper is not connected to `ExportMaskedPdf` yet.
+- `ExportMaskedPdf` now calls the wrapper for masked PDF generation.
+
+## ExportMaskedPdf Integration
+
+`ExportMaskedPdf` now uses the Ruby wrapper service for PDF generation:
+
+```text
+ExportMaskedPdf
+-> ResolveAttachmentPath
+-> ExtractPdf.text
+-> MaskSensitiveText.matches_for_masking
+-> BuildPdfplumberMaskedPdf
+-> app/lib/pdf_processors/pdfplumber_masked_pdf.py
+```
+
+Ruby still owns the application workflow:
+
+- attachment lookup
+- sensitive data lookup through decrypted model getters
+- masked output route generation under `storage/uploads`
+- masked attachment record creation
+- masked item record creation
+- encrypted masked item value persistence through model setters
+
+The Python processor only receives an input PDF path, output PDF path, and JSON
+payload. It generates the output PDF and does not read or write the database.
+
+Sensitive matches are converted into payload items before invoking Python. Each
+item includes:
+
+```ruby
+{
+  field_name: 'email',
+  value: 'alan@example.com',
+  kind: 'email',
+  label: 'EMAIL'
+}
+```
+
+For stored first and last names, Ruby also sends a synthesized `full_name`
+payload item when both values are present. This lets the Python processor match
+`Alan Turing` as one phrase before shorter first-name or last-name values. The
+original individual matches still drive `masked_items` records, preserving the
+existing metadata behavior.
+
+Storage route decisions remain in `ExportMaskedPdf`; the wrapper receives the
+already resolved absolute input path and the absolute output path under the
+existing storage root.
+
+Remaining notes:
+
+- `PYTHON_BIN` can point to a virtual environment Python with `pdfplumber` and
+  `reportlab` installed.
+- `ExportMaskedPdf` is still an approximate masked-PDF export, not a formal PDF
+  redaction engine.
+- Older Ruby-only PDF rebuild helpers remain in the codebase for now and can be
+  cleaned up separately after the integration settles.
+
+## System-Based Review Artifact
+
+Generate the visual review artifact with:
+
+```bash
+ruby tools/generate_system_masked_pdf_review.rb
+```
+
+The script uses the real LockedCV Ruby system flow. It creates a review account,
+stores `spec/fixtures/files/fake_resume_alan.pdf` through
+`StoreAttachmentFile`, creates attachment metadata and `SensitiveData`, calls
+`ExportMaskedPdf`, then copies the generated masked PDF from the normal storage
+route to:
+
+```text
+spec/fixtures/generated/alan_system_masked_pdfplumber.pdf
+```
+
+The generated artifact is for local visual review only and should not be
+committed. `.gitignore` excludes:
+
+```text
+spec/fixtures/generated/*.pdf
+```
+
+Latest text-layer check result:
+
+- `Alan Turing`: not found
+- `alan@example.com`: not found
+- `0912-000-002`: not found
+- `B987654321`: not found
+- `NAME`: found
+- `EMAIL`: found
+- `TEL`: found
+- `ID`: found
+
+The expected visual review result is a pdfplumber-generated masked PDF with
+label boxes where sensitive values were, restored divider lines, approximate
+original layout, and no obvious layout reflow caused by labels.

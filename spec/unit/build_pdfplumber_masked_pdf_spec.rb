@@ -83,27 +83,4 @@ describe 'BuildPdfplumberMaskedPdf' do
       { field_name: 'identification_number', value: 'B987654321', kind: 'id_number', label: 'ID' }
     ]
   end
-
-  def available_pdf_processor_python
-    [
-      ENV.fetch('PYTHON_BIN', nil),
-      '/tmp/lockedcv-pdfspike-venv/bin/python',
-      'python3'
-    ].compact.find { |candidate| python_has_processor_dependencies?(candidate) }
-  end
-
-  def python_has_processor_dependencies?(python_bin)
-    _stdout, _stderr, status = Open3.capture3(python_bin, '-c', 'import pdfplumber, reportlab')
-    status.success?
-  rescue SystemCallError
-    false
-  end
-
-  def with_python_bin(python_bin)
-    original = ENV.fetch('PYTHON_BIN', nil)
-    ENV['PYTHON_BIN'] = python_bin
-    yield
-  ensure
-    original ? ENV['PYTHON_BIN'] = original : ENV.delete('PYTHON_BIN')
-  end
 end

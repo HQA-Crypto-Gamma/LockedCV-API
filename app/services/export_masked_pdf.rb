@@ -24,12 +24,12 @@ module LockedCV
     end
 
     def call
-      fragments, matches = masking_context
-      route = write_masked_pdf(fragments:, matches:)
+      pdf_path, matches, sensitive_items = masking_context
+      route = write_masked_pdf(input_path: pdf_path, sensitive_items:)
 
       create_record(route:, matches:)
     rescue ResolveAttachmentPath::UnsafePathError, ResolveAttachmentPath::MissingFileError,
-           ExtractPdf::FileNotFoundError, Sequel::Error => e
+           ExtractPdf::FileNotFoundError, BuildPdfplumberMaskedPdf::Error, Sequel::Error => e
       raise ExportError, e.message
     end
 
@@ -42,17 +42,16 @@ module LockedCV
       sensitive_data = FindSensitiveDataService.call(attachment_id: attachment.id)
       text = ExtractPdf.text(pdf_path)
       matches = MaskSensitiveText.matches_for_masking(text:, sensitive_data:)
-      fragments = ExtractPdf.positioned_text(pdf_path)
+      sensitive_items = BuildPdfplumberSensitiveItems.call(matches:, sensitive_data:)
 
-      [fragments, matches]
+      [pdf_path, matches, sensitive_items]
     end
 
-    def write_masked_pdf(fragments:, matches:)
+    def write_masked_pdf(input_path:, sensitive_items:)
       route = output_route
       output_path = File.join(ResolveAttachmentPath::STORAGE_ROOT, route)
-      output_bytes = masked_pdf_bytes(fragments:, matches:)
       FileUtils.mkdir_p(File.dirname(output_path))
-      File.binwrite(output_path, output_bytes)
+      BuildPdfplumberMaskedPdf.call(input_path:, output_path:, sensitive_items:)
       route
     end
 
@@ -75,28 +74,6 @@ module LockedCV
         source: source_name(match[:source]),
         is_masked: true
       )
-    end
-
-    def masked_pdf_bytes(fragments:, matches:)
-      values = unique_values(matches)
-      boxes = FindPdfMaskBoxes.call(fragments:, values:)
-      validate_mask_boxes!(matches:, boxes:)
-
-      BuildVisualMaskedPdf.call(fragments:, boxes:, values:)
-    end
-
-    def validate_mask_boxes!(matches:, boxes:)
-      return unless matches.any? && boxes.empty?
-
-      raise ExportError, 'Could not locate matched sensitive values in positioned PDF text'
-    end
-
-    def unique_values(matches)
-      matches
-        .map { |match| match[:value].to_s }
-        .reject(&:empty?)
-        .uniq
-        .sort_by { |value| [-value.length, value.downcase] }
     end
 
     def unique_masked_items(matches)

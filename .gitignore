@@ -9,6 +9,7 @@ local.md
 # Temp files
 _*
 tmp/
+spec/fixtures/generated/*.pdf
 
 # Local data store
 db/local/*
