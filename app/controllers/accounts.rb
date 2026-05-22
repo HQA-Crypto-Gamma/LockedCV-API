@@ -116,7 +116,8 @@ module LockedCV
               account = FindAccountService.call(account_id:)
               raise CreateAttachmentService::AccountNotFoundError unless account
 
-              original_filename = uploaded_file[:filename] || uploaded_file['filename']
+              original_filename = routing.params['original_filename'].to_s.strip
+              original_filename = uploaded_file[:filename] || uploaded_file['filename'] if original_filename.empty?
               route = StoreAttachmentFile.call(uploaded_file:, account_id:)
               begin
                 attachment = CreateAttachmentService.call(
@@ -229,6 +230,19 @@ module LockedCV
               attachment ? attachment.to_json : raise('Attachment not found')
             rescue StandardError
               routing.halt 404, { message: 'Attachment not found' }.to_json
+            end
+
+            # DELETE api/v1/accounts/[account_id]/attachments/[attachment_id]
+            routing.delete do
+              require_owner!(routing, account_id)
+              DeleteAttachmentService.call(account_id:, attachment_id:)
+
+              { message: 'Attachment deleted' }.to_json
+            rescue DeleteAttachmentService::AttachmentNotFoundError
+              routing.halt 404, { message: 'Attachment not found' }.to_json
+            rescue StandardError => e
+              Api.logger.error "ATTACHMENT DELETE ERROR: #{e.message}"
+              routing.halt 400, { message: 'Could not delete attachment' }.to_json
             end
           end
 
