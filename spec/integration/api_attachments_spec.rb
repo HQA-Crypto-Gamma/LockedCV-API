@@ -12,6 +12,21 @@ describe 'Attachment Endpoints' do
     LockedCV::Api
   end
 
+  def stored_attachment(account, filename: 'delete_me.pdf')
+    route = "accounts/#{account.id}/#{filename}"
+    write_stored_pdf(route, "Stored #{filename}")
+    LockedCV::CreateAttachmentService.call(
+      account_id: account.id,
+      attachment_data: { attachment_name: filename, route: }
+    )
+  end
+
+  def write_stored_pdf(route, text)
+    path = storage_path_for(route)
+    FileUtils.mkdir_p(File.dirname(path))
+    write_text_pdf(path, text)
+  end
+
   before do
     reset_database!
     reset_storage!
@@ -70,6 +85,24 @@ describe 'Attachment Endpoints' do
       _(route).must_match %r{\Aaccounts/#{@account.id}/resume_ada_[0-9a-f]{32}\.pdf\z}
       _(route).wont_match %r{\A/}
       _(File.file?(storage_path_for(route))).must_equal true
+    ensure
+      pdf&.close!
+    end
+
+    it 'HAPPY: stores UTF-8 display filename from form metadata' do
+      pdf = Tempfile.new(['lockedcv-api-upload-utf8', '.pdf'])
+      write_text_pdf(pdf.path, 'Uploaded PDF text')
+      upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'xA1.pdf')
+
+      post(
+        "/api/v1/accounts/#{@account.id}/attachments/upload",
+        { file: upload, original_filename: '場地單.pdf' },
+        auth_header(@account)
+      )
+
+      _(last_response.status).must_equal 201
+      attachment_name = json_body.dig('data', 'data', 'attributes', 'attachment_name')
+      _(attachment_name).must_equal '場地單.pdf'
     ensure
       pdf&.close!
     end
@@ -151,6 +184,68 @@ describe 'Attachment Endpoints' do
 
       _(last_response.status).must_equal 401
       _(json_body).must_equal('message' => 'Invalid authorization token')
+    end
+  end
+
+  describe 'DELETE /api/v1/accounts/:account_id/attachments/:attachment_id' do
+    it 'HAPPY: deletes attachment metadata and stored files owned by the caller' do
+      attachment = stored_attachment(@account)
+      masked_route = "accounts/#{@account.id}/masked/masked_delete_me.pdf"
+      write_stored_pdf(masked_route, 'Masked PDF text')
+      masked_attachment = attachment.add_masked_attachment(
+        attachment_name: 'masked_delete_me.pdf',
+        route: masked_route
+      )
+      original_path = storage_path_for(attachment.route)
+      masked_path = storage_path_for(masked_route)
+
+      delete "/api/v1/accounts/#{@account.id}/attachments/#{attachment.id}", {}, auth_header(@account)
+
+      _(last_response.status).must_equal 200
+      _(json_body).must_equal('message' => 'Attachment deleted')
+      _(LockedCV::Attachment.where(id: attachment.id).first).must_be_nil
+      _(LockedCV::MaskedAttachment.where(id: masked_attachment.id).first).must_be_nil
+      _(File.file?(original_path)).must_equal false
+      _(File.file?(masked_path)).must_equal false
+    end
+
+    it 'SECURITY: returns 401 when authorization token is missing' do
+      attachment = stored_attachment(@account)
+
+      delete "/api/v1/accounts/#{@account.id}/attachments/#{attachment.id}"
+
+      _(last_response.status).must_equal 401
+      _(json_body).must_equal('message' => 'Missing authorization token')
+    end
+
+    it 'SECURITY: returns 403 when caller does not own the attachment account path' do
+      other_account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+      )
+      attachment = stored_attachment(@account)
+
+      delete "/api/v1/accounts/#{@account.id}/attachments/#{attachment.id}", {}, auth_header(other_account)
+
+      _(last_response.status).must_equal 403
+      _(json_body).must_equal('message' => 'Forbidden account access')
+    end
+
+    it 'SAD: returns 404 when attachment is missing' do
+      delete "/api/v1/accounts/#{@account.id}/attachments/999999", {}, auth_header(@account)
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Attachment not found')
+    end
+
+    it 'SECURITY: rejects SQL injection in attachment_id when deleting attachment' do
+      attachment = stored_attachment(@account)
+      injected_attachment_id = CGI.escape("#{attachment.id}' OR '1'='1")
+
+      delete "/api/v1/accounts/#{@account.id}/attachments/#{injected_attachment_id}", {}, auth_header(@account)
+
+      _(last_response.status).must_equal 404
+      _(LockedCV::Attachment.where(id: attachment.id).first).wont_be_nil
+      _(File.file?(storage_path_for(attachment.route))).must_equal true
     end
   end
 
