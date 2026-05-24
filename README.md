@@ -307,12 +307,12 @@ Only accounts with the `admin` system role can assign system roles.
 
 ### Attachment Endpoints
 
-#### Upload Attachment File for an Account
+#### Upload Current Account Attachment File
 
-**POST** `/api/v1/accounts/:account_id/attachments/upload`
+**POST** `/api/v1/attachments/upload`
 
 ```bash
-http -v --form POST localhost:9000/api/v1/accounts/<account_uuid>/attachments/upload \
+http -v --form POST localhost:9000/api/v1/attachments/upload \
   Authorization:"Bearer <auth_token>" \
   file@/path/to/resume.pdf \
   original_filename="resume.pdf"
@@ -323,9 +323,22 @@ Only PDF uploads are currently supported. Uploaded files are stored under
 validates the `.pdf` extension and `%PDF-` file header, generates a safe storage
 route, and records the display filename in `attachments.attachment_name`.
 
-This is currently an account-scoped route. It still requires the Bearer token
-owner to match `:account_id`; a future token-scoped upload route would simplify
-the App contract.
+The API finds the account from the Bearer token; clients should prefer this
+route for current-account uploads.
+
+#### Legacy Upload Attachment File for an Account
+
+**POST** `/api/v1/accounts/:account_id/attachments/upload`
+
+```bash
+http -v --form POST localhost:9000/api/v1/accounts/<account_uuid>/attachments/upload \
+  Authorization:"Bearer <auth_token>" \
+  file@/path/to/resume.pdf \
+  original_filename="resume.pdf"
+```
+
+This legacy account-scoped route remains for compatibility and still requires
+the Bearer token owner to match `:account_id`.
 
 #### Create Attachment for an Account
 
@@ -362,7 +375,20 @@ http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments \
 This legacy account-scoped route remains for compatibility and still requires
 the path account to match the Bearer token owner.
 
-#### Delete Attachment
+#### Delete Current Account Attachment
+
+**DELETE** `/api/v1/attachments/:attachment_id`
+
+```bash
+http -v DELETE localhost:9000/api/v1/attachments/1 \
+  Authorization:"Bearer <auth_token>"
+```
+
+Deletes the attachment row, dependent sensitive/masked metadata, the original
+stored PDF, and generated masked PDFs. The API scopes the attachment lookup to
+the Bearer token account.
+
+#### Legacy Delete Attachment
 
 **DELETE** `/api/v1/accounts/:account_id/attachments/:attachment_id`
 
@@ -371,8 +397,7 @@ http -v DELETE localhost:9000/api/v1/accounts/<account_uuid>/attachments/1 \
   Authorization:"Bearer <auth_token>"
 ```
 
-Deletes the attachment row, dependent sensitive/masked metadata, the original
-stored PDF, and generated masked PDFs. The route is account-scoped and requires
+This legacy account-scoped route remains for compatibility and still requires
 the Bearer token owner to match `:account_id`.
 
 #### Get Attachment by ID

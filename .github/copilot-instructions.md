@@ -203,13 +203,16 @@ Migration files:
 - `GET /api/v1/accounts/:account_id/attachments` is a legacy account-scoped
   route that requires the path account to match the Bearer token owner.
 - `POST /api/v1/accounts/:account_id/attachments` creates attachment metadata.
+- `POST /api/v1/attachments/upload` uploads a PDF for the Bearer token account
+  and creates attachment metadata.
 - `POST /api/v1/accounts/:account_id/attachments/upload` uploads a PDF and
-  creates attachment metadata. The App currently uses this route with the
-  logged-in account id plus Bearer token; prefer adding a token-scoped upload
-  route before expanding this surface.
+  creates attachment metadata through the legacy account-scoped compatibility
+  route.
+- `DELETE /api/v1/attachments/:attachment_id` deletes an attachment owned by
+  the Bearer token account, including dependent metadata, original file, and
+  masked PDF files.
 - `DELETE /api/v1/accounts/:account_id/attachments/:attachment_id` deletes an
-  account-owned attachment, dependent metadata, original file, and masked PDF
-  files.
+  attachment through the legacy account-scoped compatibility route.
 - `GET /api/v1/accounts/:account_id/attachments/:attachment_id` returns one
   attachment.
 - `GET /api/v1/accounts/:account_id/attachments/:attachment_id/masked_text`

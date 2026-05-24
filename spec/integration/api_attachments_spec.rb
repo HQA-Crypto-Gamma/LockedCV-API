@@ -162,6 +162,46 @@ describe 'Attachment Endpoints' do
     end
   end
 
+  describe 'POST /api/v1/attachments/upload' do
+    it 'HAPPY: uploads a PDF for the bearer-token account' do
+      pdf = Tempfile.new(['lockedcv-api-current-upload', '.pdf'])
+      write_text_pdf(pdf.path, 'Uploaded PDF text')
+      upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'Resume Ada.pdf')
+
+      post '/api/v1/attachments/upload', { file: upload }, auth_header(@account)
+
+      _(last_response.status).must_equal 201
+      _(json_body['message']).must_equal 'Attachment saved'
+      attachment_id = json_body.dig('data', 'data', 'attributes', 'id')
+      _(last_response.headers['Location']).must_equal "api/v1/attachments/#{attachment_id}"
+      route = json_body.dig('data', 'data', 'attributes', 'route')
+      _(route).must_match %r{\Aaccounts/#{@account.id}/resume_ada_[0-9a-f]{32}\.pdf\z}
+      _(File.file?(storage_path_for(route))).must_equal true
+    ensure
+      pdf&.close!
+    end
+
+    it 'SECURITY: returns 401 when authorization token is missing' do
+      pdf = Tempfile.new(['lockedcv-api-current-upload-no-token', '.pdf'])
+      write_text_pdf(pdf.path, 'Uploaded PDF text')
+      upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'resume.pdf')
+
+      post '/api/v1/attachments/upload', { file: upload }
+
+      _(last_response.status).must_equal 401
+      _(json_body).must_equal('message' => 'Missing authorization token')
+    ensure
+      pdf&.close!
+    end
+
+    it 'SAD: rejects missing file uploads' do
+      post '/api/v1/attachments/upload', {}, auth_header(@account)
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Could not upload attachment')
+    end
+  end
+
   describe 'GET /api/v1/attachments' do
     it 'HAPPY: gets all attachments for current account' do
       get '/api/v1/attachments', {}, auth_header(@account)
@@ -246,6 +286,42 @@ describe 'Attachment Endpoints' do
       _(last_response.status).must_equal 404
       _(LockedCV::Attachment.where(id: attachment.id).first).wont_be_nil
       _(File.file?(storage_path_for(attachment.route))).must_equal true
+    end
+  end
+
+  describe 'DELETE /api/v1/attachments/:attachment_id' do
+    it 'HAPPY: deletes attachment metadata and stored files for the bearer-token account' do
+      attachment = stored_attachment(@account)
+      original_path = storage_path_for(attachment.route)
+
+      delete "/api/v1/attachments/#{attachment.id}", {}, auth_header(@account)
+
+      _(last_response.status).must_equal 200
+      _(json_body).must_equal('message' => 'Attachment deleted')
+      _(LockedCV::Attachment.where(id: attachment.id).first).must_be_nil
+      _(File.file?(original_path)).must_equal false
+    end
+
+    it 'SECURITY: returns 401 when authorization token is missing' do
+      attachment = stored_attachment(@account)
+
+      delete "/api/v1/attachments/#{attachment.id}"
+
+      _(last_response.status).must_equal 401
+      _(json_body).must_equal('message' => 'Missing authorization token')
+    end
+
+    it 'SECURITY: returns 404 when attachment belongs to another account' do
+      other_account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+      )
+      attachment = stored_attachment(@account)
+
+      delete "/api/v1/attachments/#{attachment.id}", {}, auth_header(other_account)
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Attachment not found')
+      _(LockedCV::Attachment.where(id: attachment.id).first).wont_be_nil
     end
   end
 
