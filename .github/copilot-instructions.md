@@ -29,6 +29,10 @@ LockedCV is a Ruby Web API that allows accounts to securely share resumes or oth
 bundle install
 ```
 
+Masked PDF export also needs a Python environment with `pdfplumber` and
+`reportlab`. Use `PYTHON_BIN` when the correct executable is not `python3`.
+This dependency is not managed by Bundler.
+
 ### Running the Application
 
 ```bash
@@ -173,6 +177,9 @@ Migration files:
 
 - `POST /api/v1/auth/authenticate` authenticates an account and returns safe
   session data plus `auth_token` for the Web App.
+- `POST /api/v1/auth/register` checks registration availability and sends a
+  Mailgun verification email using the `verification_url` supplied by the App.
+  The API does not create or persist registration tokens.
 - Protected routes use `Authorization: Bearer <TOKEN>`.
 - `GET /api/v1/account` returns the current account from the token.
 - `PUT /api/v1/account` updates the current account from the token.
@@ -181,6 +188,8 @@ Migration files:
   token.
 - `GET /api/v1/accounts` lists accounts for admins; caller identity comes from
   the Bearer token.
+- `POST /api/v1/accounts/registration/check` checks whether username/email are
+  available before the App requests a verification email.
 - `POST /api/v1/accounts` creates a basic account. Account detail verification
   still needs to be strengthened.
 - `GET /api/v1/accounts/:account_id`, `PUT /api/v1/accounts/:account_id`, and
@@ -195,7 +204,12 @@ Migration files:
   route that requires the path account to match the Bearer token owner.
 - `POST /api/v1/accounts/:account_id/attachments` creates attachment metadata.
 - `POST /api/v1/accounts/:account_id/attachments/upload` uploads a PDF and
-  creates attachment metadata.
+  creates attachment metadata. The App currently uses this route with the
+  logged-in account id plus Bearer token; prefer adding a token-scoped upload
+  route before expanding this surface.
+- `DELETE /api/v1/accounts/:account_id/attachments/:attachment_id` deletes an
+  account-owned attachment, dependent metadata, original file, and masked PDF
+  files.
 - `GET /api/v1/accounts/:account_id/attachments/:attachment_id` returns one
   attachment.
 - `GET /api/v1/accounts/:account_id/attachments/:attachment_id/masked_text`
@@ -242,9 +256,14 @@ All markdown files must be kept lint-free:
 - Uses `rbnacl` gem for cryptographic operations (encryption + keyed HMAC-SHA256 hashing)
 - Personal data handling for secure resume/document sharing
 - Masked PDF export is a text-based visual masking approximation for
-  text-based PDFs, not a formal PDF redaction engine.
+  text-based PDFs, not a formal PDF redaction engine. It shells out to the
+  Python pdfplumber/reportlab processor and writes temporary payload JSON under
+  `tmp/` during processing.
 - API enforces TLS/SSL through `HttpRequest#secure?`; local development uses
   `SECURE_SCHEME: HTTP`, while production should use `SECURE_SCHEME: HTTPS`.
+- Mailgun settings (`MAILGUN_API_KEY`, `MAILGUN_DOMAIN`,
+  `MAILGUN_FROM_EMAIL`, `MAILGUN_FROM_NAME`) are required for development
+  registration emails. Test can use dummy values because specs stub Mailgun.
 - Do not expose plaintext passwords, password digests, encrypted columns, or
   lookup hashes in API responses.
 - Missing, invalid, or expired auth tokens return `401`; authenticated callers

@@ -17,6 +17,7 @@ A Ruby web API for the Crypto γ SEC project that allows accounts to securely sh
 
 - Ruby 4.0.2 (see `.ruby-version`)
 - Bundler
+- Python 3 with `pdfplumber` and `reportlab` for masked PDF export
 
 ## Installation
 
@@ -47,14 +48,30 @@ bundle exec rake newkey:hash
 bundle exec rake newkey:msg
 ```
 
-5. Prepare the local database:
+5. Add Mailgun settings to `config/secrets.yml`.
+
+Development needs real Mailgun values to send verification emails. Test values
+can be dummy strings because specs use WebMock:
+
+```yaml
+MAILGUN_API_KEY: test-api-key
+MAILGUN_DOMAIN: mg.example.test
+MAILGUN_FROM_EMAIL: postmaster@mg.example.test
+MAILGUN_FROM_NAME: LockedCV
+```
+
+The default Mailgun API URL is the US endpoint,
+`https://api.mailgun.net/v3`. Set `MAILGUN_API_URL` only when using a
+different region.
+
+6. Prepare the local database:
 
 ```bash
 bundle exec rake db:migrate
 bundle exec rake db:seed
 ```
 
-6. Bootstrap the first admin account when needed:
+7. Bootstrap the first admin account when needed:
 
 ```bash
 bundle exec rake db:bootstrap_admin USERNAME=admin EMAIL=admin@example.com
@@ -119,6 +136,22 @@ http -v GET localhost:9000/api/v1/account \
 
 Missing, invalid, or expired tokens return `401`. Authenticated callers without
 permission return `403`.
+
+#### Send Registration Verification Email
+
+**POST** `/api/v1/auth/register`
+
+```bash
+http -v --json POST localhost:9000/api/v1/auth/register \
+  username="jane_smith" \
+  email="jane@example.com" \
+  verification_url="http://localhost:9292/auth/register/<registration_token>"
+```
+
+This endpoint checks that the username/email are still available and asks
+Mailgun to send the supplied verification URL. It does not create an account.
+The App owns registration token creation and calls `POST /api/v1/accounts`
+after the user follows the email link and completes the form.
 
 ### Account Endpoints
 
@@ -188,6 +221,19 @@ http -v --json POST localhost:9000/api/v1/accounts \
   phone_number="987-654-3210" \
   password="my-secret-password"
 ```
+
+#### Check Registration Availability
+
+**POST** `/api/v1/accounts/registration/check`
+
+```bash
+http -v --json POST localhost:9000/api/v1/accounts/registration/check \
+  username="jane_smith" \
+  email="jane@example.com"
+```
+
+Returns `{ "available": true }` when both identifiers are unused. Existing
+email/username values return `400` with a message.
 
 #### Legacy Get Account by ID
 
@@ -268,11 +314,18 @@ Only accounts with the `admin` system role can assign system roles.
 ```bash
 http -v --form POST localhost:9000/api/v1/accounts/<account_uuid>/attachments/upload \
   Authorization:"Bearer <auth_token>" \
-  file@/path/to/resume.pdf
+  file@/path/to/resume.pdf \
+  original_filename="resume.pdf"
 ```
 
 Only PDF uploads are currently supported. Uploaded files are stored under
-`storage/`, and attachment metadata is saved in the database.
+`storage/uploads`, and attachment metadata is saved in the database. The API
+validates the `.pdf` extension and `%PDF-` file header, generates a safe storage
+route, and records the display filename in `attachments.attachment_name`.
+
+This is currently an account-scoped route. It still requires the Bearer token
+owner to match `:account_id`; a future token-scoped upload route would simplify
+the App contract.
 
 #### Create Attachment for an Account
 
@@ -309,6 +362,19 @@ http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments \
 This legacy account-scoped route remains for compatibility and still requires
 the path account to match the Bearer token owner.
 
+#### Delete Attachment
+
+**DELETE** `/api/v1/accounts/:account_id/attachments/:attachment_id`
+
+```bash
+http -v DELETE localhost:9000/api/v1/accounts/<account_uuid>/attachments/1 \
+  Authorization:"Bearer <auth_token>"
+```
+
+Deletes the attachment row, dependent sensitive/masked metadata, the original
+stored PDF, and generated masked PDFs. The route is account-scoped and requires
+the Bearer token owner to match `:account_id`.
+
 #### Get Attachment by ID
 
 **GET** `/api/v1/accounts/:account_id/attachments/:attachment_id`
@@ -342,6 +408,8 @@ http -v --json POST \
 
 Creates a generated masked PDF file and saves masked output metadata. This is a
 text-based visual masking approximation, not a formal PDF redaction engine.
+The export path shells out to `app/lib/pdf_processors/pdfplumber_masked_pdf.py`;
+set `PYTHON_BIN` when the desired Python executable is not `python3`.
 
 ### Sensitive Data Endpoints
 
