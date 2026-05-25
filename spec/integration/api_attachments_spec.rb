@@ -142,24 +142,29 @@ describe 'Attachment Endpoints' do
       pdf&.close!
     end
 
-    it 'SAD: deletes uploaded files when attachment metadata cannot be saved' do
+    it 'HAPPY: renames duplicate display filenames for the same account' do
+      filename = DATA[:attachments].first['attachment_name']
       pdf = Tempfile.new(['lockedcv-api-upload-duplicate', '.pdf'])
       write_text_pdf(pdf.path, 'Uploaded PDF text')
       upload = Rack::Test::UploadedFile.new(
         pdf.path,
         'application/pdf',
         true,
-        original_filename: DATA[:attachments].first['attachment_name']
+        original_filename: filename
       )
 
       post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }, auth_header(@account)
 
-      _(last_response.status).must_equal 400
-      _(json_body).must_equal('message' => 'Could not upload attachment')
-      _(Dir.exist?(storage_path_for("accounts/#{@account.id}"))).must_equal false
+      _(last_response.status).must_equal 201
+      attachment_name = json_body.dig('data', 'data', 'attributes', 'attachment_name')
+      expected_name = "#{File.basename(filename, '.*')} (1)#{File.extname(filename)}"
+      _(attachment_name).must_equal expected_name
+      _(LockedCV::Attachment.where(account_id: @account.id, attachment_name: filename).count).must_equal 1
+      _(LockedCV::Attachment.where(account_id: @account.id, attachment_name: expected_name).count).must_equal 1
     ensure
       pdf&.close!
     end
+
   end
 
   describe 'GET /api/v1/attachments' do
