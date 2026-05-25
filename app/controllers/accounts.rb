@@ -96,30 +96,6 @@ module LockedCV
         routing.on 'attachments' do
           @attachment_route = "#{@account_route}/#{account_id}/attachments"
 
-          routing.on 'upload' do
-            # POST api/v1/accounts/[account_id]/attachments/upload
-            routing.post do
-              require_owner!(routing, account_id)
-              attachment = UploadAttachmentFile.call(
-                account_id:,
-                uploaded_file: routing.params['file'],
-                original_filename: routing.params['original_filename']
-              )
-
-              response.status = 201
-              response['Location'] = "#{@attachment_route}/#{attachment.id}"
-              { message: 'Attachment saved', data: attachment }.to_json
-            rescue CreateAttachmentService::AccountNotFoundError
-              routing.halt 404, { message: 'Account not found' }.to_json
-            rescue StoreAttachmentFile::MissingFileError, StoreAttachmentFile::InvalidFileError,
-                   Sequel::ConstraintViolation
-              routing.halt 400, { message: 'Could not upload attachment' }.to_json
-            rescue StandardError => e
-              Api.logger.error "UPLOAD ERROR: #{e.message}"
-              routing.halt 400, { message: 'Could not upload attachment' }.to_json
-            end
-          end
-
           routing.on String do |attachment_id|
             routing.on 'masked_text' do
               # GET api/v1/accounts/[account_id]/attachments/[attachment_id]/masked_text
@@ -206,54 +182,6 @@ module LockedCV
               routing.halt 404, { message: 'Attachment not found' }.to_json
             end
 
-            # DELETE api/v1/accounts/[account_id]/attachments/[attachment_id]
-            routing.delete do
-              require_owner!(routing, account_id)
-              DeleteAttachmentService.call(account_id:, attachment_id:)
-
-              { message: 'Attachment deleted' }.to_json
-            rescue DeleteAttachmentService::AttachmentNotFoundError
-              routing.halt 404, { message: 'Attachment not found' }.to_json
-            rescue StandardError => e
-              Api.logger.error "ATTACHMENT DELETE ERROR: #{e.message}"
-              routing.halt 400, { message: 'Could not delete attachment' }.to_json
-            end
-          end
-
-          # GET api/v1/accounts/[account_id]/attachments
-          routing.get do
-            require_owner!(routing, account_id)
-            account = FindAccountService.call(account_id:)
-            raise('Account not found') unless account
-
-            output = { data: account.attachments }
-            JSON.pretty_generate(output)
-          rescue StandardError
-            routing.halt 404, { message: 'Could not find attachments' }.to_json
-          end
-
-          # POST api/v1/accounts/[account_id]/attachments
-          routing.post do
-            require_owner!(routing, account_id)
-            new_data = HttpRequest.new(routing).body_data
-            new_attachment = CreateAttachmentService.call(
-              account_id:,
-              attachment_data: new_data
-            )
-
-            if new_attachment
-              response.status = 201
-              response['Location'] = "#{@attachment_route}/#{new_attachment.id}"
-              { message: 'Attachment saved', data: new_attachment }.to_json
-            else
-              routing.halt 400, { message: 'Could not save attachment' }.to_json
-            end
-          rescue Sequel::MassAssignmentRestriction
-            Api.logger.warn("MASS_ASSIGNMENT_ATTEMPT keys=#{new_data.keys}")
-            routing.halt 400, { message: 'Illegal attributes' }.to_json
-          rescue StandardError => e
-            Api.logger.error "UNKNOWN ERROR: #{e.message}"
-            routing.halt 500, { message: 'Database error' }.to_json
           end
         end
 

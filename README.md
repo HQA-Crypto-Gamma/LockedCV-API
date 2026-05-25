@@ -326,32 +326,7 @@ route, and records the display filename in `attachments.attachment_name`.
 The API finds the account from the Bearer token; clients should prefer this
 route for current-account uploads.
 
-#### Legacy Upload Attachment File for an Account
-
-**POST** `/api/v1/accounts/:account_id/attachments/upload`
-
-```bash
-http -v --form POST localhost:9000/api/v1/accounts/<account_uuid>/attachments/upload \
-  Authorization:"Bearer <auth_token>" \
-  file@/path/to/resume.pdf \
-  original_filename="resume.pdf"
-```
-
-This legacy account-scoped route remains for compatibility and still requires
-the Bearer token owner to match `:account_id`.
-
-#### Create Attachment for an Account
-
-**POST** `/api/v1/accounts/:account_id/attachments`
-
-```bash
-http -v --json POST localhost:9000/api/v1/accounts/<account_uuid>/attachments \
-  Authorization:"Bearer <auth_token>" \
-  attachment_name="resume_jane.pdf" \
-  route="accounts/<account_uuid>/resume_jane.pdf"
-```
-
-#### Get All Attachments for an Account
+#### Get Current Account Attachments
 
 **GET** `/api/v1/attachments`
 
@@ -362,18 +337,6 @@ http -v GET localhost:9000/api/v1/attachments \
 
 This is the token-scoped endpoint used by the App. The API finds the requesting
 account from the Bearer token.
-
-#### Legacy Get All Attachments for an Account
-
-**GET** `/api/v1/accounts/:account_id/attachments`
-
-```bash
-http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments \
-  Authorization:"Bearer <auth_token>"
-```
-
-This legacy account-scoped route remains for compatibility and still requires
-the path account to match the Bearer token owner.
 
 #### Delete Current Account Attachment
 
@@ -387,18 +350,6 @@ http -v DELETE localhost:9000/api/v1/attachments/1 \
 Deletes the attachment row, dependent sensitive/masked metadata, the original
 stored PDF, and generated masked PDFs. The API scopes the attachment lookup to
 the Bearer token account.
-
-#### Legacy Delete Attachment
-
-**DELETE** `/api/v1/accounts/:account_id/attachments/:attachment_id`
-
-```bash
-http -v DELETE localhost:9000/api/v1/accounts/<account_uuid>/attachments/1 \
-  Authorization:"Bearer <auth_token>"
-```
-
-This legacy account-scoped route remains for compatibility and still requires
-the Bearer token owner to match `:account_id`.
 
 #### Get Attachment by ID
 

@@ -45,123 +45,6 @@ describe 'Attachment Endpoints' do
     reset_storage!
   end
 
-  describe 'POST /api/v1/accounts/:account_id/attachments' do
-    it 'HAPPY: creates an attachment for an account' do
-      payload = DATA[:attachments].last.transform_keys(&:to_sym)
-
-      post "/api/v1/accounts/#{@account.id}/attachments", payload.to_json, auth_req_header(@account)
-
-      _(last_response.status).must_equal 201
-      _(last_response.headers['Content-Type']).must_include 'application/json'
-      _(json_body['message']).must_equal 'Attachment saved'
-      _(json_body.dig('data', 'data', 'attributes', 'attachment_name')).must_equal payload[:attachment_name]
-    end
-
-    it 'SECURITY: returns 400 and does not create attachment on mass assignment' do
-      payload = DATA[:attachments].last.merge('account_id' => 'forged-account')
-      before_count = LockedCV::Attachment.count
-
-      post "/api/v1/accounts/#{@account.id}/attachments", payload.to_json, auth_req_header(@account)
-
-      _(last_response.status).must_equal 400
-      _(json_body).must_equal('message' => 'Illegal attributes')
-      _(LockedCV::Attachment.count).must_equal before_count
-      _(LockedCV::Attachment.where(account_id: 'forged-account').count).must_equal 0
-    end
-  end
-
-  describe 'POST /api/v1/accounts/:account_id/attachments/upload' do
-    it 'HAPPY: uploads a PDF and stores attachment metadata with a relative route' do
-      pdf = Tempfile.new(['lockedcv-api-upload', '.pdf'])
-      write_text_pdf(pdf.path, 'Uploaded PDF text')
-      upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'Resume Ada.pdf')
-
-      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }, auth_header(@account)
-
-      _(last_response.status).must_equal 201
-      _(last_response.headers['Content-Type']).must_include 'application/json'
-      _(json_body['message']).must_equal 'Attachment saved'
-      route = json_body.dig('data', 'data', 'attributes', 'route')
-      _(route).must_match %r{\Aaccounts/#{@account.id}/resume_ada_[0-9a-f]{32}\.pdf\z}
-      _(route).wont_match %r{\A/}
-      _(File.file?(storage_path_for(route))).must_equal true
-    ensure
-      pdf&.close!
-    end
-
-    it 'HAPPY: stores UTF-8 display filename from form metadata' do
-      pdf = Tempfile.new(['lockedcv-api-upload-utf8', '.pdf'])
-      write_text_pdf(pdf.path, 'Uploaded PDF text')
-      upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'xA1.pdf')
-
-      post(
-        "/api/v1/accounts/#{@account.id}/attachments/upload",
-        { file: upload, original_filename: '場地單.pdf' },
-        auth_header(@account)
-      )
-
-      _(last_response.status).must_equal 201
-      attachment_name = json_body.dig('data', 'data', 'attributes', 'attachment_name')
-      _(attachment_name).must_equal '場地單.pdf'
-    ensure
-      pdf&.close!
-    end
-
-    it 'SAD: rejects non-PDF uploads' do
-      text_file = Tempfile.new(['lockedcv-api-upload', '.txt'])
-      text_file.write('not a pdf')
-      text_file.rewind
-      upload = Rack::Test::UploadedFile.new(text_file.path, 'text/plain', true, original_filename: 'resume.txt')
-
-      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }, auth_header(@account)
-
-      _(last_response.status).must_equal 400
-      _(json_body).must_equal('message' => 'Could not upload attachment')
-    ensure
-      text_file&.close!
-    end
-
-    it 'SAD: rejects missing file uploads' do
-      post "/api/v1/accounts/#{@account.id}/attachments/upload", {}, auth_header(@account)
-
-      _(last_response.status).must_equal 400
-      _(json_body).must_equal('message' => 'Could not upload attachment')
-    end
-
-    it 'SAD: returns 404 and does not store files when account is missing' do
-      pdf = Tempfile.new(['lockedcv-api-upload-missing-account', '.pdf'])
-      write_text_pdf(pdf.path, 'Uploaded PDF text')
-      upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'resume.pdf')
-
-      post '/api/v1/accounts/missing-account/attachments/upload', { file: upload }, auth_header(@account)
-
-      _(last_response.status).must_equal 403
-      _(json_body).must_equal('message' => 'Forbidden account access')
-      _(Dir.exist?(storage_path_for('accounts/missing-account'))).must_equal false
-    ensure
-      pdf&.close!
-    end
-
-    it 'SAD: deletes uploaded files when attachment metadata cannot be saved' do
-      pdf = Tempfile.new(['lockedcv-api-upload-duplicate', '.pdf'])
-      write_text_pdf(pdf.path, 'Uploaded PDF text')
-      upload = Rack::Test::UploadedFile.new(
-        pdf.path,
-        'application/pdf',
-        true,
-        original_filename: DATA[:attachments].first['attachment_name']
-      )
-
-      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }, auth_header(@account)
-
-      _(last_response.status).must_equal 400
-      _(json_body).must_equal('message' => 'Could not upload attachment')
-      _(Dir.exist?(storage_path_for("accounts/#{@account.id}"))).must_equal false
-    ensure
-      pdf&.close!
-    end
-  end
-
   describe 'POST /api/v1/attachments/upload' do
     it 'HAPPY: uploads a PDF for the bearer-token account' do
       pdf = Tempfile.new(['lockedcv-api-current-upload', '.pdf'])
@@ -200,6 +83,53 @@ describe 'Attachment Endpoints' do
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Could not upload attachment')
     end
+
+    it 'HAPPY: stores UTF-8 display filename from form metadata' do
+      pdf = Tempfile.new(['lockedcv-api-upload-utf8', '.pdf'])
+      write_text_pdf(pdf.path, 'Uploaded PDF text')
+      upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'xA1.pdf')
+
+      post('/api/v1/attachments/upload', { file: upload, original_filename: '場地單.pdf' }, auth_header(@account))
+
+      _(last_response.status).must_equal 201
+      attachment_name = json_body.dig('data', 'data', 'attributes', 'attachment_name')
+      _(attachment_name).must_equal '場地單.pdf'
+    ensure
+      pdf&.close!
+    end
+
+    it 'SAD: rejects non-PDF uploads' do
+      text_file = Tempfile.new(['lockedcv-api-upload', '.txt'])
+      text_file.write('not a pdf')
+      text_file.rewind
+      upload = Rack::Test::UploadedFile.new(text_file.path, 'text/plain', true, original_filename: 'resume.txt')
+
+      post '/api/v1/attachments/upload', { file: upload }, auth_header(@account)
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Could not upload attachment')
+    ensure
+      text_file&.close!
+    end
+
+    it 'SAD: deletes uploaded files when attachment metadata cannot be saved' do
+      pdf = Tempfile.new(['lockedcv-api-upload-duplicate', '.pdf'])
+      write_text_pdf(pdf.path, 'Uploaded PDF text')
+      upload = Rack::Test::UploadedFile.new(
+        pdf.path,
+        'application/pdf',
+        true,
+        original_filename: DATA[:attachments].first['attachment_name']
+      )
+
+      post '/api/v1/attachments/upload', { file: upload }, auth_header(@account)
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Could not upload attachment')
+      _(Dir.exist?(storage_path_for("accounts/#{@account.id}"))).must_equal false
+    ensure
+      pdf&.close!
+    end
   end
 
   describe 'GET /api/v1/attachments' do
@@ -227,8 +157,8 @@ describe 'Attachment Endpoints' do
     end
   end
 
-  describe 'DELETE /api/v1/accounts/:account_id/attachments/:attachment_id' do
-    it 'HAPPY: deletes attachment metadata and stored files owned by the caller' do
+  describe 'DELETE /api/v1/attachments/:attachment_id' do
+    it 'HAPPY: deletes attachment metadata and stored files for the bearer-token account' do
       attachment = stored_attachment(@account)
       masked_route = "accounts/#{@account.id}/masked/masked_delete_me.pdf"
       write_stored_pdf(masked_route, 'Masked PDF text')
@@ -239,7 +169,7 @@ describe 'Attachment Endpoints' do
       original_path = storage_path_for(attachment.route)
       masked_path = storage_path_for(masked_route)
 
-      delete "/api/v1/accounts/#{@account.id}/attachments/#{attachment.id}", {}, auth_header(@account)
+      delete "/api/v1/attachments/#{attachment.id}", {}, auth_header(@account)
 
       _(last_response.status).must_equal 200
       _(json_body).must_equal('message' => 'Attachment deleted')
@@ -247,59 +177,6 @@ describe 'Attachment Endpoints' do
       _(LockedCV::MaskedAttachment.where(id: masked_attachment.id).first).must_be_nil
       _(File.file?(original_path)).must_equal false
       _(File.file?(masked_path)).must_equal false
-    end
-
-    it 'SECURITY: returns 401 when authorization token is missing' do
-      attachment = stored_attachment(@account)
-
-      delete "/api/v1/accounts/#{@account.id}/attachments/#{attachment.id}"
-
-      _(last_response.status).must_equal 401
-      _(json_body).must_equal('message' => 'Missing authorization token')
-    end
-
-    it 'SECURITY: returns 403 when caller does not own the attachment account path' do
-      other_account = LockedCV::CreateAccountService.call(
-        account_data: DATA[:accounts].last.transform_keys(&:to_sym)
-      )
-      attachment = stored_attachment(@account)
-
-      delete "/api/v1/accounts/#{@account.id}/attachments/#{attachment.id}", {}, auth_header(other_account)
-
-      _(last_response.status).must_equal 403
-      _(json_body).must_equal('message' => 'Forbidden account access')
-    end
-
-    it 'SAD: returns 404 when attachment is missing' do
-      delete "/api/v1/accounts/#{@account.id}/attachments/999999", {}, auth_header(@account)
-
-      _(last_response.status).must_equal 404
-      _(json_body).must_equal('message' => 'Attachment not found')
-    end
-
-    it 'SECURITY: rejects SQL injection in attachment_id when deleting attachment' do
-      attachment = stored_attachment(@account)
-      injected_attachment_id = CGI.escape("#{attachment.id}' OR '1'='1")
-
-      delete "/api/v1/accounts/#{@account.id}/attachments/#{injected_attachment_id}", {}, auth_header(@account)
-
-      _(last_response.status).must_equal 404
-      _(LockedCV::Attachment.where(id: attachment.id).first).wont_be_nil
-      _(File.file?(storage_path_for(attachment.route))).must_equal true
-    end
-  end
-
-  describe 'DELETE /api/v1/attachments/:attachment_id' do
-    it 'HAPPY: deletes attachment metadata and stored files for the bearer-token account' do
-      attachment = stored_attachment(@account)
-      original_path = storage_path_for(attachment.route)
-
-      delete "/api/v1/attachments/#{attachment.id}", {}, auth_header(@account)
-
-      _(last_response.status).must_equal 200
-      _(json_body).must_equal('message' => 'Attachment deleted')
-      _(LockedCV::Attachment.where(id: attachment.id).first).must_be_nil
-      _(File.file?(original_path)).must_equal false
     end
 
     it 'SECURITY: returns 401 when authorization token is missing' do
@@ -322,6 +199,24 @@ describe 'Attachment Endpoints' do
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Attachment not found')
       _(LockedCV::Attachment.where(id: attachment.id).first).wont_be_nil
+    end
+
+    it 'SAD: returns 404 when attachment is missing' do
+      delete '/api/v1/attachments/999999', {}, auth_header(@account)
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Attachment not found')
+    end
+
+    it 'SECURITY: rejects SQL injection in attachment_id when deleting attachment' do
+      attachment = stored_attachment(@account)
+      injected_attachment_id = CGI.escape("#{attachment.id}' OR '1'='1")
+
+      delete "/api/v1/attachments/#{injected_attachment_id}", {}, auth_header(@account)
+
+      _(last_response.status).must_equal 404
+      _(LockedCV::Attachment.where(id: attachment.id).first).wont_be_nil
+      _(File.file?(storage_path_for(attachment.route))).must_equal true
     end
   end
 
@@ -413,7 +308,7 @@ describe 'Attachment Endpoints' do
       write_text_pdf(pdf.path, 'Ada Lovelace email ada@example.com phone 0912-000-001')
       upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'maskable.pdf')
 
-      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }, auth_header(@account)
+      post '/api/v1/attachments/upload', { file: upload }, auth_header(@account)
       attachment_id = json_body.dig('data', 'data', 'attributes', 'id')
       LockedCV::CreateSensitiveDataService.call(
         account_id: @account.id,
@@ -448,7 +343,7 @@ describe 'Attachment Endpoints' do
         original_filename: 'fake_resume_alan.pdf'
       )
 
-      post "/api/v1/accounts/#{@account.id}/attachments/upload", { file: upload }, auth_header(@account)
+      post '/api/v1/attachments/upload', { file: upload }, auth_header(@account)
       attachment_id = json_body.dig('data', 'data', 'attributes', 'id')
       original_route = json_body.dig('data', 'data', 'attributes', 'route')
       LockedCV::CreateSensitiveDataService.call(
