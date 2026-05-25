@@ -192,9 +192,6 @@ Migration files:
   available before the App requests a verification email.
 - `POST /api/v1/accounts` creates a basic account. Account detail verification
   still needs to be strengthened.
-- `GET /api/v1/accounts/:account_id`, `PUT /api/v1/accounts/:account_id`, and
-  `PUT /api/v1/accounts/:account_id/password` are legacy account-scoped routes;
-  they require the path account to match the Bearer token owner.
 - `DELETE /api/v1/accounts/:account_id` deletes an account and requires an
   admin Bearer token. The path account is the target. Admins cannot delete
   their own account.

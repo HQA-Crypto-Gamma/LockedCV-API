@@ -235,53 +235,6 @@ http -v --json POST localhost:9000/api/v1/accounts/registration/check \
 Returns `{ "available": true }` when both identifiers are unused. Existing
 email/username values return `400` with a message.
 
-#### Legacy Get Account by ID
-
-**GET** `/api/v1/accounts/:account_id`
-
-```bash
-http -v GET localhost:9000/api/v1/accounts/<account_uuid> \
-  Authorization:"Bearer <auth_token>"
-```
-
-This legacy account-scoped route remains for compatibility and still requires
-the path account to match the Bearer token owner.
-
-#### Legacy Update Account
-
-**PUT** `/api/v1/accounts/:account_id`
-
-```bash
-http -v --json PUT localhost:9000/api/v1/accounts/<account_uuid> \
-  Authorization:"Bearer <auth_token>" \
-  email="jane.updated@example.com" \
-  phone_number="987-654-3210" \
-  first_name="Jane" \
-  last_name="Smith" \
-  birthday="1990-01-01" \
-  address="Taipei" \
-  identification_numbers="A123456789"
-```
-
-This legacy account-scoped route remains for compatibility and still requires
-the path account to match the Bearer token owner.
-
-#### Legacy Change Account Password
-
-**PUT** `/api/v1/accounts/:account_id/password`
-
-```bash
-http -v --json PUT localhost:9000/api/v1/accounts/<account_uuid>/password \
-  Authorization:"Bearer <auth_token>" \
-  current_password="my-secret-password" \
-  password="my-new-secret-password"
-```
-
-The current password must be correct before the password is replaced.
-
-This legacy account-scoped route remains for compatibility and still requires
-the path account to match the Bearer token owner.
-
 #### Delete Account
 
 **DELETE** `/api/v1/accounts/:account_id`

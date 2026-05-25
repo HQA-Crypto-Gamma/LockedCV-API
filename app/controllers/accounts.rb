@@ -93,26 +93,6 @@ module LockedCV
           end
         end
 
-        routing.on 'password' do
-          # PUT api/v1/accounts/[account_id]/password
-          routing.put do
-            require_owner!(routing, account_id)
-            password_data = HttpRequest.new(routing).body_data
-            ChangePasswordService.call(account_id:, password_data:)
-
-            { message: 'Password updated' }.to_json
-          rescue ChangePasswordService::AccountNotFoundError
-            routing.halt 404, { message: 'Account not found' }.to_json
-          rescue ChangePasswordService::InvalidCurrentPasswordError
-            routing.halt 400, { message: 'Current password is incorrect' }.to_json
-          rescue ChangePasswordService::InvalidPasswordError
-            routing.halt 400, { message: 'Password is required' }.to_json
-          rescue StandardError => e
-            Api.logger.error "UNKNOWN ERROR: #{e.message}"
-            routing.halt 500, { message: 'Database error' }.to_json
-          end
-        end
-
         # DELETE api/v1/accounts/[account_id]
         routing.delete do
           current_account = require_admin!(routing, 'Only admins can delete accounts')
@@ -131,31 +111,6 @@ module LockedCV
         rescue StandardError => e
           Api.logger.error "UNKNOWN ERROR: #{e.message}"
           routing.halt 500, { message: 'Database error' }.to_json
-        end
-
-        # PUT api/v1/accounts/[account_id]
-        routing.put do
-          require_owner!(routing, account_id)
-          updated_data = HttpRequest.new(routing).body_data
-          account = UpdateAccountService.call(account_id:, account_data: updated_data)
-
-          { message: 'Account updated', data: account }.to_json
-        rescue UpdateAccountService::AccountNotFoundError
-          routing.halt 404, { message: 'Account not found' }.to_json
-        rescue Sequel::MassAssignmentRestriction
-          Api.logger.warn("MASS_ASSIGNMENT_ATTEMPT keys=#{updated_data.keys}")
-          routing.halt 400, { message: 'Illegal attributes' }.to_json
-        rescue StandardError => e
-          Api.logger.error "UNKNOWN ERROR: #{e.message}"
-          routing.halt 500, { message: 'Database error' }.to_json
-        end
-
-        routing.get do
-          require_owner!(routing, account_id)
-          account = FindAccountService.call(account_id:)
-          account ? account.to_json : raise('Account not found')
-        rescue StandardError
-          routing.halt 404, { message: 'Account not found' }.to_json
         end
       end
 
