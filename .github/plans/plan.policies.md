@@ -98,7 +98,7 @@
      - `can_preview_masked_text?`
      - `can_export_masked_pdf?`
    - 目前 first pass 可先沿用「owner account 可做全部 owned attachment actions」。
-   - 後續再接 `owner/viewer_masked/viewer_full` resource roles 或 sharing model。
+   - 後續再接 `owner` / `viewer_masked` resource roles 或 sharing model。
 
 5. `policy-scopes`
    - 建立 `AttachmentPolicy::AccountScope`。
@@ -163,7 +163,7 @@
 ## 待組內決策
 
 - Login failed status 是否從目前既有行為調整為 `401`，並同步 App error handling。
-- Attachment resource roles 目前是全域 `owner/viewer_masked/viewer_full`；是否需要新增 entity-level sharing table。
+- Attachment resource roles 目標只考慮 `owner` 與 `viewer_masked`；是否需要新增 entity-level sharing table。
 - Sensitive data 是否視為 attachment 的一部分，或獨立 `SensitiveDataPolicy`。
 - Masked PDF output 是否需要獨立 `MaskedAttachmentPolicy`，或先由 parent `AttachmentPolicy` 決定。
 - Unauthorized resource access 要回 `403` 還是用 `404` 隱藏 existence 的 route-by-route 規則。
