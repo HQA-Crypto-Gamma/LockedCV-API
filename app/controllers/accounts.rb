@@ -118,12 +118,13 @@ module LockedCV
 
               original_filename = routing.params['original_filename'].to_s.strip
               original_filename = uploaded_file[:filename] || uploaded_file['filename'] if original_filename.empty?
+              attachment_name = ResolveAttachmentName.call(account:, filename: original_filename)
               route = StoreAttachmentFile.call(uploaded_file:, account_id:)
               begin
                 attachment = CreateAttachmentService.call(
                   account_id:,
                   attachment_data: {
-                    attachment_name: original_filename,
+                    attachment_name:,
                     route:
                   }
                 )
