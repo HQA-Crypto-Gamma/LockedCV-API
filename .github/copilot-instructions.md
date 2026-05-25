@@ -205,12 +205,13 @@ Migration files:
 - `DELETE /api/v1/attachments/:attachment_id` deletes an attachment owned by
   the Bearer token account, including dependent metadata, original file, and
   masked PDF files.
-- `GET /api/v1/accounts/:account_id/attachments/:attachment_id` returns one
-  attachment.
-- `GET /api/v1/accounts/:account_id/attachments/:attachment_id/masked_text`
-  extracts and masks PDF text.
-- `POST /api/v1/accounts/:account_id/attachments/:attachment_id/masked_attachments`
-  exports a generated masked PDF and records masked output metadata.
+- `GET /api/v1/attachments/:attachment_id` returns one attachment owned by the
+  Bearer token account.
+- `GET /api/v1/attachments/:attachment_id/masked_text` extracts and masks PDF
+  text for an attachment owned by the Bearer token account.
+- `POST /api/v1/attachments/:attachment_id/masked_attachments` exports a
+  generated masked PDF and records masked output metadata for an attachment
+  owned by the Bearer token account.
 - `GET/POST /api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data`
   reads or creates sensitive data for an attachment.
 

@@ -353,19 +353,21 @@ the Bearer token account.
 
 #### Get Attachment by ID
 
-**GET** `/api/v1/accounts/:account_id/attachments/:attachment_id`
+**GET** `/api/v1/attachments/:attachment_id`
 
 ```bash
-http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1 \
+http -v GET localhost:9000/api/v1/attachments/1 \
   Authorization:"Bearer <auth_token>"
 ```
 
+Returns one attachment owned by the Bearer token account.
+
 #### Get Masked Attachment Text
 
-**GET** `/api/v1/accounts/:account_id/attachments/:attachment_id/masked_text`
+**GET** `/api/v1/attachments/:attachment_id/masked_text`
 
 ```bash
-http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/masked_text \
+http -v GET localhost:9000/api/v1/attachments/1/masked_text \
   Authorization:"Bearer <auth_token>"
 ```
 
@@ -374,11 +376,11 @@ data for the attachment.
 
 #### Export Masked PDF Attachment
 
-**POST** `/api/v1/accounts/:account_id/attachments/:attachment_id/masked_attachments`
+**POST** `/api/v1/attachments/:attachment_id/masked_attachments`
 
 ```bash
 http -v --json POST \
-  localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/masked_attachments \
+  localhost:9000/api/v1/attachments/1/masked_attachments \
   Authorization:"Bearer <auth_token>"
 ```
 
