@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'date'
+require 'fileutils'
 require 'yaml'
 
 module LockedCV
@@ -74,11 +75,18 @@ module LockedCV
     end
 
     def find_or_create_attachment(account, attachment_info)
-      account.attachments_dataset.first(attachment_name: attachment_info['attachment_name']) ||
-        CreateAttachmentService.call(
-          account_id: account.id,
-          attachment_data: attachment_info.transform_keys(&:to_sym)
-        )
+      attachment_name = attachment_info.fetch('attachment_name')
+      route = seed_attachment_file(account:, attachment_name:)
+      attachment = account.attachments_dataset.first(attachment_name:)
+      return attachment.update(route:) if attachment
+
+      CreateAttachmentService.call(
+        account_id: account.id,
+        attachment_data: {
+          attachment_name:,
+          route:
+        }
+      )
     end
 
     def find_or_create_sensitive_data(account, attachment, sensitive_data_info)
@@ -88,6 +96,29 @@ module LockedCV
           attachment_id: attachment.id,
           sensitive_data: sensitive_data_info.transform_keys(&:to_sym)
         )
+    end
+
+    def seed_attachment_file(account:, attachment_name:)
+      route = File.join('accounts', account.id, seed_filename(attachment_name))
+      destination = File.join(ResolveAttachmentPath::STORAGE_ROOT, route)
+      FileUtils.mkdir_p(File.dirname(destination))
+      FileUtils.cp(seed_source_pdf(attachment_name), destination)
+      route
+    end
+
+    def seed_filename(attachment_name)
+      "seed_#{safe_segment(File.basename(attachment_name.to_s, '.*')).downcase}.pdf"
+    end
+
+    def seed_source_pdf(attachment_name)
+      basename = File.basename(attachment_name.to_s, '.*').downcase
+      return 'spec/fixtures/files/fake_resume_alan.pdf' if basename.include?('alan')
+
+      'spec/fixtures/files/sample_text.pdf'
+    end
+
+    def safe_segment(value)
+      value.to_s.gsub(/[^A-Za-z0-9_-]+/, '_').gsub(/\A_+|_+\z/, '')
     end
 
     def assign_system_roles

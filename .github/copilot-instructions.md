@@ -80,6 +80,8 @@ All application classes live under the `LockedCV` module namespace.
 ### Data Persistence
 
 Application data is stored in SQLite database files under `db/local/` (gitignored).
+Development seeds create sample database rows and matching sample PDFs under
+`storage/uploads`.
 
 ### Relational Schema (`db/migrations`)
 
@@ -156,7 +158,7 @@ Migration files:
 - `docs/schema.md` — schema notes and ERD
 - `storage/` — uploaded attachment files
 - `db/local/` — Local SQLite database files (gitignored)
-- `db/seeds/` — YAML seed data for tests
+- `db/seeds/` — Development seed data and YAML fixtures shared by specs
 - `spec/` — Minitest specs using `Rack::Test`
 
 ### Models
@@ -228,6 +230,9 @@ Migration files:
 - **Test data:** Seed data in `db/seeds/*.yml`
 - **Test labels:** Tests are labeled HAPPY/SAD to indicate success/failure paths
 - **Setup:** Tests clear database tables before each test
+- **DB isolation:** Specs share `db/local/test.db`; `spec/spec_helper.rb` holds
+  `tmp/test-db.lock` for the full process so concurrent spec commands do not
+  wipe the same SQLite DB simultaneously.
 
 ### Code Style
 

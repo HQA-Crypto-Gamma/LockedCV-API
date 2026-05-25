@@ -19,6 +19,14 @@ require_relative 'test_load_all'
 require_relative '../require_app'
 require_app
 
+TEST_DB_LOCK = begin
+  FileUtils.mkdir_p('tmp')
+  lock = File.open('tmp/test-db.lock', File::RDWR | File::CREAT, 0o644)
+  lock.flock(File::LOCK_EX)
+  # Keep the lock open until process exit; Minitest runs specs from at_exit.
+  lock
+end
+
 DATA = {} # rubocop:disable Style/MutableConstant
 DATA[:accounts] = YAML.safe_load_file('db/seeds/account_seeds.yml')
 DATA[:attachments] = YAML.safe_load_file('db/seeds/attachment_seeds.yml')

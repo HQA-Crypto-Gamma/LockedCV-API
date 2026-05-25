@@ -71,6 +71,9 @@ bundle exec rake db:migrate
 bundle exec rake db:seed
 ```
 
+Development seeds create sample accounts, roles, attachment metadata, sensitive
+data, and matching sample PDF files under `storage/uploads`.
+
 7. Bootstrap the first admin account when needed:
 
 ```bash
@@ -412,7 +415,7 @@ bundle exec rake style
 ├── db/
 │   ├── migrations/         # Sequel migrations
 │   ├── local/              # Local SQLite database files (gitignored)
-│   └── seeds/              # Test seed data
+│   └── seeds/              # Development seed data and shared spec fixtures
 ├── docs/
 │   └── schema.md           # Current database schema notes
 ├── spec/                    # Test files
@@ -425,6 +428,10 @@ bundle exec rake style
 
 Application data is stored in SQLite database files under `db/local/`. Uploaded
 and generated PDF files are stored under `storage/uploads/`.
+
+Specs use `db/local/test.db` and clear test data between examples. A test DB
+file lock serializes separate spec processes so parallel shell commands do not
+wipe the same database at the same time.
 
 ## License
 
