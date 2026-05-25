@@ -393,10 +393,10 @@ set `PYTHON_BIN` when the desired Python executable is not `python3`.
 
 #### Create Sensitive Data for an Attachment
 
-**POST** `/api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data`
+**POST** `/api/v1/attachments/:attachment_id/sensitive_data`
 
 ```bash
-http -v --json POST localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/sensitive_data \
+http -v --json POST localhost:9000/api/v1/attachments/1/sensitive_data \
   Authorization:"Bearer <auth_token>" \
   first_name="Jane" \
   last_name="Smith" \
@@ -407,12 +407,15 @@ http -v --json POST localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/
   identification_numbers="A123456789"
 ```
 
+Creates a sensitive-data record for an attachment owned by the Bearer token
+account. Request body `attachment_id` is intentionally not allowed.
+
 #### Get Sensitive Data by Attachment
 
-**GET** `/api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data`
+**GET** `/api/v1/attachments/:attachment_id/sensitive_data`
 
 ```bash
-http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/sensitive_data \
+http -v GET localhost:9000/api/v1/attachments/1/sensitive_data \
   Authorization:"Bearer <auth_token>"
 ```
 

@@ -212,8 +212,8 @@ Migration files:
 - `POST /api/v1/attachments/:attachment_id/masked_attachments` exports a
   generated masked PDF and records masked output metadata for an attachment
   owned by the Bearer token account.
-- `GET/POST /api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data`
-  reads or creates sensitive data for an attachment.
+- `GET/POST /api/v1/attachments/:attachment_id/sensitive_data` reads or creates
+  sensitive data for an attachment owned by the Bearer token account.
 
 ### Roda Routing
 
