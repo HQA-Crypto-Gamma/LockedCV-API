@@ -98,6 +98,31 @@ describe 'Attachment Endpoints' do
       pdf&.close!
     end
 
+    it 'HAPPY: lets admins upload attachments without a member role' do
+      admin_role = LockedCV::Role.find_or_create(name: 'admin')
+      admin = LockedCV::CreateAccountService.call(
+        account_data: {
+          username: 'admin-uploader',
+          email: 'admin-uploader@example.com',
+          phone_number: '0912-900-001',
+          password: 'admin-secret'
+        }
+      )
+      LockedCV::SetSystemRoleService.call(account: admin, role_name: admin_role.name)
+      pdf = Tempfile.new(['lockedcv-api-admin-upload', '.pdf'])
+      write_text_pdf(pdf.path, 'Admin uploaded PDF text')
+      upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'admin.pdf')
+
+      post '/api/v1/attachments/upload', { file: upload }, auth_header(admin)
+
+      _(last_response.status).must_equal 201
+      _(admin.reload.system_roles.map(&:name)).must_equal ['admin']
+      route = json_body.dig('data', 'data', 'attributes', 'route')
+      _(route).must_match %r{\Aaccounts/#{admin.id}/admin_[0-9a-f]{32}\.pdf\z}
+    ensure
+      pdf&.close!
+    end
+
     it 'SAD: rejects non-PDF uploads' do
       text_file = Tempfile.new(['lockedcv-api-upload', '.txt'])
       text_file.write('not a pdf')

@@ -77,6 +77,17 @@ describe 'System Role Endpoints' do
     _(json_body).must_equal('message' => 'Only admins can manage system roles')
   end
 
+  it 'SAD: admin cannot assign their own system role' do
+    put(
+      "/api/v1/accounts/#{@admin.username}/system_roles/member",
+      {}.to_json,
+      auth_req_header(@admin)
+    )
+
+    _(last_response.status).must_equal 403
+    _(json_body).must_equal('message' => 'Admins cannot change their own system role')
+  end
+
   it 'SAD: rejects unknown system role' do
     put(
       "/api/v1/accounts/#{@target.username}/system_roles/owner",

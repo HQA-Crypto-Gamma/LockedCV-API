@@ -25,13 +25,14 @@
   - `app/policies/` foundation：`AccountPolicy`、`AttachmentPolicy`、`SensitiveDataPolicy`。
   - `AccountPolicy#capabilities` system-level capability summary。
   - Policy unit specs for account, attachment, sensitive data, and scopes.
+  - Attachment controller first-pass policy adoption for upload/list/detail/delete/sensitive-data/masked routes.
   - Service-level authorization checks，例如 `DeleteAccountService`、`AssignSystemRoleService`、`ListAccountsService`。
   - Status code baseline：missing/invalid auth mostly `401`；forbidden admin actions `403`; missing/hidden attachments mostly `404`.
 - 目前尚未有：
   - `MaskedAttachmentPolicy`。
   - `summary` / `index_summary` response contract。
   - Policy-aware JSON response，讓 App 不需要自己推論 UI authorization。
-  - Controller adoption：routes 仍有部分 `admin?` / owner checks 尚未改成 policy predicates。
+  - Controller adoption：attachment routes and account/admin routes use first-pass policy gates; some services still keep direct `admin?` / owner checks as defense-in-depth.
 
 ### Resource Role 現況
 
@@ -132,11 +133,12 @@
    - 補 scope/policy consistency tests：scope 回傳的每個 resource 都應 `view? == true`。
 
 7. `controller-policy-adoption`
-   - `GET /api/v1/accounts` 使用 `AccountPolicy` 或 scope 檢查 admin list。
-   - `DELETE /api/v1/accounts/:account_id` 使用 `AccountPolicy#can_delete?`。
-   - `PUT /api/v1/accounts/:username/system_roles/:role_name` 使用 `AccountPolicy#can_assign_role?` 或 `SystemRolePolicy`。
-   - `GET /api/v1/attachments` 使用 `AttachmentPolicy::AccountScope#viewable`。
-   - Attachment detail/delete/sensitive-data/masked routes 使用 `AttachmentPolicy`。
+   - ✅ `GET /api/v1/accounts` 使用 `AccountPolicy` capabilities and `AccountPolicy::AdminScope` 檢查 admin list。
+   - ✅ `DELETE /api/v1/accounts/:account_id` 使用 `AccountPolicy#delete?`。
+   - ✅ `PUT /api/v1/accounts/:username/system_roles/:role_name` 使用 `AccountPolicy#assign_system_role?`。
+   - ✅ `GET /api/v1/attachments` 使用 `AttachmentPolicy::AccountScope#viewable`。
+   - ✅ Attachment upload/detail/delete/sensitive-data/masked routes 使用 `AttachmentPolicy` / `SensitiveDataPolicy` first-pass gate。
+   - Services 內既有 authorization checks 暫時保留，作為第二道防線；後續可再瘦身。
    - 保持 route response status 與本週 status-code rules 一致。
 
 8. `policy-json-contract`

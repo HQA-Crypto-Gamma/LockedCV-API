@@ -72,7 +72,15 @@ module LockedCV
           routing.on String do |role_name|
             # PUT api/v1/accounts/[username]/system_roles/[role_name]
             routing.put do
-              current_account = require_admin!(routing, 'Only admins can manage system roles')
+              current_account = current_account!(routing)
+              routing.halt 400, { message: 'Unknown system role' }.to_json unless Role::SYSTEM_ROLES.include?(role_name)
+
+              target_account = Account.first(username: account_id)
+              routing.halt 404, { message: 'Account not found' }.to_json unless target_account
+              unless AccountPolicy.new(current_account, target_account).assign_system_role?
+                message = current_account.id == target_account.id ? 'Admins cannot change their own system role' : 'Only admins can manage system roles'
+                routing.halt 403, { message: }.to_json
+              end
 
               result = AssignSystemRoleService.call(
                 current_account:, target_username: account_id, role_name:
@@ -95,7 +103,14 @@ module LockedCV
 
         # DELETE api/v1/accounts/[account_id]
         routing.delete do
-          current_account = require_admin!(routing, 'Only admins can delete accounts')
+          current_account = current_account!(routing)
+          target_account = Account.first(id: account_id)
+          routing.halt 404, { message: 'Account not found' }.to_json unless target_account
+          unless AccountPolicy.new(current_account, target_account).delete?
+            message = current_account.id == target_account.id ? 'Admins cannot delete their own account' : 'Only admins can delete accounts'
+            routing.halt 403, { message: }.to_json
+          end
+
           DeleteAccountService.call(
             current_account:,
             target_account_id: account_id
@@ -116,8 +131,11 @@ module LockedCV
 
       # GET api/v1/accounts
       routing.get do
-        current_account = require_admin!(routing, 'Only admins can list accounts')
-        accounts = ListAccountsService.call(current_account:)
+        current_account = current_account!(routing)
+        unless AccountPolicy.new(current_account).capabilities[:can_manage_accounts]
+          routing.halt 403, { message: 'Only admins can list accounts' }.to_json
+        end
+        accounts = AccountPolicy::AdminScope.new(current_account, Account.order(:username)).viewable.all
 
         output = {
           data: accounts.map do |account|
