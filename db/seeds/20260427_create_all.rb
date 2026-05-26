@@ -125,10 +125,7 @@ module LockedCV
       system_role_assignments.each do |username, role_names|
         account = Account.first(username:)
         role_names.each do |role_name|
-          role = Role.first(name: role_name)
-          next if account.system_roles_dataset.where(id: role.id).any?
-
-          account.add_system_role(role)
+          SetSystemRoleService.call(account:, role_name:)
         end
       end
     end

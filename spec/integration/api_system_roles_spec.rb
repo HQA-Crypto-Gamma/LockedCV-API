@@ -34,6 +34,18 @@ describe 'System Role Endpoints' do
     _(@target.reload.system_roles.map(&:name)).must_equal ['admin']
   end
 
+  it 'HAPPY: assigning admin removes the default member role' do
+    put(
+      "/api/v1/accounts/#{@target.username}/system_roles/admin",
+      {}.to_json,
+      auth_req_header(@admin)
+    )
+
+    _(@target.reload.system_roles.map(&:name)).must_equal ['admin']
+    _(@target.member?).must_equal false
+    _(@target.admin?).must_equal true
+  end
+
   it 'HAPPY: reassigning the same system role is idempotent' do
     put(
       "/api/v1/accounts/#{@target.username}/system_roles/member",

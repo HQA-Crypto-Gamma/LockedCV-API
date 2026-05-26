@@ -71,7 +71,7 @@ namespace :db do
 
   desc 'Load all models'
   task :load_models do
-    require_app(%w[models services])
+    require_app(%w[models policies services])
     @app = LockedCV::Api
   end
 
@@ -164,12 +164,11 @@ namespace :db do
       puts "- Account #{username} already exists (id=#{account.id})"
     end
 
-    admin_role = LockedCV::Role.first(name: 'admin')
-    if account.system_roles_dataset.where(name: 'admin').any?
-      puts "  - already has 'admin'"
-    else
-      account.add_system_role(admin_role)
+    result = LockedCV::SetSystemRoleService.call(account:, role_name: 'admin')
+    if result.created?
       puts "  + granted 'admin'"
+    else
+      puts "  - already has 'admin'"
     end
   end
 
