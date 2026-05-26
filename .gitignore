@@ -13,7 +13,7 @@ spec/fixtures/generated/*.pdf
 
 # Local data store
 db/local/*
-storage/uploads/*
+storage/*
 .bundle/
 .vscode/
 

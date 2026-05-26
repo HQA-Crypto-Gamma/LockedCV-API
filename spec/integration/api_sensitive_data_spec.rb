@@ -22,11 +22,11 @@ describe 'Sensitive Data Endpoints' do
     )
   end
 
-  describe 'POST /api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data' do
+  describe 'POST /api/v1/attachments/:attachment_id/sensitive_data' do
     it 'HAPPY: creates sensitive data for an attachment' do
       payload = DATA[:sensitive_data].first.transform_keys(&:to_sym)
 
-      post "/api/v1/accounts/#{@account.id}/attachments/#{@attachment.id}/sensitive_data",
+      post "/api/v1/attachments/#{@attachment.id}/sensitive_data",
            payload.to_json, auth_req_header(@account)
 
       _(last_response.status).must_equal 201
@@ -39,7 +39,7 @@ describe 'Sensitive Data Endpoints' do
       payload = DATA[:sensitive_data].first.merge('attachment_id' => 'forged-attachment')
       before_count = LockedCV::SensitiveData.count
 
-      post "/api/v1/accounts/#{@account.id}/attachments/#{@attachment.id}/sensitive_data",
+      post "/api/v1/attachments/#{@attachment.id}/sensitive_data",
            payload.to_json, auth_req_header(@account)
 
       _(last_response.status).must_equal 400
@@ -56,7 +56,7 @@ describe 'Sensitive Data Endpoints' do
         sensitive_data: payload
       )
 
-      post "/api/v1/accounts/#{@account.id}/attachments/#{@attachment.id}/sensitive_data",
+      post "/api/v1/attachments/#{@attachment.id}/sensitive_data",
            payload.to_json, auth_req_header(@account)
 
       _(last_response.status).must_equal 400
@@ -68,7 +68,7 @@ describe 'Sensitive Data Endpoints' do
       injected_attachment_id = CGI.escape("#{@attachment.id}' OR '1'='1")
       before_count = LockedCV::SensitiveData.count
 
-      post "/api/v1/accounts/#{@account.id}/attachments/#{injected_attachment_id}/sensitive_data",
+      post "/api/v1/attachments/#{injected_attachment_id}/sensitive_data",
            payload.to_json, auth_req_header(@account)
 
       _(last_response.status).must_equal 404
@@ -80,7 +80,7 @@ describe 'Sensitive Data Endpoints' do
       payload = DATA[:sensitive_data].first.transform_keys(&:to_sym)
       before_count = LockedCV::SensitiveData.count
 
-      post "/api/v1/accounts/#{@account.id}/attachments/999999/sensitive_data",
+      post '/api/v1/attachments/999999/sensitive_data',
            payload.to_json, auth_req_header(@account)
 
       _(last_response.status).must_equal 404
@@ -89,7 +89,7 @@ describe 'Sensitive Data Endpoints' do
     end
   end
 
-  describe 'GET /api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data' do
+  describe 'GET /api/v1/attachments/:attachment_id/sensitive_data' do
     it 'HAPPY: gets sensitive data by attachment' do
       payload = DATA[:sensitive_data].first.transform_keys(&:to_sym)
       sensitive_data = LockedCV::CreateSensitiveDataService.call(
@@ -98,7 +98,7 @@ describe 'Sensitive Data Endpoints' do
         sensitive_data: payload
       )
 
-      get "/api/v1/accounts/#{@account.id}/attachments/#{@attachment.id}/sensitive_data", {}, auth_header(@account)
+      get "/api/v1/attachments/#{@attachment.id}/sensitive_data", {}, auth_header(@account)
 
       _(last_response.status).must_equal 200
       _(last_response.headers['Content-Type']).must_include 'application/json'
@@ -106,20 +106,28 @@ describe 'Sensitive Data Endpoints' do
       _(json_body.dig('data', 'attributes', 'id')).must_equal sensitive_data.id
     end
 
-    it 'SECURITY: rejects SQL injection in account_id when fetching sensitive data' do
+    it 'SECURITY: returns 404 when attachment belongs to another account' do
+      other_account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+      )
+      other_attachment = LockedCV::CreateAttachmentService.call(
+        account_id: other_account.id,
+        attachment_data: {
+          attachment_name: 'other_resume.pdf',
+          route: '/uploads/other_resume.pdf'
+        }
+      )
       payload = DATA[:sensitive_data].first.transform_keys(&:to_sym)
       LockedCV::CreateSensitiveDataService.call(
-        account_id: @account.id,
-        attachment_id: @attachment.id,
+        account_id: other_account.id,
+        attachment_id: other_attachment.id,
         sensitive_data: payload
       )
-      injected_account_id = CGI.escape("#{@account.id}' OR '1'='1")
 
-      get "/api/v1/accounts/#{injected_account_id}/attachments/#{@attachment.id}/sensitive_data",
-          {}, auth_header(@account)
+      get "/api/v1/attachments/#{other_attachment.id}/sensitive_data", {}, auth_header(@account)
 
-      _(last_response.status).must_equal 403
-      _(json_body).must_equal('message' => 'Forbidden account access')
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Sensitive data not found')
     end
 
     it 'SECURITY: rejects SQL injection in attachment_id when fetching sensitive data' do
@@ -131,8 +139,7 @@ describe 'Sensitive Data Endpoints' do
       )
       injected_attachment_id = CGI.escape("#{@attachment.id}' OR '1'='1")
 
-      get "/api/v1/accounts/#{@account.id}/attachments/#{injected_attachment_id}/sensitive_data",
-          {}, auth_header(@account)
+      get "/api/v1/attachments/#{injected_attachment_id}/sensitive_data", {}, auth_header(@account)
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Sensitive data not found')
@@ -147,8 +154,7 @@ describe 'Sensitive Data Endpoints' do
         }
       )
 
-      get "/api/v1/accounts/#{@account.id}/attachments/#{another_attachment.id}/sensitive_data",
-          {}, auth_header(@account)
+      get "/api/v1/attachments/#{another_attachment.id}/sensitive_data", {}, auth_header(@account)
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Sensitive data not found')

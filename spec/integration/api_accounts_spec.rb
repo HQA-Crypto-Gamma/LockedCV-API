@@ -342,4 +342,32 @@ describe 'Account Endpoints' do
       _(LockedCV::Account.first(id: @target.id)).wont_be_nil
     end
   end
+
+  describe 'GET /api/v1/accounts' do
+    before do
+      @admin_role = LockedCV::Role.create(name: 'admin')
+      @admin = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+      @target = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+      )
+      LockedCV::SetSystemRoleService.call(account: @admin, role_name: @admin_role.name)
+    end
+
+    it 'HAPPY: admin lists accounts through policy scope' do
+      get '/api/v1/accounts', nil, auth_header(@admin)
+
+      _(last_response.status).must_equal 200
+      usernames = json_body['data'].map { |account| account.dig('attributes', 'username') }
+      _(usernames).must_equal [@admin.username, @target.username].sort
+    end
+
+    it 'SAD: non-admin cannot list accounts' do
+      get '/api/v1/accounts', nil, auth_header(@target)
+
+      _(last_response.status).must_equal 403
+      _(json_body).must_equal('message' => 'Only admins can list accounts')
+    end
+  end
 end

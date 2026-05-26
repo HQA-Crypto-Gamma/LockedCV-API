@@ -34,6 +34,18 @@ describe 'System Role Endpoints' do
     _(@target.reload.system_roles.map(&:name)).must_equal ['admin']
   end
 
+  it 'HAPPY: assigning admin removes the default member role' do
+    put(
+      "/api/v1/accounts/#{@target.username}/system_roles/admin",
+      {}.to_json,
+      auth_req_header(@admin)
+    )
+
+    _(@target.reload.system_roles.map(&:name)).must_equal ['admin']
+    _(@target.member?).must_equal false
+    _(@target.admin?).must_equal true
+  end
+
   it 'HAPPY: reassigning the same system role is idempotent' do
     put(
       "/api/v1/accounts/#{@target.username}/system_roles/member",
@@ -63,6 +75,17 @@ describe 'System Role Endpoints' do
 
     _(last_response.status).must_equal 403
     _(json_body).must_equal('message' => 'Only admins can manage system roles')
+  end
+
+  it 'SAD: admin cannot assign their own system role' do
+    put(
+      "/api/v1/accounts/#{@admin.username}/system_roles/member",
+      {}.to_json,
+      auth_req_header(@admin)
+    )
+
+    _(last_response.status).must_equal 403
+    _(json_body).must_equal('message' => 'Admins cannot change their own system role')
   end
 
   it 'SAD: rejects unknown system role' do

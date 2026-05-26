@@ -17,6 +17,7 @@ A Ruby web API for the Crypto γ SEC project that allows accounts to securely sh
 
 - Ruby 4.0.2 (see `.ruby-version`)
 - Bundler
+- Python 3 with `pdfplumber` and `reportlab` for masked PDF export
 
 ## Installation
 
@@ -47,14 +48,34 @@ bundle exec rake newkey:hash
 bundle exec rake newkey:msg
 ```
 
-5. Prepare the local database:
+5. Add Mailgun settings to `config/secrets.yml`.
+
+Development needs real Mailgun values to send verification emails. Test values
+can be dummy strings because specs use WebMock:
+
+```yaml
+MAILGUN_API_KEY: test-api-key
+MAILGUN_DOMAIN: mg.example.test
+MAILGUN_FROM_EMAIL: postmaster@mg.example.test
+MAILGUN_FROM_NAME: LockedCV
+```
+
+The default Mailgun API URL is the US endpoint,
+`https://api.mailgun.net/v3`. Set `MAILGUN_API_URL` only when using a
+different region.
+
+6. Prepare the local database:
 
 ```bash
 bundle exec rake db:migrate
 bundle exec rake db:seed
 ```
 
-6. Bootstrap the first admin account when needed:
+Development seeds create sample accounts, roles, attachment metadata, sensitive
+data, and matching sample PDF files under the current environment's local
+storage root.
+
+7. Bootstrap the first admin account when needed:
 
 ```bash
 bundle exec rake db:bootstrap_admin USERNAME=admin EMAIL=admin@example.com
@@ -119,6 +140,22 @@ http -v GET localhost:9000/api/v1/account \
 
 Missing, invalid, or expired tokens return `401`. Authenticated callers without
 permission return `403`.
+
+#### Send Registration Verification Email
+
+**POST** `/api/v1/auth/register`
+
+```bash
+http -v --json POST localhost:9000/api/v1/auth/register \
+  username="jane_smith" \
+  email="jane@example.com" \
+  verification_url="http://localhost:9292/auth/register/<registration_token>"
+```
+
+This endpoint checks that the username/email are still available and asks
+Mailgun to send the supplied verification URL. It does not create an account.
+The App owns registration token creation and calls `POST /api/v1/accounts`
+after the user follows the email link and completes the form.
 
 ### Account Endpoints
 
@@ -189,52 +226,18 @@ http -v --json POST localhost:9000/api/v1/accounts \
   password="my-secret-password"
 ```
 
-#### Legacy Get Account by ID
+#### Check Registration Availability
 
-**GET** `/api/v1/accounts/:account_id`
-
-```bash
-http -v GET localhost:9000/api/v1/accounts/<account_uuid> \
-  Authorization:"Bearer <auth_token>"
-```
-
-This legacy account-scoped route remains for compatibility and still requires
-the path account to match the Bearer token owner.
-
-#### Legacy Update Account
-
-**PUT** `/api/v1/accounts/:account_id`
+**POST** `/api/v1/accounts/registration/check`
 
 ```bash
-http -v --json PUT localhost:9000/api/v1/accounts/<account_uuid> \
-  Authorization:"Bearer <auth_token>" \
-  email="jane.updated@example.com" \
-  phone_number="987-654-3210" \
-  first_name="Jane" \
-  last_name="Smith" \
-  birthday="1990-01-01" \
-  address="Taipei" \
-  identification_numbers="A123456789"
+http -v --json POST localhost:9000/api/v1/accounts/registration/check \
+  username="jane_smith" \
+  email="jane@example.com"
 ```
 
-This legacy account-scoped route remains for compatibility and still requires
-the path account to match the Bearer token owner.
-
-#### Legacy Change Account Password
-
-**PUT** `/api/v1/accounts/:account_id/password`
-
-```bash
-http -v --json PUT localhost:9000/api/v1/accounts/<account_uuid>/password \
-  Authorization:"Bearer <auth_token>" \
-  current_password="my-secret-password" \
-  password="my-new-secret-password"
-```
-
-The current password must be correct before the password is replaced.
-
-This legacy account-scoped route remains for compatibility and still requires
-the path account to match the Bearer token owner.
+Returns `{ "available": true }` when both identifiers are unused. Existing
+email/username values return `400` with a message.
 
 #### Delete Account
 
@@ -261,31 +264,28 @@ Only accounts with the `admin` system role can assign system roles.
 
 ### Attachment Endpoints
 
-#### Upload Attachment File for an Account
+#### Upload Current Account Attachment File
 
-**POST** `/api/v1/accounts/:account_id/attachments/upload`
-
-```bash
-http -v --form POST localhost:9000/api/v1/accounts/<account_uuid>/attachments/upload \
-  Authorization:"Bearer <auth_token>" \
-  file@/path/to/resume.pdf
-```
-
-Only PDF uploads are currently supported. Uploaded files are stored under
-`storage/`, and attachment metadata is saved in the database.
-
-#### Create Attachment for an Account
-
-**POST** `/api/v1/accounts/:account_id/attachments`
+**POST** `/api/v1/attachments/upload`
 
 ```bash
-http -v --json POST localhost:9000/api/v1/accounts/<account_uuid>/attachments \
+http -v --form POST localhost:9000/api/v1/attachments/upload \
   Authorization:"Bearer <auth_token>" \
-  attachment_name="resume_jane.pdf" \
-  route="accounts/<account_uuid>/resume_jane.pdf"
+  file@/path/to/resume.pdf \
+  original_filename="resume.pdf"
 ```
 
-#### Get All Attachments for an Account
+Only PDF uploads are currently supported. Uploaded files are stored under the
+current environment's local storage root, such as
+`storage/development/uploads` or `storage/test/uploads`, and attachment metadata
+is saved in the database. The API validates the `.pdf` extension and `%PDF-`
+file header, generates a safe storage route, and records the display filename in
+`attachments.attachment_name`.
+
+The API finds the account from the Bearer token; clients should prefer this
+route for current-account uploads.
+
+#### Get Current Account Attachments
 
 **GET** `/api/v1/attachments`
 
@@ -297,33 +297,36 @@ http -v GET localhost:9000/api/v1/attachments \
 This is the token-scoped endpoint used by the App. The API finds the requesting
 account from the Bearer token.
 
-#### Legacy Get All Attachments for an Account
+#### Delete Current Account Attachment
 
-**GET** `/api/v1/accounts/:account_id/attachments`
+**DELETE** `/api/v1/attachments/:attachment_id`
 
 ```bash
-http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments \
+http -v DELETE localhost:9000/api/v1/attachments/1 \
   Authorization:"Bearer <auth_token>"
 ```
 
-This legacy account-scoped route remains for compatibility and still requires
-the path account to match the Bearer token owner.
+Deletes the attachment row, dependent sensitive/masked metadata, the original
+stored PDF, and generated masked PDFs. The API scopes the attachment lookup to
+the Bearer token account.
 
 #### Get Attachment by ID
 
-**GET** `/api/v1/accounts/:account_id/attachments/:attachment_id`
+**GET** `/api/v1/attachments/:attachment_id`
 
 ```bash
-http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1 \
+http -v GET localhost:9000/api/v1/attachments/1 \
   Authorization:"Bearer <auth_token>"
 ```
 
+Returns one attachment owned by the Bearer token account.
+
 #### Get Masked Attachment Text
 
-**GET** `/api/v1/accounts/:account_id/attachments/:attachment_id/masked_text`
+**GET** `/api/v1/attachments/:attachment_id/masked_text`
 
 ```bash
-http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/masked_text \
+http -v GET localhost:9000/api/v1/attachments/1/masked_text \
   Authorization:"Bearer <auth_token>"
 ```
 
@@ -332,25 +335,27 @@ data for the attachment.
 
 #### Export Masked PDF Attachment
 
-**POST** `/api/v1/accounts/:account_id/attachments/:attachment_id/masked_attachments`
+**POST** `/api/v1/attachments/:attachment_id/masked_attachments`
 
 ```bash
 http -v --json POST \
-  localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/masked_attachments \
+  localhost:9000/api/v1/attachments/1/masked_attachments \
   Authorization:"Bearer <auth_token>"
 ```
 
 Creates a generated masked PDF file and saves masked output metadata. This is a
 text-based visual masking approximation, not a formal PDF redaction engine.
+The export path shells out to `app/lib/pdf_processors/pdfplumber_masked_pdf.py`;
+set `PYTHON_BIN` when the desired Python executable is not `python3`.
 
 ### Sensitive Data Endpoints
 
 #### Create Sensitive Data for an Attachment
 
-**POST** `/api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data`
+**POST** `/api/v1/attachments/:attachment_id/sensitive_data`
 
 ```bash
-http -v --json POST localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/sensitive_data \
+http -v --json POST localhost:9000/api/v1/attachments/1/sensitive_data \
   Authorization:"Bearer <auth_token>" \
   first_name="Jane" \
   last_name="Smith" \
@@ -361,12 +366,15 @@ http -v --json POST localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/
   identification_numbers="A123456789"
 ```
 
+Creates a sensitive-data record for an attachment owned by the Bearer token
+account. Request body `attachment_id` is intentionally not allowed.
+
 #### Get Sensitive Data by Attachment
 
-**GET** `/api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data`
+**GET** `/api/v1/attachments/:attachment_id/sensitive_data`
 
 ```bash
-http -v GET localhost:9000/api/v1/accounts/<account_uuid>/attachments/1/sensitive_data \
+http -v GET localhost:9000/api/v1/attachments/1/sensitive_data \
   Authorization:"Bearer <auth_token>"
 ```
 
@@ -410,7 +418,7 @@ bundle exec rake style
 ├── db/
 │   ├── migrations/         # Sequel migrations
 │   ├── local/              # Local SQLite database files (gitignored)
-│   └── seeds/              # Test seed data
+│   └── seeds/              # Development seed data and shared spec fixtures
 ├── docs/
 │   └── schema.md           # Current database schema notes
 ├── spec/                    # Test files
@@ -422,7 +430,15 @@ bundle exec rake style
 ## Data Storage
 
 Application data is stored in SQLite database files under `db/local/`. Uploaded
-and generated PDF files are stored under `storage/uploads/`.
+and generated PDF files are stored under the current environment's local storage
+root, such as `storage/development/uploads/` or `storage/test/uploads/`.
+`rake db:reseed` clears the current local environment's upload storage before
+recreating seeded attachment files. Production deployments should use external
+object storage instead of relying on Heroku dyno-local files.
+
+Specs use `db/local/test.db` and clear test data between examples. A test DB
+file lock serializes separate spec processes so parallel shell commands do not
+wipe the same database at the same time.
 
 ## License
 
