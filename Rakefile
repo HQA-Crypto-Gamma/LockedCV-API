@@ -97,6 +97,17 @@ namespace :db do
     @app.DB[:schema_seeds].delete if @app.DB.tables.include?(:schema_seeds)
   end
 
+  desc 'Delete uploaded files for the current local environment'
+  task clear_storage: :load_models do
+    if @app.environment == :production
+      puts 'Cannot wipe production storage!'
+      return
+    end
+
+    FileUtils.rm_rf(LockedCV::ResolveAttachmentPath::STORAGE_ROOT)
+    puts "Deleted #{LockedCV::ResolveAttachmentPath::STORAGE_ROOT}"
+  end
+
   desc 'Delete dev or test database file'
   task drop: :load do
     if @app.environment == :production
@@ -163,7 +174,7 @@ namespace :db do
   end
 
   desc 'Delete all data and reseed'
-  task reseed: %i[delete reset_seeds seed]
+  task reseed: %i[delete clear_storage reset_seeds seed]
 end
 
 namespace :newkey do

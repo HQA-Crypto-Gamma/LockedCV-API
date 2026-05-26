@@ -6,7 +6,17 @@ module LockedCV
     class UnsafePathError < StandardError; end
     class MissingFileError < StandardError; end
 
-    STORAGE_ROOT = File.expand_path('storage/uploads', Dir.pwd)
+    def self.storage_environment
+      LockedCV::Api.environment.to_s
+    rescue NameError
+      ENV.fetch('RACK_ENV', 'development')
+    end
+    private_class_method :storage_environment
+
+    STORAGE_ROOT = File.expand_path(
+      File.join('storage', storage_environment, 'uploads'),
+      Dir.pwd
+    )
 
     def self.call(route:)
       raise UnsafePathError if route.to_s.strip.empty?

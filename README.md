@@ -72,7 +72,8 @@ bundle exec rake db:seed
 ```
 
 Development seeds create sample accounts, roles, attachment metadata, sensitive
-data, and matching sample PDF files under `storage/uploads`.
+data, and matching sample PDF files under the current environment's local
+storage root.
 
 7. Bootstrap the first admin account when needed:
 
@@ -274,10 +275,12 @@ http -v --form POST localhost:9000/api/v1/attachments/upload \
   original_filename="resume.pdf"
 ```
 
-Only PDF uploads are currently supported. Uploaded files are stored under
-`storage/uploads`, and attachment metadata is saved in the database. The API
-validates the `.pdf` extension and `%PDF-` file header, generates a safe storage
-route, and records the display filename in `attachments.attachment_name`.
+Only PDF uploads are currently supported. Uploaded files are stored under the
+current environment's local storage root, such as
+`storage/development/uploads` or `storage/test/uploads`, and attachment metadata
+is saved in the database. The API validates the `.pdf` extension and `%PDF-`
+file header, generates a safe storage route, and records the display filename in
+`attachments.attachment_name`.
 
 The API finds the account from the Bearer token; clients should prefer this
 route for current-account uploads.
@@ -427,7 +430,11 @@ bundle exec rake style
 ## Data Storage
 
 Application data is stored in SQLite database files under `db/local/`. Uploaded
-and generated PDF files are stored under `storage/uploads/`.
+and generated PDF files are stored under the current environment's local storage
+root, such as `storage/development/uploads/` or `storage/test/uploads/`.
+`rake db:reseed` clears the current local environment's upload storage before
+recreating seeded attachment files. Production deployments should use external
+object storage instead of relying on Heroku dyno-local files.
 
 Specs use `db/local/test.db` and clear test data between examples. A test DB
 file lock serializes separate spec processes so parallel shell commands do not

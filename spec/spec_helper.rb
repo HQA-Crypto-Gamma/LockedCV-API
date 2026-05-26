@@ -70,11 +70,11 @@ module LockedCV
     end
 
     def reset_storage!
-      FileUtils.rm_rf('storage/uploads')
+      FileUtils.rm_rf(LockedCV::ResolveAttachmentPath::STORAGE_ROOT)
     end
 
     def storage_path_for(route)
-      File.expand_path(File.join('storage/uploads', route), Dir.pwd)
+      File.expand_path(File.join(LockedCV::ResolveAttachmentPath::STORAGE_ROOT, route))
     end
 
     def req_header
