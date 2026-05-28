@@ -86,6 +86,7 @@ namespace :db do
     LockedCV::MaskedItem.dataset.destroy
     LockedCV::MaskedAttachment.dataset.destroy
     LockedCV::SensitiveData.dataset.destroy
+    LockedCV::AttachmentPermission.dataset.destroy
     LockedCV::Attachment.dataset.destroy
     @app.DB[:accounts_roles].delete
     LockedCV::Role.dataset.destroy

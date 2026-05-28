@@ -13,7 +13,18 @@ module LockedCV
       end
 
       def viewable
-        scope.where(account_id: current_account&.id)
+        return scope.none unless current_account
+
+        shared_attachment_ids = AttachmentPermission
+                                .where(account_id: current_account.id, role: 'viewer_masked')
+                                .select(:attachment_id)
+
+        scope.where(
+          Sequel.|(
+            { account_id: current_account.id },
+            { id: shared_attachment_ids }
+          )
+        )
       end
     end
   end
