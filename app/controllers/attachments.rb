@@ -124,7 +124,14 @@ module LockedCV
 
       # GET api/v1/attachments
       routing.get do
-        output = { data: AttachmentPolicy::AccountScope.new(current_account).viewable.all }
+        attachments = AttachmentPolicy::AccountScope.new(current_account).viewable.all
+        output = {
+          data: attachments.map do |attachment|
+            policy = AttachmentPolicy.new(current_account, attachment)
+            JSON.parse(attachment.to_json).merge(policy: policy.summary)
+          end
+        }
+
         JSON.pretty_generate(output)
       end
     end
