@@ -105,6 +105,6 @@ describe LockedCV::Account do
     _(account.system_roles.map(&:name)).must_include 'member'
     _(account.admin?).must_equal true
     _(account.member?).must_equal true
-    _(account.system_role?('viewer_full')).must_equal false
+    _(account.system_role?('owner')).must_equal false
   end
 end

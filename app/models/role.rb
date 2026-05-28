@@ -7,7 +7,7 @@ module LockedCV
   # Models a named role (system-level or resource-level)
   class Role < Sequel::Model
     SYSTEM_ROLES = %w[admin member].freeze
-    RESOURCE_ROLES = %w[owner viewer_masked viewer_full].freeze
+    RESOURCE_ROLES = %w[owner viewer_masked].freeze
 
     many_to_many :accounts, join_table: :accounts_roles
 

@@ -27,10 +27,6 @@ module LockedCV
       accounts_in_role('viewer_masked')
     end
 
-    def viewers_full
-      accounts_in_role('viewer_full')
-    end
-
     def accounts_in_role(role_name)
       role = Role.first(name: role_name)
       return [] unless role
