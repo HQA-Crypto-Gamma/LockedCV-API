@@ -158,13 +158,35 @@ describe 'Attachment Endpoints' do
   end
 
   describe 'GET /api/v1/attachments' do
-    it 'HAPPY: gets all attachments for current account' do
+    it 'HAPPY: gets scoped attachments with policy summaries for current account' do
+      other_account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+      )
+      other_attachment = LockedCV::CreateAttachmentService.call(
+        account_id: other_account.id,
+        attachment_data: DATA[:attachments].last.transform_keys(&:to_sym)
+      )
+
       get '/api/v1/attachments', {}, auth_header(@account)
 
       _(last_response.status).must_equal 200
       _(last_response.headers['Content-Type']).must_include 'application/json'
-      attachment_names = json_body['data'].map { |item| item.dig('data', 'attributes', 'attachment_name') }
-      _(attachment_names).must_include DATA[:attachments].first['attachment_name']
+
+      attachments = json_body['data']
+      attachment_ids = attachments.map { |item| item.dig('data', 'attributes', 'id') }
+      _(attachment_ids).must_include @attachments.first.id
+      _(attachment_ids).wont_include other_attachment.id
+
+      attachment = attachments.find { |item| item.dig('data', 'attributes', 'id') == @attachments.first.id }
+      _(attachment.dig('data', 'attributes', 'attachment_name')).must_equal DATA[:attachments].first['attachment_name']
+      _(attachment['policy']).must_equal(
+        'can_view' => true,
+        'can_view_masked' => true,
+        'can_access' => true,
+        'can_upload' => true,
+        'can_delete' => true,
+        'role' => 'owner'
+      )
     end
 
     it 'SECURITY: returns 401 without bearer token' do
