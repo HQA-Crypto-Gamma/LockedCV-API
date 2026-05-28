@@ -159,12 +159,35 @@ describe 'Attachment Endpoints' do
 
   describe 'GET /api/v1/attachments' do
     it 'HAPPY: gets scoped attachments with policy summaries for current account' do
-      other_account = LockedCV::CreateAccountService.call(
+      shared_owner = LockedCV::CreateAccountService.call(
         account_data: DATA[:accounts].last.transform_keys(&:to_sym)
       )
-      other_attachment = LockedCV::CreateAttachmentService.call(
-        account_id: other_account.id,
-        attachment_data: DATA[:attachments].last.transform_keys(&:to_sym)
+      shared_attachment = LockedCV::CreateAttachmentService.call(
+        account_id: shared_owner.id,
+        attachment_data: {
+          attachment_name: 'shared_masked.pdf',
+          route: "accounts/#{shared_owner.id}/shared_masked.pdf"
+        }
+      )
+      LockedCV::AttachmentPermission.create(
+        account_id: @account.id,
+        attachment_id: shared_attachment.id,
+        role: 'viewer_masked'
+      )
+      unrelated_account = LockedCV::CreateAccountService.call(
+        account_data: {
+          username: 'unrelated-attachment-owner',
+          email: 'unrelated-attachment-owner@example.com',
+          phone_number: '0912-900-002',
+          password: 'unrelated-secret'
+        }
+      )
+      unrelated_attachment = LockedCV::CreateAttachmentService.call(
+        account_id: unrelated_account.id,
+        attachment_data: {
+          attachment_name: 'unrelated.pdf',
+          route: "accounts/#{unrelated_account.id}/unrelated.pdf"
+        }
       )
 
       get '/api/v1/attachments', {}, auth_header(@account)
@@ -175,17 +198,30 @@ describe 'Attachment Endpoints' do
       attachments = json_body['data']
       attachment_ids = attachments.map { |item| item.dig('data', 'attributes', 'id') }
       _(attachment_ids).must_include @attachments.first.id
-      _(attachment_ids).wont_include other_attachment.id
+      _(attachment_ids).must_include shared_attachment.id
+      _(attachment_ids).wont_include unrelated_attachment.id
 
-      attachment = attachments.find { |item| item.dig('data', 'attributes', 'id') == @attachments.first.id }
-      _(attachment.dig('data', 'attributes', 'attachment_name')).must_equal DATA[:attachments].first['attachment_name']
-      _(attachment['policy']).must_equal(
+      owned_attachment = attachments.find { |item| item.dig('data', 'attributes', 'id') == @attachments.first.id }
+      owned_attachment_name = owned_attachment.dig('data', 'attributes', 'attachment_name')
+      _(owned_attachment_name).must_equal DATA[:attachments].first['attachment_name']
+      _(owned_attachment['policy']).must_equal(
         'can_view' => true,
         'can_view_masked' => true,
         'can_access' => true,
         'can_upload' => true,
         'can_delete' => true,
         'role' => 'owner'
+      )
+
+      shared_entry = attachments.find { |item| item.dig('data', 'attributes', 'id') == shared_attachment.id }
+      _(shared_entry.dig('data', 'attributes', 'attachment_name')).must_equal 'shared_masked.pdf'
+      _(shared_entry['policy']).must_equal(
+        'can_view' => false,
+        'can_view_masked' => true,
+        'can_access' => true,
+        'can_upload' => true,
+        'can_delete' => false,
+        'role' => 'viewer_masked'
       )
     end
 

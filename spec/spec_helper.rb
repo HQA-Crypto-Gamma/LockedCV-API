@@ -40,7 +40,7 @@ module LockedCV
   # rubocop:disable Metrics/ModuleLength
   module SpecHelpers
     REQUIRED_TABLES = %i[
-      accounts attachments sensitive_data masked_attachments masked_items roles accounts_roles
+      accounts attachments attachment_permissions sensitive_data masked_attachments masked_items roles accounts_roles
     ].freeze
 
     def db
@@ -58,6 +58,7 @@ module LockedCV
       LockedCV::MaskedItem.dataset.delete
       LockedCV::MaskedAttachment.dataset.delete
       LockedCV::SensitiveData.dataset.delete
+      LockedCV::AttachmentPermission.dataset.delete
       LockedCV::Attachment.dataset.delete
       LockedCV::Api.DB[:accounts_roles].delete
       LockedCV::Role.dataset.delete

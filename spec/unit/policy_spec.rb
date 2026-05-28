@@ -66,13 +66,57 @@ describe 'Resource policies' do
     _(other_policy.delete?).must_equal false
   end
 
+  it 'authorizes masked viewers through attachment permissions' do
+    LockedCV::AttachmentPermission.create(
+      account_id: @other.id,
+      attachment_id: @attachment.id,
+      role: 'viewer_masked'
+    )
+
+    policy = LockedCV::AttachmentPolicy.new(@other, @attachment)
+
+    _(policy.owner?).must_equal false
+    _(policy.view?).must_equal false
+    _(policy.view_masked?).must_equal true
+    _(policy.access?).must_equal true
+    _(policy.delete?).must_equal false
+    _(policy.summary).must_equal(
+      can_view: false,
+      can_view_masked: true,
+      can_access: true,
+      can_upload: true,
+      can_delete: false,
+      role: 'viewer_masked'
+    )
+  end
+
+  it 'rejects unsupported attachment permission roles' do
+    _(proc do
+      LockedCV::AttachmentPermission.create(
+        account_id: @other.id,
+        attachment_id: @attachment.id,
+        role: 'viewer_full'
+      )
+    end).must_raise Sequel::ValidationFailed
+  end
+
   it 'scopes attachments to the current account' do
-    other_attachment = @other.add_attachment(DATA[:attachments].last.transform_keys(&:to_sym))
+    shared_attachment = @other.add_attachment(DATA[:attachments].last.transform_keys(&:to_sym))
+    unrelated_attachment = @admin.add_attachment(
+      attachment_name: 'admin-private.pdf',
+      route: 'accounts/admin-private.pdf'
+    )
+    LockedCV::AttachmentPermission.create(
+      account_id: @owner.id,
+      attachment_id: shared_attachment.id,
+      role: 'viewer_masked'
+    )
 
     viewable_ids = LockedCV::AttachmentPolicy::AccountScope.new(@owner).viewable.map(:id)
 
     _(viewable_ids).must_include @attachment.id
-    _(viewable_ids).wont_include other_attachment.id
+    _(viewable_ids).must_include shared_attachment.id
+    _(viewable_ids).wont_include unrelated_attachment.id
   end
 
   it 'authorizes sensitive data through its attachment policy' do

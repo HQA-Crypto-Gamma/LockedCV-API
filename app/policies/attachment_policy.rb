@@ -37,7 +37,13 @@ module LockedCV
     end
 
     def viewer_masked?
-      false
+      return false unless current_account && attachment
+
+      AttachmentPermission.where(
+        account_id: current_account.id,
+        attachment_id: attachment.id,
+        role: 'viewer_masked'
+      ).any?
     end
 
     def summary
