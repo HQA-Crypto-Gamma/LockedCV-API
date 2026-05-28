@@ -104,7 +104,11 @@ module LockedCV
 
         # GET api/v1/attachments/[attachment_id]
         routing.get do
-          authorized_attachment!(attachment_id, current_account, :access?).to_json
+          attachment = authorized_attachment!(attachment_id, current_account, :access?)
+          policy = AttachmentPolicy.new(current_account, attachment)
+          output = JSON.parse(attachment.to_json).merge(policy: policy.summary)
+
+          JSON.pretty_generate(output)
         rescue StandardError
           routing.halt 404, { message: 'Attachment not found' }.to_json
         end
