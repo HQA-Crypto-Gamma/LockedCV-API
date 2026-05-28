@@ -254,6 +254,14 @@ describe 'Attachment Endpoints' do
       _(last_response.status).must_equal 200
       _(json_body.dig('data', 'type')).must_equal 'attachment'
       _(json_body.dig('data', 'attributes', 'id')).must_equal attachment.id
+      _(json_body['policy']).must_equal(
+        'can_view' => true,
+        'can_view_masked' => true,
+        'can_access' => true,
+        'can_upload' => true,
+        'can_delete' => true,
+        'role' => 'owner'
+      )
     end
 
     it 'SAD: returns 404 for missing attachment' do
