@@ -95,7 +95,7 @@ describe 'Resource policies' do
       LockedCV::AttachmentPermission.create(
         account_id: @other.id,
         attachment_id: @attachment.id,
-        role: 'viewer_full'
+        role: 'editor'
       )
     end).must_raise Sequel::ValidationFailed
   end

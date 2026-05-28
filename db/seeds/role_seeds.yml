@@ -2,4 +2,3 @@
 - name: member
 - name: owner
 - name: viewer_masked
-- name: viewer_full
