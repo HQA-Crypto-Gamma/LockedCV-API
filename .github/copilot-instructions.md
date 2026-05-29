@@ -29,6 +29,10 @@ LockedCV is a Ruby Web API that allows accounts to securely share resumes or oth
 bundle install
 ```
 
+Masked PDF export also needs a Python environment with `pdfplumber` and
+`reportlab`. Use `PYTHON_BIN` when the correct executable is not `python3`.
+This dependency is not managed by Bundler.
+
 ### Running the Application
 
 ```bash
@@ -76,6 +80,8 @@ All application classes live under the `LockedCV` module namespace.
 ### Data Persistence
 
 Application data is stored in SQLite database files under `db/local/` (gitignored).
+Development seeds create sample database rows and matching sample PDFs under
+`storage/uploads`.
 
 ### Relational Schema (`db/migrations`)
 
@@ -152,7 +158,7 @@ Migration files:
 - `docs/schema.md` — schema notes and ERD
 - `storage/` — uploaded attachment files
 - `db/local/` — Local SQLite database files (gitignored)
-- `db/seeds/` — YAML seed data for tests
+- `db/seeds/` — Development seed data and YAML fixtures shared by specs
 - `spec/` — Minitest specs using `Rack::Test`
 
 ### Models
@@ -173,6 +179,9 @@ Migration files:
 
 - `POST /api/v1/auth/authenticate` authenticates an account and returns safe
   session data plus `auth_token` for the Web App.
+- `POST /api/v1/auth/register` checks registration availability and sends a
+  Mailgun verification email using the `verification_url` supplied by the App.
+  The API does not create or persist registration tokens.
 - Protected routes use `Authorization: Bearer <TOKEN>`.
 - `GET /api/v1/account` returns the current account from the token.
 - `PUT /api/v1/account` updates the current account from the token.
@@ -181,29 +190,29 @@ Migration files:
   token.
 - `GET /api/v1/accounts` lists accounts for admins; caller identity comes from
   the Bearer token.
+- `POST /api/v1/accounts/registration/check` checks whether username/email are
+  available before the App requests a verification email.
 - `POST /api/v1/accounts` creates a basic account. Account detail verification
   still needs to be strengthened.
-- `GET /api/v1/accounts/:account_id`, `PUT /api/v1/accounts/:account_id`, and
-  `PUT /api/v1/accounts/:account_id/password` are legacy account-scoped routes;
-  they require the path account to match the Bearer token owner.
 - `DELETE /api/v1/accounts/:account_id` deletes an account and requires an
   admin Bearer token. The path account is the target. Admins cannot delete
   their own account.
 - `PUT /api/v1/accounts/:username/system_roles/:role_name` assigns a system
   role and requires an admin Bearer token. The path username is the target.
-- `GET /api/v1/accounts/:account_id/attachments` is a legacy account-scoped
-  route that requires the path account to match the Bearer token owner.
-- `POST /api/v1/accounts/:account_id/attachments` creates attachment metadata.
-- `POST /api/v1/accounts/:account_id/attachments/upload` uploads a PDF and
-  creates attachment metadata.
-- `GET /api/v1/accounts/:account_id/attachments/:attachment_id` returns one
-  attachment.
-- `GET /api/v1/accounts/:account_id/attachments/:attachment_id/masked_text`
-  extracts and masks PDF text.
-- `POST /api/v1/accounts/:account_id/attachments/:attachment_id/masked_attachments`
-  exports a generated masked PDF and records masked output metadata.
-- `GET/POST /api/v1/accounts/:account_id/attachments/:attachment_id/sensitive_data`
-  reads or creates sensitive data for an attachment.
+- `POST /api/v1/attachments/upload` uploads a PDF for the Bearer token account
+  and creates attachment metadata.
+- `DELETE /api/v1/attachments/:attachment_id` deletes an attachment owned by
+  the Bearer token account, including dependent metadata, original file, and
+  masked PDF files.
+- `GET /api/v1/attachments/:attachment_id` returns one attachment owned by the
+  Bearer token account.
+- `GET /api/v1/attachments/:attachment_id/masked_text` extracts and masks PDF
+  text for an attachment owned by the Bearer token account.
+- `POST /api/v1/attachments/:attachment_id/masked_attachments` exports a
+  generated masked PDF and records masked output metadata for an attachment
+  owned by the Bearer token account.
+- `GET/POST /api/v1/attachments/:attachment_id/sensitive_data` reads or creates
+  sensitive data for an attachment owned by the Bearer token account.
 
 ### Roda Routing
 
@@ -221,6 +230,9 @@ Migration files:
 - **Test data:** Seed data in `db/seeds/*.yml`
 - **Test labels:** Tests are labeled HAPPY/SAD to indicate success/failure paths
 - **Setup:** Tests clear database tables before each test
+- **DB isolation:** Specs share `db/local/test.db`; `spec/spec_helper.rb` holds
+  `tmp/test-db.lock` for the full process so concurrent spec commands do not
+  wipe the same SQLite DB simultaneously.
 
 ### Code Style
 
@@ -242,9 +254,14 @@ All markdown files must be kept lint-free:
 - Uses `rbnacl` gem for cryptographic operations (encryption + keyed HMAC-SHA256 hashing)
 - Personal data handling for secure resume/document sharing
 - Masked PDF export is a text-based visual masking approximation for
-  text-based PDFs, not a formal PDF redaction engine.
+  text-based PDFs, not a formal PDF redaction engine. It shells out to the
+  Python pdfplumber/reportlab processor and writes temporary payload JSON under
+  `tmp/` during processing.
 - API enforces TLS/SSL through `HttpRequest#secure?`; local development uses
   `SECURE_SCHEME: HTTP`, while production should use `SECURE_SCHEME: HTTPS`.
+- Mailgun settings (`MAILGUN_API_KEY`, `MAILGUN_DOMAIN`,
+  `MAILGUN_FROM_EMAIL`, `MAILGUN_FROM_NAME`) are required for development
+  registration emails. Test can use dummy values because specs stub Mailgun.
 - Do not expose plaintext passwords, password digests, encrypted columns, or
   lookup hashes in API responses.
 - Missing, invalid, or expired auth tokens return `401`; authenticated callers

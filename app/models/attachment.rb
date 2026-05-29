@@ -14,7 +14,10 @@ module LockedCV
     many_to_one :account, class: :'LockedCV::Account', key: :account_id
     one_to_one :sensitive_data, class: :'LockedCV::SensitiveData', key: :attachment_id
     one_to_many :masked_attachments, class: :'LockedCV::MaskedAttachment', key: :attachment_id
-    add_association_dependencies sensitive_data: :destroy, masked_attachments: :destroy
+    one_to_many :attachment_permissions, class: :'LockedCV::AttachmentPermission', key: :attachment_id
+    add_association_dependencies sensitive_data: :destroy,
+                                 masked_attachments: :destroy,
+                                 attachment_permissions: :destroy
 
     def owner
       accounts_in_role('owner').first
@@ -22,10 +25,6 @@ module LockedCV
 
     def viewers_masked
       accounts_in_role('viewer_masked')
-    end
-
-    def viewers_full
-      accounts_in_role('viewer_full')
     end
 
     def accounts_in_role(role_name)

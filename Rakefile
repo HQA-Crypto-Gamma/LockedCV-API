@@ -71,7 +71,7 @@ namespace :db do
 
   desc 'Load all models'
   task :load_models do
-    require_app(%w[models services])
+    require_app(%w[models policies services])
     @app = LockedCV::Api
   end
 
@@ -86,6 +86,7 @@ namespace :db do
     LockedCV::MaskedItem.dataset.destroy
     LockedCV::MaskedAttachment.dataset.destroy
     LockedCV::SensitiveData.dataset.destroy
+    LockedCV::AttachmentPermission.dataset.destroy
     LockedCV::Attachment.dataset.destroy
     @app.DB[:accounts_roles].delete
     LockedCV::Role.dataset.destroy
@@ -95,6 +96,17 @@ namespace :db do
   desc 'Reset seed tracking'
   task reset_seeds: :load do
     @app.DB[:schema_seeds].delete if @app.DB.tables.include?(:schema_seeds)
+  end
+
+  desc 'Delete uploaded files for the current local environment'
+  task clear_storage: :load_models do
+    if @app.environment == :production
+      puts 'Cannot wipe production storage!'
+      return
+    end
+
+    FileUtils.rm_rf(LockedCV::ResolveAttachmentPath::STORAGE_ROOT)
+    puts "Deleted #{LockedCV::ResolveAttachmentPath::STORAGE_ROOT}"
   end
 
   desc 'Delete dev or test database file'
@@ -153,17 +165,16 @@ namespace :db do
       puts "- Account #{username} already exists (id=#{account.id})"
     end
 
-    admin_role = LockedCV::Role.first(name: 'admin')
-    if account.system_roles_dataset.where(name: 'admin').any?
-      puts "  - already has 'admin'"
-    else
-      account.add_system_role(admin_role)
+    result = LockedCV::SetSystemRoleService.call(account:, role_name: 'admin')
+    if result.created?
       puts "  + granted 'admin'"
+    else
+      puts "  - already has 'admin'"
     end
   end
 
   desc 'Delete all data and reseed'
-  task reseed: %i[delete reset_seeds seed]
+  task reseed: %i[delete clear_storage reset_seeds seed]
 end
 
 namespace :newkey do

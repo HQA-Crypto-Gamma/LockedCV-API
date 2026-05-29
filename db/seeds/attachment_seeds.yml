@@ -1,5 +1,5 @@
 - attachment_name: resume_ada.pdf
-  route: /uploads/resume_ada.pdf
+  route: accounts/seed/resume_ada.pdf
 
 - attachment_name: resume_alan.pdf
-  route: /uploads/resume_alan.pdf
+  route: accounts/seed/resume_alan.pdf

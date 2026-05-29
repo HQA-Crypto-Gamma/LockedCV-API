@@ -91,6 +91,25 @@ describe 'Service Objects' do
     _(target.reload.system_roles.map(&:name)).must_equal ['admin']
   end
 
+  it 'HAPPY: setting admin removes the default member system role' do
+    admin_role = LockedCV::Role.create(name: 'admin')
+    admin = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+    )
+    target = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+    )
+    admin.add_system_role(admin_role)
+
+    LockedCV::AssignSystemRoleService.call(
+      current_account: admin,
+      target_username: target.username,
+      role_name: 'admin'
+    )
+
+    _(target.reload.system_roles.map(&:name)).must_equal ['admin']
+  end
+
   it 'HAPPY: assigning an already assigned system role is idempotent' do
     admin_role = LockedCV::Role.create(name: 'admin')
     admin = LockedCV::CreateAccountService.call(

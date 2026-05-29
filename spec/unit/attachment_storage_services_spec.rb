@@ -23,6 +23,13 @@ describe 'Attachment Storage Services' do
     }
   end
 
+  it 'HAPPY: isolates attachment storage by Rack environment' do
+    root = LockedCV::ResolveAttachmentPath::STORAGE_ROOT
+
+    _(root).must_equal File.expand_path('storage/test/uploads', Dir.pwd)
+    _(root).wont_equal File.expand_path('storage/development/uploads', Dir.pwd)
+  end
+
   it 'HAPPY: stores uploaded PDFs under controlled local storage' do
     pdf = Tempfile.new(['lockedcv-upload', '.pdf'])
     write_text_pdf(pdf.path, 'Stored PDF text')
