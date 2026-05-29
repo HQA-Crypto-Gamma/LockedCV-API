@@ -155,6 +155,7 @@ describe 'Attachment Endpoints' do
     ensure
       pdf&.close!
     end
+
   end
 
   describe 'GET /api/v1/attachments' do
