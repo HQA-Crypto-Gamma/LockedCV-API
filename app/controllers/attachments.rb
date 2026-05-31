@@ -104,8 +104,7 @@ module LockedCV
 
         # GET api/v1/attachments/[attachment_id]
         routing.get do
-          attachment = authorized_attachment!(attachment_id, current_account, :access?)
-          policy = AttachmentPolicy.new(current_account, attachment)
+          attachment, policy = authorized_attachment_with_policy!(attachment_id, current_account, :access?)
           output = JSON.parse(attachment.to_json).merge(policy: policy.summary)
 
           JSON.pretty_generate(output)
@@ -141,9 +140,14 @@ module LockedCV
     class AttachmentNotAuthorizedError < StandardError; end
 
     def authorized_attachment!(attachment_id, current_account, policy_action)
+      attachment, _policy = authorized_attachment_with_policy!(attachment_id, current_account, policy_action)
+      attachment
+    end
+
+    def authorized_attachment_with_policy!(attachment_id, current_account, policy_action)
       attachment = Attachment.first(id: attachment_id.to_s)
       policy = AttachmentPolicy.new(current_account, attachment)
-      return attachment if attachment && policy.public_send(policy_action)
+      return [attachment, policy] if attachment && policy.public_send(policy_action)
 
       raise AttachmentNotAuthorizedError
     rescue Sequel::Error
