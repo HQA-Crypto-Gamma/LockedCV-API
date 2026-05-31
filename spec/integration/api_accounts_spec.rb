@@ -183,6 +183,18 @@ describe 'Account Endpoints' do
       _(json_body.dig('data', 'attributes').keys).wont_include 'password_digest'
     end
 
+    it 'HAPPY: allows current account reads from read-only tokens' do
+      account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+      read_only = LockedCV::AuthScope.new(LockedCV::AuthScope::READ_ONLY)
+
+      get '/api/v1/account', {}, auth_header(account, scope: read_only)
+
+      _(last_response.status).must_equal 200
+      _(json_body.dig('data', 'attributes', 'id')).must_equal account.id
+    end
+
     it 'SECURITY: returns 401 without bearer token' do
       get '/api/v1/account'
 
@@ -225,8 +237,73 @@ describe 'Account Endpoints' do
       _(attributes.keys).wont_include 'email_secure'
     end
 
+    it 'SECURITY: rejects profile updates from read-only tokens' do
+      account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+      read_only = LockedCV::AuthScope.new(LockedCV::AuthScope::READ_ONLY)
+
+      put '/api/v1/account', { first_name: 'Ada' }.to_json, auth_req_header(account, scope: read_only)
+
+      _(last_response.status).must_equal 403
+      _(json_body).must_equal('message' => 'Read-only tokens cannot update accounts')
+    end
+
     it 'SECURITY: returns 401 without bearer token' do
       put '/api/v1/account', { first_name: 'Ada' }.to_json, req_header
+
+      _(last_response.status).must_equal 401
+      _(json_body).must_equal('message' => 'Missing authorization token')
+    end
+  end
+
+  describe 'GET /api/v1/accounts/:username' do
+    before do
+      @admin_role = LockedCV::Role.create(name: 'admin')
+      @admin = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+      )
+      @target = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+      )
+      LockedCV::SetSystemRoleService.call(account: @admin, role_name: @admin_role.name)
+    end
+
+    it 'HAPPY: returns account details with a read-only API token for self' do
+      get "/api/v1/accounts/#{@target.username}", nil, auth_header(@target)
+
+      _(last_response.status).must_equal 200
+      data = json_body['data']
+      account = data.dig('attributes', 'account')
+      api_token = data.dig('attributes', 'auth_token')
+      loaded_token = LockedCV::AuthToken.load(api_token)
+
+      _(data['type']).must_equal 'authorized_account'
+      _(account.dig('data', 'attributes', 'id')).must_equal @target.id
+      _(account.dig('data', 'attributes', 'username')).must_equal @target.username
+      _(loaded_token.scope).must_equal LockedCV::AuthScope::READ_ONLY
+      _(loaded_token.payload['account_id']).must_equal @target.id
+    end
+
+    it 'HAPPY: lets admins request a read-only API token for another account' do
+      get "/api/v1/accounts/#{@target.username}", nil, auth_header(@admin)
+
+      _(last_response.status).must_equal 200
+      api_token = json_body.dig('data', 'attributes', 'auth_token')
+
+      _(LockedCV::AuthToken.load(api_token).scope).must_equal LockedCV::AuthScope::READ_ONLY
+      _(LockedCV::AuthToken.load(api_token).payload['account_id']).must_equal @target.id
+    end
+
+    it 'SECURITY: hides account details from unrelated members' do
+      get "/api/v1/accounts/#{@admin.username}", nil, auth_header(@target)
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Account not found')
+    end
+
+    it 'SECURITY: requires a bearer token' do
+      get "/api/v1/accounts/#{@target.username}"
 
       _(last_response.status).must_equal 401
       _(json_body).must_equal('message' => 'Missing authorization token')

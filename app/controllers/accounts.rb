@@ -9,10 +9,15 @@ module LockedCV
     route('account') do |routing|
       @account_route = "#{@api_root}/account"
       current_account = current_account!(routing)
+      auth_scope = current_auth_scope!(routing)
 
       routing.on 'password' do
         # PUT api/v1/account/password
         routing.put do
+          unless AccountPolicy.new(current_account, current_account, auth_scope:).change_password?
+            routing.halt 403, { message: 'Read-only tokens cannot change passwords' }.to_json
+          end
+
           password_data = HttpRequest.new(routing).body_data
           ChangePasswordService.call(account_id: current_account.id, password_data:)
 
@@ -29,6 +34,10 @@ module LockedCV
 
       # PUT api/v1/account
       routing.put do
+        unless AccountPolicy.new(current_account, current_account, auth_scope:).update?
+          routing.halt 403, { message: 'Read-only tokens cannot update accounts' }.to_json
+        end
+
         updated_data = HttpRequest.new(routing).body_data
         account = UpdateAccountService.call(account_id: current_account.id, account_data: updated_data)
 
@@ -43,6 +52,10 @@ module LockedCV
 
       # GET api/v1/account
       routing.get do
+        unless AccountPolicy.new(current_account, current_account, auth_scope:).view?
+          routing.halt 403, { message: 'Forbidden account access' }.to_json
+        end
+
         current_account.to_json
       end
     end
@@ -68,6 +81,24 @@ module LockedCV
       end
 
       routing.on String do |account_id|
+        # GET api/v1/accounts/[username]
+        # Returns account details plus a READ_ONLY API token for CLI/deputy use.
+        routing.get do
+          authenticated_authorization!(routing)
+          authorized = AuthorizeAccountService.call(
+            auth: @auth,
+            username: account_id,
+            auth_scope: AuthScope::READ_ONLY
+          )
+
+          { data: authorized.to_h }.to_json
+        rescue AuthorizeAccountService::ForbiddenError
+          routing.halt 404, { message: 'Account not found' }.to_json
+        rescue StandardError => e
+          Api.logger.error "UNKNOWN ERROR: #{e.message}"
+          routing.halt 500, { message: 'Database error' }.to_json
+        end
+
         routing.on 'system_roles' do
           routing.on String do |role_name|
             # PUT api/v1/accounts/[username]/system_roles/[role_name]
@@ -183,23 +214,17 @@ module LockedCV
     private
 
     def authenticated_account!(routing)
-      token = authenticated_token!(routing)
-      token.payload
+      authenticated_authorization!(routing).account
     end
 
-    def authenticated_token!(routing)
-      token = HttpRequest.new(routing).authenticated_token
-      routing.halt 401, { message: 'Missing authorization token' }.to_json unless token
+    def authenticated_authorization!(routing)
+      routing.halt 401, { message: 'Missing authorization token' }.to_json unless @auth
 
-      token
-    rescue AuthToken::ExpiredTokenError
-      routing.halt 401, { message: 'Expired authorization token' }.to_json
-    rescue AuthToken::InvalidTokenError
-      routing.halt 401, { message: 'Invalid authorization token' }.to_json
+      @auth
     end
 
     def current_auth_scope!(routing)
-      AuthScope.new(authenticated_token!(routing).scope)
+      authenticated_authorization!(routing).scope
     end
 
     def current_account!(routing)
@@ -223,6 +248,5 @@ module LockedCV
 
       routing.halt 403, { message: forbidden_message }.to_json
     end
-
   end
 end

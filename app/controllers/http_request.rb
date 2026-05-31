@@ -32,13 +32,17 @@ module LockedCV
       authenticated_token&.payload
     end
 
-    # token.scope is the serialized string stored in the bearer token.
-    # AuthScope is the parsed object policies use for can_read?/can_write?.
-    def auth_scope
+    def authorized_account
       token = authenticated_token
       return nil unless token
 
-      AuthScope.new(token.scope)
+      AuthorizedAccount.new(token.payload, token.scope)
+    end
+
+    # token.scope is the serialized string stored in the bearer token.
+    # AuthScope is the parsed object policies use for can_read?/can_write?.
+    def auth_scope
+      authorized_account&.scope
     end
   end
 end

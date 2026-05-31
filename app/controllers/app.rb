@@ -18,6 +18,15 @@ module LockedCV
       HttpRequest.new(routing).secure? ||
         routing.halt(403, { message: 'TLS/SSL Required' }.to_json)
 
+      begin
+        @auth = HttpRequest.new(routing).authorized_account
+        @auth_account = @auth&.account
+      rescue AuthToken::ExpiredTokenError
+        routing.halt 401, { message: 'Expired authorization token' }.to_json
+      rescue AuthToken::InvalidTokenError
+        routing.halt 401, { message: 'Invalid authorization token' }.to_json
+      end
+
       routing.root do
         { message: 'LockedCV API up at /api/v1' }.to_json
       end

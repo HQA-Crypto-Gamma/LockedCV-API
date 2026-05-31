@@ -64,6 +64,15 @@ describe 'Change Password Endpoint' do
     _(json_body).must_equal('message' => 'Missing authorization token')
   end
 
+  it 'SECURITY: rejects password changes from read-only tokens' do
+    read_only = LockedCV::AuthScope.new(LockedCV::AuthScope::READ_ONLY)
+
+    put '/api/v1/account/password', password_payload.to_json, auth_req_header(@account, scope: read_only)
+
+    _(last_response.status).must_equal 403
+    _(json_body).must_equal('message' => 'Read-only tokens cannot change passwords')
+  end
+
   def password_payload(overrides = {})
     {
       current_password: @account_data[:password],
