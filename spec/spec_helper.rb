@@ -82,18 +82,18 @@ module LockedCV
       { 'CONTENT_TYPE' => 'application/json' }
     end
 
-    def auth_header(account)
+    def auth_header(account, scope: LockedCV::AuthScope.new())
       token = LockedCV::AuthToken.new({
         'account_id' => account.id,
         'username' => account.username,
         'email' => account.email
-      }).to_s
+      }, scope:).to_s
 
       { 'HTTP_AUTHORIZATION' => "Bearer #{token}" }
     end
 
-    def auth_req_header(account)
-      req_header.merge(auth_header(account))
+    def auth_req_header(account, scope: LockedCV::AuthScope.new())
+      req_header.merge(auth_header(account, scope:))
     end
 
     def json_body

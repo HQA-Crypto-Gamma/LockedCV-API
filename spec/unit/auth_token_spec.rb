@@ -58,6 +58,16 @@ describe LockedCV::AuthToken do
     _ { loaded.scope }.must_raise LockedCV::AuthToken::ExpiredTokenError
   end
 
+  it 'SECURITY: rejects token scope access when scope is missing' do
+    token = LockedCV::AuthToken.tokenize(
+      'payload' => { 'account_id' => 'account-123' },
+      'exp' => (Time.now + LockedCV::AuthToken::ONE_WEEK).to_i
+    )
+    loaded = LockedCV::AuthToken.load(token)
+
+    _ { loaded.scope }.must_raise LockedCV::AuthToken::InvalidTokenError
+  end
+
   it 'SECURITY: rejects invalid tokens' do
     _ { LockedCV::AuthToken.load('not-a-real-token') }
       .must_raise LockedCV::AuthToken::InvalidTokenError

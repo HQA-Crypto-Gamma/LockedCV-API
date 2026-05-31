@@ -57,6 +57,7 @@ module LockedCV
 
     def scope
       raise ExpiredTokenError if expired?
+      raise InvalidTokenError unless @scope.is_a?(String)
 
       @scope
     end

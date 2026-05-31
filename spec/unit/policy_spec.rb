@@ -50,6 +50,16 @@ describe 'Resource policies' do
     )
   end
 
+  it 'applies auth scope to account capabilities' do
+    read_only = LockedCV::AuthScope.new(LockedCV::AuthScope::READ_ONLY)
+
+    _(LockedCV::AccountPolicy.new(@admin, @admin, auth_scope: read_only).capabilities).must_equal(
+      can_manage_accounts: true,
+      can_manage_system_roles: false,
+      can_upload_attachments: false
+    )
+  end
+
   it 'authorizes attachments by ownership' do
     owner_policy = LockedCV::AttachmentPolicy.new(@owner, @attachment)
     other_policy = LockedCV::AttachmentPolicy.new(@other, @attachment)
@@ -64,6 +74,16 @@ describe 'Resource policies' do
     _(other_policy.view_masked?).must_equal false
     _(other_policy.access?).must_equal false
     _(other_policy.delete?).must_equal false
+  end
+
+  it 'applies auth scope to attachment writes' do
+    read_only = LockedCV::AuthScope.new(LockedCV::AuthScope::READ_ONLY)
+    policy = LockedCV::AttachmentPolicy.new(@owner, @attachment, auth_scope: read_only)
+
+    _(policy.view?).must_equal true
+    _(policy.view_masked?).must_equal true
+    _(policy.upload?).must_equal false
+    _(policy.delete?).must_equal false
   end
 
   it 'authorizes masked viewers through attachment permissions' do

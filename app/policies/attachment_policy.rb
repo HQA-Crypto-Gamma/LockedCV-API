@@ -3,19 +3,22 @@
 module LockedCV
   # Authorization policy for uploaded attachment resources.
   class AttachmentPolicy
-    attr_reader :current_account, :attachment
+    RESOURCE = 'attachments'
 
-    def initialize(current_account, attachment)
+    attr_reader :current_account, :attachment, :auth_scope
+
+    def initialize(current_account, attachment, auth_scope: AuthScope.new())
       @current_account = current_account
       @attachment = attachment
+      @auth_scope = auth_scope
     end
 
     def view?
-      owner?
+      can_read? && owner?
     end
 
     def view_masked?
-      owner? || viewer_masked?
+      can_read? && (owner? || viewer_masked?)
     end
 
     # Umbrella visibility check for lists/route gates.
@@ -25,11 +28,11 @@ module LockedCV
     end
 
     def upload?
-      current_account&.member? || current_account&.admin? || false
+      can_write? && (current_account&.member? || current_account&.admin? || false)
     end
 
     def delete?
-      owner?
+      can_write? && owner?
     end
 
     def owner?
@@ -64,6 +67,14 @@ module LockedCV
       return 'viewer_masked' if viewer_masked?
 
       nil
+    end
+
+    def can_read?
+      auth_scope.can_read?(RESOURCE)
+    end
+
+    def can_write?
+      auth_scope.can_write?(RESOURCE)
     end
   end
 end
