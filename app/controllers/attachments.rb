@@ -14,10 +14,7 @@ module LockedCV
       routing.on 'upload' do
         # POST api/v1/attachments/upload
         routing.post do
-          halt_forbidden(routing, 'Only members can upload attachments') unless
-            AttachmentPolicy.new(current_account, nil, auth_scope:).upload?
-
-          upload_attachment_for(routing, account_id: current_account.id, location_base: @attachment_route)
+          upload_attachment_for(routing, current_account:, auth_scope:, location_base: @attachment_route)
         end
       end
 
@@ -115,10 +112,7 @@ module LockedCV
 
         # DELETE api/v1/attachments/[attachment_id]
         routing.delete do
-          authorized_attachment!(attachment_id, current_account, auth_scope, :delete?)
-          delete_attachment_for(routing, account_id: current_account.id, attachment_id:)
-        rescue AttachmentNotAuthorizedError
-          routing.halt 404, { message: 'Attachment not found' }.to_json
+          delete_attachment_for(routing, current_account:, auth_scope:, attachment_id:)
         end
       end
 
@@ -159,9 +153,10 @@ module LockedCV
       routing.halt 403, { message: }.to_json
     end
 
-    def upload_attachment_for(routing, account_id:, location_base:)
+    def upload_attachment_for(routing, current_account:, auth_scope:, location_base:)
       attachment = UploadAttachmentFile.call(
-        account_id:,
+        current_account:,
+        auth_scope:,
         uploaded_file: routing.params['file'],
         original_filename: routing.params['original_filename']
       )
@@ -169,6 +164,8 @@ module LockedCV
       response.status = 201
       response['Location'] = "#{location_base}/#{attachment.id}"
       { message: 'Attachment saved', data: attachment }.to_json
+    rescue UploadAttachmentFile::NotAuthorizedError
+      routing.halt 403, { message: 'Only members can upload attachments' }.to_json
     rescue CreateAttachmentService::AccountNotFoundError
       routing.halt 404, { message: 'Account not found' }.to_json
     rescue StoreAttachmentFile::MissingFileError, StoreAttachmentFile::InvalidFileError,
@@ -179,11 +176,11 @@ module LockedCV
       routing.halt 400, { message: 'Could not upload attachment' }.to_json
     end
 
-    def delete_attachment_for(routing, account_id:, attachment_id:)
-      DeleteAttachmentService.call(account_id:, attachment_id:)
+    def delete_attachment_for(routing, current_account:, auth_scope:, attachment_id:)
+      DeleteAttachmentService.call(current_account:, attachment_id:, auth_scope:)
 
       { message: 'Attachment deleted' }.to_json
-    rescue DeleteAttachmentService::AttachmentNotFoundError
+    rescue DeleteAttachmentService::AttachmentNotFoundError, DeleteAttachmentService::NotAuthorizedError
       routing.halt 404, { message: 'Attachment not found' }.to_json
     rescue StandardError => e
       Api.logger.error "ATTACHMENT DELETE ERROR: #{e.message}"

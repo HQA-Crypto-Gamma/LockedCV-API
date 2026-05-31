@@ -14,14 +14,12 @@ module LockedCV
       routing.on 'password' do
         # PUT api/v1/account/password
         routing.put do
-          unless AccountPolicy.new(current_account, current_account, auth_scope:).change_password?
-            routing.halt 403, { message: 'Read-only tokens cannot change passwords' }.to_json
-          end
-
           password_data = HttpRequest.new(routing).body_data
-          ChangePasswordService.call(account_id: current_account.id, password_data:)
+          ChangePasswordService.call(current_account:, password_data:, auth_scope:)
 
           { message: 'Password updated' }.to_json
+        rescue ChangePasswordService::NotAuthorizedError
+          routing.halt 403, { message: 'Read-only tokens cannot change passwords' }.to_json
         rescue ChangePasswordService::InvalidCurrentPasswordError
           routing.halt 400, { message: 'Current password is incorrect' }.to_json
         rescue ChangePasswordService::InvalidPasswordError
@@ -34,14 +32,12 @@ module LockedCV
 
       # PUT api/v1/account
       routing.put do
-        unless AccountPolicy.new(current_account, current_account, auth_scope:).update?
-          routing.halt 403, { message: 'Read-only tokens cannot update accounts' }.to_json
-        end
-
         updated_data = HttpRequest.new(routing).body_data
-        account = UpdateAccountService.call(account_id: current_account.id, account_data: updated_data)
+        account = UpdateAccountService.call(current_account:, account_data: updated_data, auth_scope:)
 
         { message: 'Account updated', data: account }.to_json
+      rescue UpdateAccountService::NotAuthorizedError
+        routing.halt 403, { message: 'Read-only tokens cannot update accounts' }.to_json
       rescue Sequel::MassAssignmentRestriction
         Api.logger.warn("MASS_ASSIGNMENT_ATTEMPT keys=#{updated_data.keys}")
         routing.halt 400, { message: 'Illegal attributes' }.to_json
@@ -109,13 +105,8 @@ module LockedCV
 
               target_account = Account.first(username: account_id)
               routing.halt 404, { message: 'Account not found' }.to_json unless target_account
-              unless AccountPolicy.new(current_account, target_account, auth_scope:).assign_system_role?
-                message = current_account.id == target_account.id ? 'Admins cannot change their own system role' : 'Only admins can manage system roles'
-                routing.halt 403, { message: }.to_json
-              end
-
               result = AssignSystemRoleService.call(
-                current_account:, target_username: account_id, role_name:
+                current_account:, target_username: account_id, role_name:, auth_scope:
               )
 
               response.status = result.created? ? 201 : 200
@@ -139,14 +130,10 @@ module LockedCV
           auth_scope = current_auth_scope!(routing)
           target_account = Account.first(id: account_id)
           routing.halt 404, { message: 'Account not found' }.to_json unless target_account
-          unless AccountPolicy.new(current_account, target_account, auth_scope:).delete?
-            message = current_account.id == target_account.id ? 'Admins cannot delete their own account' : 'Only admins can delete accounts'
-            routing.halt 403, { message: }.to_json
-          end
-
           DeleteAccountService.call(
             current_account:,
-            target_account_id: account_id
+            target_account_id: account_id,
+            auth_scope:
           )
 
           { message: 'Account deleted' }.to_json

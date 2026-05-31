@@ -6,10 +6,12 @@ module LockedCV
     class AccountNotFoundError < StandardError; end
     class InvalidCurrentPasswordError < StandardError; end
     class InvalidPasswordError < StandardError; end
+    class NotAuthorizedError < StandardError; end
 
-    def self.call(account_id:, password_data:)
-      account = FindAccountService.call(account_id:)
+    def self.call(current_account:, password_data:, auth_scope: AuthScope.new())
+      account = FindAccountService.call(account_id: current_account&.id)
       raise AccountNotFoundError unless account
+      raise NotAuthorizedError unless AccountPolicy.new(current_account, account, auth_scope:).change_password?
 
       validate!(account, password_data)
       account.password = password_data[:password]
