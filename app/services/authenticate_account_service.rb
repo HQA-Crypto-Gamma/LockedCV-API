@@ -44,11 +44,11 @@ module LockedCV
     private_class_method :authenticated_account
 
     def self.auth_token_for(account)
-      AuthToken.new(
+      AuthToken.new({
         'account_id' => account.id,
         'username' => account.username,
         'email' => account.email
-      ).to_s
+      }).to_s
     end
     private_class_method :auth_token_for
   end

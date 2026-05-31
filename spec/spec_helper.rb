@@ -83,11 +83,11 @@ module LockedCV
     end
 
     def auth_header(account)
-      token = LockedCV::AuthToken.new(
+      token = LockedCV::AuthToken.new({
         'account_id' => account.id,
         'username' => account.username,
         'email' => account.email
-      ).to_s
+      }).to_s
 
       { 'HTTP_AUTHORIZATION' => "Bearer #{token}" }
     end
