@@ -183,9 +183,16 @@ Migration files:
   Mailgun verification email using the `verification_url` supplied by the App.
   The API does not create or persist registration tokens.
 - Protected routes use `Authorization: Bearer <TOKEN>`.
+- Auth tokens carry scope outside the identity payload. Login/session tokens use
+  `*:write`; account API keys use read-only `*:read`.
+- Missing scope is treated as an invalid token. After scope-token deploys, old
+  App sessions may need to be cleared or users may need to log in again.
 - `GET /api/v1/account` returns the current account from the token.
 - `PUT /api/v1/account` updates the current account from the token.
 - `PUT /api/v1/account/password` changes the current account password.
+- `GET /api/v1/accounts/:username` returns an `authorized_account` envelope:
+  safe account details plus a freshly minted read-only API key at
+  `data.attributes.auth_token`.
 - `GET /api/v1/attachments` lists the current account attachments from the
   token.
 - `GET /api/v1/accounts` lists accounts for admins; caller identity comes from
@@ -213,6 +220,10 @@ Migration files:
   owned by the Bearer token account.
 - `GET/POST /api/v1/attachments/:attachment_id/sensitive_data` reads or creates
   sensitive data for an attachment owned by the Bearer token account.
+- Read-only `*:read` tokens may read resources allowed by policy but must not
+  mutate state. Write service objects also enforce scope for profile updates,
+  password changes, system-role assignment, account deletion, attachment
+  upload, and attachment deletion.
 
 ### Roda Routing
 
@@ -252,6 +263,9 @@ All markdown files must be kept lint-free:
 ## Security
 
 - Uses `rbnacl` gem for cryptographic operations (encryption + keyed HMAC-SHA256 hashing)
+- Scoped authorization combines system/resource policy checks with
+  `AuthScope#can_read?` and `AuthScope#can_write?`. An admin using a read-only
+  API key is still blocked from write actions.
 - Personal data handling for secure resume/document sharing
 - Masked PDF export is a text-based visual masking approximation for
   text-based PDFs, not a formal PDF redaction engine. It shells out to the

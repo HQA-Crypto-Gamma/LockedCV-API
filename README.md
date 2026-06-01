@@ -10,7 +10,8 @@ A Ruby web API for the Crypto γ SEC project that allows accounts to securely sh
 - Role foundation with `roles` and `accounts_roles` (many-to-many)
 - PDF attachment upload, masked-text preview, and masked PDF export support
 - Admin-only system role assignment and account listing
-- Token-based authorization with `Authorization: Bearer <TOKEN>`
+- Scoped token-based authorization with `Authorization: Bearer <TOKEN>`
+- Read-only account API keys for CLI/deputy access
 - JSON response format
 
 ## Prerequisites
@@ -129,7 +130,8 @@ http -v --json POST localhost:9000/api/v1/auth/authenticate \
 
 Successful authentication returns safe account information for the client
 session, including account ID, username, email, roles, and an `auth_token`.
-Invalid credentials return `403` with a JSON error message.
+Login/session tokens carry full authorization scope (`*:write`). Invalid
+credentials return `403` with a JSON error message.
 
 Use the returned token on protected API requests:
 
@@ -140,6 +142,10 @@ http -v GET localhost:9000/api/v1/account \
 
 Missing, invalid, or expired tokens return `401`. Authenticated callers without
 permission return `403`.
+
+Auth tokens carry scope outside the identity payload. Read-only API keys use
+`*:read`: they can read permitted resources, but cannot update profiles, change
+passwords, upload attachments, delete attachments/accounts, or assign roles.
 
 #### Send Registration Verification Email
 
@@ -167,6 +173,54 @@ after the user follows the email link and completes the form.
 http -v GET localhost:9000/api/v1/account \
   Authorization:"Bearer <auth_token>"
 ```
+
+Read-only API keys can call this route. Write actions require a full-scope
+session token.
+
+#### Get Account Details and Read-only API Key
+
+**GET** `/api/v1/accounts/:username`
+
+```bash
+http -v GET localhost:9000/api/v1/accounts/jane_smith \
+  Authorization:"Bearer <auth_token>"
+```
+
+Returns an `authorized_account` envelope containing safe account details and a
+fresh read-only API key:
+
+```json
+{
+  "data": {
+    "type": "authorized_account",
+    "attributes": {
+      "account": {
+        "data": {
+          "type": "account",
+          "attributes": {
+            "id": "account-uuid",
+            "username": "jane_smith",
+            "email": "jane@example.com"
+          }
+        }
+      },
+      "auth_token": "encrypted-read-only-token"
+    }
+  }
+}
+```
+
+The returned token is scoped as `*:read`. The account owner can use it from the
+command line:
+
+```bash
+API_KEY="<encrypted-read-only-token>"
+http GET localhost:9000/api/v1/account Authorization:"Bearer $API_KEY"
+http GET localhost:9000/api/v1/attachments Authorization:"Bearer $API_KEY"
+```
+
+Admins may request account details for other accounts; the returned token still
+represents the target account and remains read-only.
 
 #### Update Current Account
 
@@ -261,6 +315,8 @@ http -v --json PUT localhost:9000/api/v1/accounts/jane_smith/system_roles/member
 ```
 
 Only accounts with the `admin` system role can assign system roles.
+This route requires write scope; read-only API keys are rejected even when the
+underlying account has the `admin` role.
 
 ### Attachment Endpoints
 
@@ -284,6 +340,7 @@ file header, generates a safe storage route, and records the display filename in
 
 The API finds the account from the Bearer token; clients should prefer this
 route for current-account uploads.
+This route requires write scope. Read-only API keys return `403`.
 
 #### Get Current Account Attachments
 
