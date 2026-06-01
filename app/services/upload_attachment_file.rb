@@ -3,17 +3,21 @@
 module LockedCV
   # Stores an uploaded PDF and creates the attachment metadata record.
   class UploadAttachmentFile
-    def self.call(account_id:, uploaded_file:, original_filename: nil)
-      new(account_id:, uploaded_file:, original_filename:).call
+    class NotAuthorizedError < StandardError; end
+
+    def self.call(current_account:, uploaded_file:, original_filename: nil, auth_scope: AuthScope.new())
+      new(current_account:, uploaded_file:, original_filename:, auth_scope:).call
     end
 
-    def initialize(account_id:, uploaded_file:, original_filename: nil)
-      @account_id = account_id
+    def initialize(current_account:, uploaded_file:, original_filename: nil, auth_scope: AuthScope.new())
+      @current_account = current_account
       @uploaded_file = uploaded_file
       @original_filename = original_filename.to_s.strip
+      @auth_scope = auth_scope
     end
 
     def call
+      raise NotAuthorizedError unless AttachmentPolicy.new(current_account, nil, auth_scope:).upload?
       raise StoreAttachmentFile::MissingFileError unless uploaded_file
       raise CreateAttachmentService::AccountNotFoundError unless FindAccountService.call(account_id:)
 
@@ -26,7 +30,11 @@ module LockedCV
 
     private
 
-    attr_reader :account_id, :uploaded_file, :original_filename
+    attr_reader :current_account, :uploaded_file, :original_filename, :auth_scope
+
+    def account_id
+      current_account&.id
+    end
 
     def create_attachment(route:)
       CreateAttachmentService.call(

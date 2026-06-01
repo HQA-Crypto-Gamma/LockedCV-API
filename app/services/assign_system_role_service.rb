@@ -11,21 +11,22 @@ module LockedCV
       alias_method :created?, :created
     end
 
-    # NOTE: role-checking belongs in a Policy object once authorization is formalized.
-    def self.call(current_account:, target_username:, role_name:)
-      authorize_admin!(current_account)
+    def self.call(current_account:, target_username:, role_name:, auth_scope: AuthScope.new())
       find_system_role!(role_name)
       target = find_target_account!(target_username)
+      authorize_assignment!(current_account, target, auth_scope)
 
       result = SetSystemRoleService.call(account: target, role_name:)
       Result.new(account: result.account, created: result.created?)
     end
 
-    def self.authorize_admin!(current_account)
-      return if current_account&.admin?
+    def self.authorize_assignment!(current_account, target, auth_scope)
+      return if AccountPolicy.new(current_account, target, auth_scope:).assign_system_role?
 
-      raise NotAuthorizedError, 'Only admins can manage system roles'
+      message = current_account&.id == target&.id ? 'Admins cannot change their own system role' : 'Only admins can manage system roles'
+      raise NotAuthorizedError, message
     end
+    private_class_method :authorize_assignment!
 
     def self.find_system_role!(role_name)
       raise UnknownRoleError, role_name unless Role::SYSTEM_ROLES.include?(role_name)
@@ -36,6 +37,5 @@ module LockedCV
     def self.find_target_account!(target_username)
       Account.first(username: target_username) or raise UnknownAccountError
     end
-
   end
 end

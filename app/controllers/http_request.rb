@@ -18,14 +18,31 @@ module LockedCV
       raw.empty? ? {} : JSON.parse(raw, symbolize_names: true)
     end
 
-    def authenticated_account
+    def authenticated_token
       header = @routing.env['HTTP_AUTHORIZATION']
       return nil unless header
 
       scheme, token = header.split(' ', 2)
       return nil unless scheme&.casecmp('Bearer')&.zero? && token
 
-      AuthToken.load(token).payload
+      AuthToken.load(token)
+    end
+
+    def authenticated_account
+      authenticated_token&.payload
+    end
+
+    def authorized_account
+      token = authenticated_token
+      return nil unless token
+
+      AuthorizedAccount.new(token.payload, token.scope)
+    end
+
+    # token.scope is the serialized string stored in the bearer token.
+    # AuthScope is the parsed object policies use for can_read?/can_write?.
+    def auth_scope
+      authorized_account&.scope
     end
   end
 end

@@ -77,6 +77,20 @@ describe 'Attachment Endpoints' do
       pdf&.close!
     end
 
+    it 'SECURITY: rejects uploads from read-only tokens' do
+      pdf = Tempfile.new(['lockedcv-api-read-only-upload', '.pdf'])
+      write_text_pdf(pdf.path, 'Uploaded PDF text')
+      upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'resume.pdf')
+      read_only = LockedCV::AuthScope.new(LockedCV::AuthScope::READ_ONLY)
+
+      post '/api/v1/attachments/upload', { file: upload }, auth_header(@account, scope: read_only)
+
+      _(last_response.status).must_equal 403
+      _(json_body).must_equal('message' => 'Only members can upload attachments')
+    ensure
+      pdf&.close!
+    end
+
     it 'SAD: rejects missing file uploads' do
       post '/api/v1/attachments/upload', {}, auth_header(@account)
 
@@ -272,6 +286,17 @@ describe 'Attachment Endpoints' do
       _(json_body).must_equal('message' => 'Missing authorization token')
     end
 
+    it 'SECURITY: rejects deletes from read-only tokens' do
+      attachment = stored_attachment(@account)
+      read_only = LockedCV::AuthScope.new(LockedCV::AuthScope::READ_ONLY)
+
+      delete "/api/v1/attachments/#{attachment.id}", {}, auth_header(@account, scope: read_only)
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Attachment not found')
+      _(LockedCV::Attachment.where(id: attachment.id).first).wont_be_nil
+    end
+
     it 'SECURITY: returns 404 when attachment belongs to another account' do
       other_account = LockedCV::CreateAccountService.call(
         account_data: DATA[:accounts].last.transform_keys(&:to_sym)
@@ -319,6 +344,23 @@ describe 'Attachment Endpoints' do
         'can_access' => true,
         'can_upload' => true,
         'can_delete' => true,
+        'role' => 'owner'
+      )
+    end
+
+    it 'SECURITY: allows reads from read-only tokens but removes write capabilities' do
+      attachment = @attachments.first
+      read_only = LockedCV::AuthScope.new(LockedCV::AuthScope::READ_ONLY)
+
+      get "/api/v1/attachments/#{attachment.id}", {}, auth_header(@account, scope: read_only)
+
+      _(last_response.status).must_equal 200
+      _(json_body['policy']).must_equal(
+        'can_view' => true,
+        'can_view_masked' => true,
+        'can_access' => true,
+        'can_upload' => false,
+        'can_delete' => false,
         'role' => 'owner'
       )
     end

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'tempfile'
 require_relative '../spec_helper'
 
 describe 'Service Objects' do
@@ -7,6 +8,10 @@ describe 'Service Objects' do
 
   before do
     reset_database!
+  end
+
+  after do
+    reset_storage!
   end
 
   it 'HAPPY: creates and finds an account' do
@@ -149,6 +154,85 @@ describe 'Service Objects' do
     ).must_raise LockedCV::AssignSystemRoleService::NotAuthorizedError
   end
 
+  it 'SECURITY: read-only admin scope cannot assign a system role' do
+    admin_role = LockedCV::Role.create(name: 'admin')
+    admin = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+    )
+    target = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+    )
+    admin.add_system_role(admin_role)
+    read_only = LockedCV::AuthScope.new(LockedCV::AuthScope::READ_ONLY)
+
+    _(
+      proc do
+        LockedCV::AssignSystemRoleService.call(
+          current_account: admin,
+          target_username: target.username,
+          role_name: 'admin',
+          auth_scope: read_only
+        )
+      end
+    ).must_raise LockedCV::AssignSystemRoleService::NotAuthorizedError
+  end
+
+  it 'SECURITY: read-only scope cannot update an account' do
+    account = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+    )
+    read_only = LockedCV::AuthScope.new(LockedCV::AuthScope::READ_ONLY)
+
+    _(
+      proc do
+        LockedCV::UpdateAccountService.call(
+          current_account: account,
+          account_data: { first_name: 'Ada' },
+          auth_scope: read_only
+        )
+      end
+    ).must_raise LockedCV::UpdateAccountService::NotAuthorizedError
+  end
+
+  it 'SECURITY: read-only scope cannot change a password' do
+    payload = DATA[:accounts].first.transform_keys(&:to_sym)
+    account = LockedCV::CreateAccountService.call(account_data: payload)
+    read_only = LockedCV::AuthScope.new(LockedCV::AuthScope::READ_ONLY)
+
+    _(
+      proc do
+        LockedCV::ChangePasswordService.call(
+          current_account: account,
+          password_data: { current_password: payload[:password], password: 'new-secret' },
+          auth_scope: read_only
+        )
+      end
+    ).must_raise LockedCV::ChangePasswordService::NotAuthorizedError
+  end
+
+  it 'SECURITY: read-only admin scope cannot delete an account' do
+    admin_role = LockedCV::Role.create(name: 'admin')
+    admin = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+    )
+    target = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+    )
+    admin.add_system_role(admin_role)
+    read_only = LockedCV::AuthScope.new(LockedCV::AuthScope::READ_ONLY)
+
+    _(
+      proc do
+        LockedCV::DeleteAccountService.call(
+          current_account: admin,
+          target_account_id: target.id,
+          auth_scope: read_only
+        )
+      end
+    ).must_raise LockedCV::DeleteAccountService::NotAuthorizedError
+    _(LockedCV::Account.first(id: target.id)).wont_be_nil
+  end
+
   it 'HAPPY: creates an attachment for an account' do
     account = LockedCV::CreateAccountService.call(
       account_data: DATA[:accounts].first.transform_keys(&:to_sym)
@@ -160,6 +244,28 @@ describe 'Service Objects' do
     )
 
     _(attachment.account_id).must_equal account.id
+  end
+
+  it 'SECURITY: read-only scope cannot upload an attachment' do
+    account = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+    )
+    pdf = Tempfile.new(['lockedcv-service-read-only-upload', '.pdf'])
+    write_text_pdf(pdf.path, 'Uploaded PDF text')
+    uploaded_file = { filename: 'resume.pdf', tempfile: pdf }
+    read_only = LockedCV::AuthScope.new(LockedCV::AuthScope::READ_ONLY)
+
+    _(
+      proc do
+        LockedCV::UploadAttachmentFile.call(
+          current_account: account,
+          uploaded_file:,
+          auth_scope: read_only
+        )
+      end
+    ).must_raise LockedCV::UploadAttachmentFile::NotAuthorizedError
+  ensure
+    pdf&.close!
   end
 
   it 'HAPPY: finds an attachment scoped to an account' do
@@ -177,6 +283,28 @@ describe 'Service Objects' do
     )
 
     _(found.id).must_equal attachment.id
+  end
+
+  it 'SECURITY: read-only scope cannot delete an attachment' do
+    account = LockedCV::CreateAccountService.call(
+      account_data: DATA[:accounts].first.transform_keys(&:to_sym)
+    )
+    attachment = LockedCV::CreateAttachmentService.call(
+      account_id: account.id,
+      attachment_data: DATA[:attachments].first.transform_keys(&:to_sym)
+    )
+    read_only = LockedCV::AuthScope.new(LockedCV::AuthScope::READ_ONLY)
+
+    _(
+      proc do
+        LockedCV::DeleteAttachmentService.call(
+          current_account: account,
+          attachment_id: attachment.id,
+          auth_scope: read_only
+        )
+      end
+    ).must_raise LockedCV::DeleteAttachmentService::NotAuthorizedError
+    _(LockedCV::Attachment.first(id: attachment.id)).wont_be_nil
   end
 
   it 'SAD: returns nil when attachment does not belong to account' do

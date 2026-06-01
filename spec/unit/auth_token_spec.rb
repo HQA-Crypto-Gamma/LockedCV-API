@@ -21,6 +21,23 @@ describe LockedCV::AuthToken do
     _(loaded.payload).must_equal payload
   end
 
+  it 'SECURITY: defaults new tokens to full authorization scope' do
+    payload = { 'account_id' => 'account-123' }
+
+    token = LockedCV::AuthToken.new(payload).to_s
+
+    _(LockedCV::AuthToken.load(token).scope).must_equal LockedCV::AuthScope::FULL
+  end
+
+  it 'SECURITY: round-trips explicit read-only authorization scope' do
+    payload = { 'account_id' => 'account-123' }
+    scope = LockedCV::AuthScope.new(LockedCV::AuthScope::READ_ONLY)
+
+    token = LockedCV::AuthToken.new(payload, scope:).to_s
+
+    _(LockedCV::AuthToken.load(token).scope).must_equal LockedCV::AuthScope::READ_ONLY
+  end
+
   it 'SECURITY: identifies fresh tokens' do
     token = LockedCV::AuthToken.new({ 'account_id' => 'account-123' })
 
@@ -32,6 +49,23 @@ describe LockedCV::AuthToken do
     loaded = LockedCV::AuthToken.load(token)
 
     _ { loaded.payload }.must_raise LockedCV::AuthToken::ExpiredTokenError
+  end
+
+  it 'SECURITY: rejects expired token scope access' do
+    token = LockedCV::AuthToken.new({ 'account_id' => 'account-123' }, -1).to_s
+    loaded = LockedCV::AuthToken.load(token)
+
+    _ { loaded.scope }.must_raise LockedCV::AuthToken::ExpiredTokenError
+  end
+
+  it 'SECURITY: rejects token scope access when scope is missing' do
+    token = LockedCV::AuthToken.tokenize(
+      'payload' => { 'account_id' => 'account-123' },
+      'exp' => (Time.now + LockedCV::AuthToken::ONE_WEEK).to_i
+    )
+    loaded = LockedCV::AuthToken.load(token)
+
+    _ { loaded.scope }.must_raise LockedCV::AuthToken::InvalidTokenError
   end
 
   it 'SECURITY: rejects invalid tokens' do
