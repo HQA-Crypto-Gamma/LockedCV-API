@@ -12,6 +12,7 @@ A Ruby web API for the Crypto γ SEC project that allows accounts to securely sh
 - Admin-only system role assignment and account listing
 - Scoped token-based authorization with `Authorization: Bearer <TOKEN>`
 - Read-only account API keys for CLI/deputy access
+- Google SSO/OIDC authentication endpoint for Web App login
 - JSON response format
 
 ## Prerequisites
@@ -162,6 +163,28 @@ This endpoint checks that the username/email are still available and asks
 Mailgun to send the supplied verification URL. It does not create an account.
 The App owns registration token creation and calls `POST /api/v1/accounts`
 after the user follows the email link and completes the form.
+
+#### Authenticate Google SSO Token
+
+**POST** `/api/v1/auth/sso`
+
+```bash
+http -v --json POST localhost:9000/api/v1/auth/sso \
+  provider="google" \
+  id_token="<google-id-token>" \
+  jwks:='{"keys":[...]}'
+```
+
+The Web App completes the Google OAuth browser flow, exchanges the
+authorization code for an OpenID Connect `id_token`, fetches Google JWKS, and
+sends both to this endpoint. The API verifies the token signature, issuer,
+audience (`GOOGLE_CLIENT_ID`), and expiration before trusting the verified
+email.
+
+Existing accounts are matched by email. If no account exists, the API creates a
+member account, generates the username from the verified email local-part using
+`UsernameRules`, and stores a random local password digest. The returned
+session token has full scope (`*:write`), the same as password login.
 
 ### Account Endpoints
 
@@ -496,6 +519,18 @@ object storage instead of relying on Heroku dyno-local files.
 Specs use `db/local/test.db` and clear test data between examples. A test DB
 file lock serializes separate spec processes so parallel shell commands do not
 wipe the same database at the same time.
+
+## Production Deployment Notes
+
+Before merging/deploying to Heroku, confirm:
+
+- Heroku API config vars include `GOOGLE_CLIENT_ID`, Mailgun settings,
+  `DB_KEY`, `HASH_KEY`, `MSG_KEY`, and `SECURE_SCHEME=HTTPS`.
+- Database migrations have run on the Heroku Postgres database.
+- The Python runtime/buildpack provides `pdfplumber` and `reportlab`, or
+  `PYTHON_BIN` points at the correct executable.
+- Uploaded/generated PDFs on Heroku dyno storage are ephemeral; production
+  should move toward external object storage.
 
 ## License
 

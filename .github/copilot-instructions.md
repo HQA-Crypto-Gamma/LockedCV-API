@@ -182,6 +182,11 @@ Migration files:
 - `POST /api/v1/auth/register` checks registration availability and sends a
   Mailgun verification email using the `verification_url` supplied by the App.
   The API does not create or persist registration tokens.
+- `POST /api/v1/auth/sso` authenticates Google SSO. The App sends
+  `provider: "google"`, Google `id_token`, and Google JWKS. The API verifies
+  JWT signature, issuer, audience, and expiration, matches existing accounts by
+  verified email, or creates a member account with a username generated from
+  the email local-part through `UsernameRules`.
 - Protected routes use `Authorization: Bearer <TOKEN>`.
 - Auth tokens carry scope outside the identity payload. Login/session tokens use
   `*:write`; account API keys use read-only `*:read`.

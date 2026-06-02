@@ -11,7 +11,7 @@
 - API 需要提供 limited-scope account details route：`GET /api/v1/accounts/:username`，讓使用者可用 API key 從 CLI 測試讀取有限資料。
 - Google SSO 採課程建議的 solution 3：App 完成 OAuth browser flow 並取得 Google `id_token`，API 接收 `id_token` 與 JWKS 後驗證，建立或找到 account，回傳 account 與 API auth token。
 
-## 現況分析（更新：2026-06-01）
+## 現況分析（更新：2026-06-02）
 
 - 專案：`LockedCV-API`
 - 目前已有：
@@ -25,10 +25,10 @@
   - Attachment index/show response 已回傳 per-resource `policy` summary。
   - Account profile current route：`GET /api/v1/account`。
   - Limited-scope route：`GET /api/v1/accounts/:username` 回傳 `authorized_account` envelope，包含 safe account detail 與 `*:read` API key。
-- 目前尚未有：
   - Google OIDC `id_token` verification service。
   - `POST /api/v1/auth/sso` route。
-  - SSO account provisioning / lookup strategy。
+  - SSO account provisioning / lookup by verified email。
+  - `UsernameRules`：SSO username 由 email local-part normalize 產生，撞名時加 suffix。
 
 ## 設計決策草案
 
@@ -55,7 +55,7 @@
 - **Read scope meaning**：`*:read` 或 `resource:read` 只允許 read/view/index 類動作，不允許 update/delete/upload。
 - **Backward compatibility**：舊 token 沒有 scope 時會被視為 invalid token；App 需要清掉舊 session 或讓使用者重新登入。
 - **Google SSO 驗證責任**：API 不做 browser redirect；API 接收 App 傳來的 `id_token` 與 JWKS，驗證 signature、issuer、audience、expiration 後才信任 email/profile。
-- **SSO username strategy**：初版可由 Google email local-part normalize 產生 username，若撞名則加 suffix；或只以 email 找 account，username 另由 API 生成。需組內決策。
+- **SSO username strategy**：由 Google verified email 的 local-part normalize 產生 username，若撞名則加 suffix；不使用 Google display name，避免中文/空白/不穩定名稱造成奇怪 username。
 
 ## 實作策略（分階段）
 
@@ -66,9 +66,9 @@
 5. **Limited API key route/response**：已完成 `GET /api/v1/accounts/:username`。
 6. **Service-level scope enforcement**：已完成主要 write services。
 7. **Limited account details route CLI testing**：已完成，可用 `*:read` API key 呼叫 GET routes。
-8. **SSO id token verification service**：用 `http` / `jwt` gems 解析和驗證 Google `id_token`。
-9. **SSO auth route**：新增 `POST /api/v1/auth/sso`，驗證 Google identity、建立或找到 account、回傳 session token。
-10. **Tests and docs**：scope/API-key specs 已補；SSO specs/docs 待補。
+8. **SSO id token verification service**：已完成；用 `jwt` gem 驗證 Google `id_token` signature、issuer、audience、expiration。
+9. **SSO auth route**：已完成 `POST /api/v1/auth/sso`，驗證 Google identity、建立或找到 account、回傳 session token。
+10. **Tests and docs**：scope/API-key/SSO specs 已補；README/copilot/local 已更新。
 
 ## Todo 清單
 
@@ -308,10 +308,8 @@ Success `200` or `201`:
 - API key 是否每次 account response 動態產生，或建立 persisted API keys table 以支援 revoke/rotate。
 - Limited token expiration 長度。
 - `GET /api/v1/accounts/:username` 目前允許 self 或 admin view。若 admin view 其他 account，回傳 token 代表 target account 且仍為 read-only；是否保留此語意可再決策。
-- SSO account username 產生規則。
-- SSO account 是否需要可設定本地 password。
-- App 傳 JWKS 給 API，或 API 自行從 Google JWKS endpoint fetch/cache；作業文字傾向 App 傳 JWKS。
-- SSO failure status：invalid token 用 `401` 還是 malformed request 用 `400`。
+- SSO account 是否需要後續支援設定本地 password。
+- 是否要讓使用者在 profile/settings 修改自動產生的 SSO username。
 
 ## 本週完成定義
 

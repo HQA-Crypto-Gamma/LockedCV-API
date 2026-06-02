@@ -17,6 +17,7 @@ gem 'figaro', '~>1.2'
 gem 'rake'
 
 # Security
+gem 'jwt', '~>2.8'
 gem 'rbnacl', '~>7.1'
 
 # Database
