@@ -35,6 +35,28 @@ module LockedCV
           routing.halt 500, { message: 'Unknown server error' }.to_json
         end
       end
+
+      routing.is 'sso' do
+        # POST api/v1/auth/sso
+        routing.post do
+          request = HttpRequest.new(routing).body_data
+          provider = request.fetch(:provider, 'google')
+          routing.halt 400, { message: 'Unsupported SSO provider' }.to_json unless provider == 'google'
+          unless request[:id_token].to_s.strip != '' && request[:jwks].is_a?(Hash)
+            routing.halt 400, { message: 'Invalid SSO request' }.to_json
+          end
+
+          AuthenticateSsoAccountService.call(
+            id_token: request[:id_token],
+            jwks: request[:jwks]
+          ).to_json
+        rescue KeyError
+          routing.halt 400, { message: 'Invalid SSO request' }.to_json
+        rescue AuthenticateSsoAccountService::UnauthorizedError => e
+          Api.logger.warn("SSO authentication failed: #{e.message}")
+          routing.halt 401, { message: 'Invalid SSO token' }.to_json
+        end
+      end
     end
   end
 end

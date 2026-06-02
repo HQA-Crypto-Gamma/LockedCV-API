@@ -19,6 +19,10 @@ module LockedCV
       account = Account.first(username: credentials[:username])
       raise UnauthorizedError, credentials unless account&.password?(credentials[:password])
 
+      response_for(account)
+    end
+
+    def self.response_for(account)
       authenticated_response(account)
     end
 
@@ -44,11 +48,13 @@ module LockedCV
     private_class_method :authenticated_account
 
     def self.auth_token_for(account)
-      AuthToken.new({
-        'account_id' => account.id,
-        'username' => account.username,
-        'email' => account.email
-      }).to_s
+      AuthToken.new(
+        {
+          'account_id' => account.id,
+          'username' => account.username,
+          'email' => account.email
+        }
+      ).to_s
     end
     private_class_method :auth_token_for
   end

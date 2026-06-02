@@ -200,4 +200,84 @@ describe 'Authentication Endpoint' do
       _(LockedCV::Account.count).must_equal 0
     end
   end
+
+  describe 'POST /api/v1/auth/sso' do
+    it 'HAPPY: authenticates a valid Google ID token and creates a member account' do
+      reset_database!
+
+      post '/api/v1/auth/sso',
+           { provider: 'google', id_token: google_id_token, jwks: google_jwks }.to_json,
+           req_header
+
+      _(last_response.status).must_equal 200
+      _(json_body.dig('data', 'type')).must_equal 'authenticated_account'
+      attributes = json_body.dig('data', 'attributes')
+      _(attributes['email']).must_equal 'google-user@example.com'
+      _(attributes['username']).must_equal 'google-user'
+      _(attributes['roles']).must_equal ['member']
+      _(LockedCV::Account.count).must_equal 1
+      _(LockedCV::AuthToken.load(attributes['auth_token']).scope).must_equal LockedCV::AuthScope::FULL
+    end
+
+    it 'HAPPY: uses the email local part rather than Google display name for SSO username' do
+      reset_database!
+      token = google_id_token(
+        'email' => 'vick.fan@example.com',
+        'name' => '王小明'
+      )
+
+      post '/api/v1/auth/sso',
+           { provider: 'google', id_token: token, jwks: google_jwks }.to_json,
+           req_header
+
+      _(last_response.status).must_equal 200
+      _(json_body.dig('data', 'attributes', 'username')).must_equal 'vick.fan'
+    end
+
+    it 'HAPPY: reuses an existing account with the same verified Google email' do
+      token = google_id_token('email' => @account.email, 'name' => @account.username)
+
+      post '/api/v1/auth/sso',
+           { provider: 'google', id_token: token, jwks: google_jwks }.to_json,
+           req_header
+
+      _(last_response.status).must_equal 200
+      _(json_body.dig('data', 'attributes', 'id')).must_equal @account.id
+      _(LockedCV::Account.count).must_equal 1
+    end
+
+    it 'SAD: rejects missing SSO token data as a bad request' do
+      post '/api/v1/auth/sso', { provider: 'google' }.to_json, req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Invalid SSO request')
+    end
+
+    it 'SAD: rejects unsupported SSO provider' do
+      post '/api/v1/auth/sso',
+           { provider: 'github', id_token: google_id_token, jwks: google_jwks }.to_json,
+           req_header
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Unsupported SSO provider')
+    end
+
+    it 'SAD: rejects invalid Google ID token claims' do
+      post '/api/v1/auth/sso',
+           { provider: 'google', id_token: google_id_token('aud' => 'wrong-client'), jwks: google_jwks }.to_json,
+           req_header
+
+      _(last_response.status).must_equal 401
+      _(json_body).must_equal('message' => 'Invalid SSO token')
+    end
+
+    it 'SAD: rejects unverified Google email' do
+      post '/api/v1/auth/sso',
+           { provider: 'google', id_token: google_id_token('email_verified' => false), jwks: google_jwks }.to_json,
+           req_header
+
+      _(last_response.status).must_equal 401
+      _(json_body).must_equal('message' => 'Invalid SSO token')
+    end
+  end
 end

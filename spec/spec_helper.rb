@@ -8,6 +8,8 @@ require 'fileutils'
 require 'logger'
 require 'minitest/autorun'
 require 'minitest/rg'
+require 'jwt'
+require 'openssl'
 require 'open3'
 require 'rack/test'
 require 'stringio'
@@ -39,6 +41,7 @@ module LockedCV
   # Shared helpers for spec setup/teardown and database seed loading
   # rubocop:disable Metrics/ModuleLength
   module SpecHelpers
+    SSO_KEY_ID = 'test-google-key'
     REQUIRED_TABLES = %i[
       accounts attachments attachment_permissions sensitive_data masked_attachments masked_items roles accounts_roles
     ].freeze
@@ -82,22 +85,57 @@ module LockedCV
       { 'CONTENT_TYPE' => 'application/json' }
     end
 
-    def auth_header(account, scope: LockedCV::AuthScope.new())
-      token = LockedCV::AuthToken.new({
-        'account_id' => account.id,
-        'username' => account.username,
-        'email' => account.email
-      }, scope:).to_s
+    def auth_header(account, scope: LockedCV::AuthScope.new)
+      token = LockedCV::AuthToken.new(
+        {
+          'account_id' => account.id,
+          'username' => account.username,
+          'email' => account.email
+        },
+        scope:
+      ).to_s
 
       { 'HTTP_AUTHORIZATION' => "Bearer #{token}" }
     end
 
-    def auth_req_header(account, scope: LockedCV::AuthScope.new())
+    def auth_req_header(account, scope: LockedCV::AuthScope.new)
       req_header.merge(auth_header(account, scope:))
     end
 
     def json_body
       JSON.parse(last_response.body)
+    end
+
+    def google_sso_claims(overrides = {})
+      default_google_sso_claims.merge(sso_token_times).merge(overrides)
+    end
+
+    def default_google_sso_claims
+      {
+        'iss' => 'https://accounts.google.com',
+        'aud' => 'test-google-client-id',
+        'sub' => 'google-subject-id',
+        'email' => 'google-user@example.com',
+        'email_verified' => true,
+        'name' => 'Google User'
+      }
+    end
+
+    def sso_token_times
+      now = Time.now.to_i
+      { 'iat' => now, 'exp' => now + 300 }
+    end
+
+    def google_id_token(overrides = {})
+      JWT.encode(google_sso_claims(overrides), sso_signing_key, 'RS256', { kid: SSO_KEY_ID })
+    end
+
+    def google_jwks
+      { keys: [JWT::JWK.new(sso_signing_key, kid: SSO_KEY_ID).export] }
+    end
+
+    def sso_signing_key
+      @sso_signing_key ||= OpenSSL::PKey::RSA.generate(2048)
     end
 
     # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
