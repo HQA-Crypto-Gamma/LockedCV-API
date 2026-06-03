@@ -60,6 +60,33 @@ describe 'Attachment Endpoints' do
     }
   end
 
+  def create_masked_attachment_with_selected_labels(labels)
+    attachment_id = upload_fake_resume_with_sensitive_data
+    python_bin = available_pdf_processor_python
+    skip 'pdfplumber/reportlab Python dependencies are not available' unless python_bin
+
+    post_create_masked_attachment(attachment_id, labels, python_bin)
+
+    [attachment_id, json_body.dig('data', 'data', 'attributes', 'id')]
+  end
+
+  def post_create_masked_attachment(attachment_id, labels, python_bin)
+    with_python_bin(python_bin) do
+      post(
+        "/api/v1/attachments/#{attachment_id}/masked_attachments",
+        { selected_labels: labels }.to_json,
+        auth_req_header(@account)
+      )
+    end
+  end
+
+  def command_available?(command)
+    _stdout, _stderr, status = Open3.capture3('which', command)
+    status.success?
+  rescue SystemCallError
+    false
+  end
+
   before do
     reset_database!
     reset_storage!
@@ -656,6 +683,78 @@ describe 'Attachment Endpoints' do
       _(last_response.content_type).must_equal 'application/pdf'
       _(last_response.headers['Content-Disposition']).must_equal 'attachment; filename="masked_fake_resume_alan.pdf"'
       _(last_response.body.byteslice(0, 4)).must_equal '%PDF'
+    end
+
+    it 'HAPPY: downloads a password-protected masked PDF' do
+      skip 'qpdf is not available' unless command_available?('qpdf')
+      skip 'pdftotext is not available' unless command_available?('pdftotext')
+
+      attachment_id, masked_attachment_id = create_masked_attachment_with_selected_labels(['email'])
+      encrypted_files_before = Dir.glob(File.join('tmp', 'encrypted_pdfs', '*.pdf'))
+
+      post(
+        "/api/v1/attachments/#{attachment_id}/masked_attachments/#{masked_attachment_id}/encrypted_download",
+        { password: 'test123' }.to_json,
+        auth_req_header(@account)
+      )
+
+      _(last_response.status).must_equal 200
+      _(last_response.content_type).must_equal 'application/pdf'
+      _(last_response.headers['Content-Disposition']).must_equal(
+        'attachment; filename="encrypted_masked_fake_resume_alan.pdf"'
+      )
+      _(last_response.body.byteslice(0, 4)).must_equal '%PDF'
+
+      encrypted_path = File.join('tmp', 'encrypted_download_test.pdf')
+      File.binwrite(encrypted_path, last_response.body)
+      _stdout, _stderr, no_password_status = Open3.capture3('pdftotext', encrypted_path, '-')
+      unlocked_text, _stderr, password_status = Open3.capture3('pdftotext', '-upw', 'test123', encrypted_path, '-')
+
+      _(no_password_status.success?).must_equal false
+      _(password_status.success?).must_equal true
+      _(unlocked_text).must_include 'Alan Turing'
+      _(Dir.glob(File.join('tmp', 'encrypted_pdfs', '*.pdf'))).must_equal encrypted_files_before
+    ensure
+      FileUtils.rm_f(encrypted_path) if defined?(encrypted_path) && encrypted_path
+    end
+
+    it 'SAD: rejects encrypted download with a blank password' do
+      attachment_id, masked_attachment_id = create_masked_attachment_with_selected_labels(['email'])
+
+      post(
+        "/api/v1/attachments/#{attachment_id}/masked_attachments/#{masked_attachment_id}/encrypted_download",
+        { password: '   ' }.to_json,
+        auth_req_header(@account)
+      )
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Could not encrypt masked attachment')
+    end
+
+    it 'SAD: rejects encrypted download with invalid JSON' do
+      attachment_id, masked_attachment_id = create_masked_attachment_with_selected_labels(['email'])
+
+      post(
+        "/api/v1/attachments/#{attachment_id}/masked_attachments/#{masked_attachment_id}/encrypted_download",
+        '{',
+        auth_req_header(@account)
+      )
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Could not encrypt masked attachment')
+    end
+
+    it 'SAD: returns 404 when encrypted download masked attachment is missing' do
+      attachment_id = upload_fake_resume_with_sensitive_data
+
+      post(
+        "/api/v1/attachments/#{attachment_id}/masked_attachments/999999/encrypted_download",
+        { password: 'test123' }.to_json,
+        auth_req_header(@account)
+      )
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Masked attachment not found')
     end
 
     it 'SAD: returns 404 when exporting a missing attachment' do

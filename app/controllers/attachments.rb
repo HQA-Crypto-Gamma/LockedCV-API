@@ -127,6 +127,36 @@ module LockedCV
                 routing.halt 400, { message: 'Could not download masked attachment' }.to_json
               end
             end
+
+            routing.on 'encrypted_download' do
+              # POST api/v1/attachments/[attachment_id]/masked_attachments/[masked_attachment_id]/encrypted_download
+              routing.post do
+                authorized_attachment!(attachment_id, current_account, auth_scope, :view_masked?)
+                password = HttpRequest.new(routing).body_data.fetch(:password, nil)
+                raise BuildEncryptedPdf::Error, 'Password is required' if password.to_s.strip.empty?
+
+                masked_attachment = MaskedAttachment.first(id: masked_attachment_id, attachment_id: attachment_id.to_s)
+                raise AttachmentNotAuthorizedError unless masked_attachment
+
+                masked_path = ResolveAttachmentPath.call(route: masked_attachment.route)
+                encrypted_path = BuildEncryptedPdf.call(input_path: masked_path, password:)
+                pdf_body = File.binread(encrypted_path)
+                FileUtils.rm_f(encrypted_path)
+
+                response.status = 200
+                response['Content-Type'] = 'application/pdf'
+                response['Content-Disposition'] = encrypted_download_content_disposition(masked_attachment)
+                pdf_body
+              rescue AttachmentNotAuthorizedError, ResolveAttachmentPath::UnsafePathError,
+                     ResolveAttachmentPath::MissingFileError, Sequel::Error
+                routing.halt 404, { message: 'Masked attachment not found' }.to_json
+              rescue StandardError => e
+                Api.logger.error "PDF ENCRYPT DOWNLOAD ERROR: #{e.message}"
+                routing.halt 400, { message: 'Could not encrypt masked attachment' }.to_json
+              ensure
+                FileUtils.rm_f(encrypted_path) if defined?(encrypted_path) && encrypted_path
+              end
+            end
           end
 
           # POST api/v1/attachments/[attachment_id]/masked_attachments
@@ -214,6 +244,11 @@ module LockedCV
     def download_content_disposition(masked_attachment)
       filename = File.basename(masked_attachment.attachment_name)
       "attachment; filename=\"#{filename}\""
+    end
+
+    def encrypted_download_content_disposition(masked_attachment)
+      filename = File.basename(masked_attachment.attachment_name)
+      "attachment; filename=\"encrypted_#{filename}\""
     end
 
     def upload_attachment_for(routing, current_account:, auth_scope:, location_base:)
