@@ -1,31 +1,43 @@
 # Masked PDF Frontend Integration Plan
 
-This document explains how the frontend can integrate with the masked PDF preview, creation, and download workflow.
+This file summarizes how the frontend can call the masked PDF APIs.
 
-## Overview
-
-The masked PDF workflow is now separated into three steps:
+## Flow Summary
 
 ```text
-Preview  -> generate a temporary masked PDF for display
-Create   -> save the confirmed masked PDF as an official record
-Download -> download the saved masked PDF
+1. User toggles mask labels
+   -> POST preview endpoint
+   -> backend returns PDF blob for preview
+
+2. User confirms the mask result
+   -> POST create endpoint
+   -> backend saves official masked PDF and returns masked_attachment_id
+
+3. User downloads PDF
+   -> GET normal download endpoint
+   -> frontend downloads the saved masked PDF
+
+4. User downloads encrypted PDF
+   -> frontend asks user to enter a password
+   -> POST encrypted_download endpoint with password
+   -> backend returns password-protected PDF blob
+   -> frontend downloads the encrypted PDF
 ```
-
-The main frontend use case is:
-
-1. User opens the masking page for an attachment.
-2. User selects or unselects sensitive labels such as `email`, `tel`, `id`, etc.
-3. Frontend sends the current selected labels to the preview endpoint.
-4. Backend returns a PDF binary response.
-5. Frontend updates the PDF viewer using the returned PDF blob.
-6. When the user confirms, frontend sends the same selected labels to the create endpoint.
-7. Backend saves the official masked PDF and returns a masked attachment record.
-8. Frontend can call the download endpoint to download the saved masked PDF.
 
 ## Available Mask Labels
 
-The backend supports the following selected label values:
+Recommended frontend values:
+
+| UI Label | Value to Send |
+|---|---|
+| Name | `name` |
+| Email | `email` |
+| Phone | `tel` |
+| ID Number | `id` |
+| Birthday | `birthday` |
+| Address | `address` |
+
+Supported values:
 
 ```text
 name
@@ -44,35 +56,24 @@ identification_number
 identification_numbers
 ```
 
-Recommended frontend labels:
-
-| UI Label  | Value to Send |
-| --------- | ------------- |
-| Name      | `name`        |
-| Email     | `email`       |
-| Phone     | `tel`         |
-| ID Number | `id`          |
-| Birthday  | `birthday`    |
-| Address   | `address`     |
-
 Notes:
 
-* `name` will cover name-related fields such as `first_name`, `last_name`, and `full_name`.
-* `tel` will cover phone-related fields such as `phone` and `phone_number`.
-* `id` will cover identification-related fields such as `identification_number` and `identification_numbers`.
-* Unknown labels will return `400 Invalid selected labels`.
-* If `selected_labels` is omitted, the backend treats it as masking all available sensitive fields.
-* If `selected_labels` is an empty array, the backend treats it as masking nothing.
+- `name` covers `first_name`, `last_name`, and `full_name`.
+- `tel` covers `phone` and `phone_number`.
+- `id` covers `identification_number` and `identification_numbers`.
+- Unknown labels return `400 Invalid selected labels`.
+- If `selected_labels` is omitted, backend masks all available sensitive fields.
+- If `selected_labels` is `[]`, backend masks nothing.
 
 ## 1. Preview Masked PDF
 
-Use this endpoint whenever the user changes the selected mask labels.
+Call this whenever selected labels change.
 
 ```http
 POST /api/v1/attachments/:attachment_id/masked_attachments/preview
 ```
 
-### Request Body
+Request:
 
 ```json
 {
@@ -80,28 +81,25 @@ POST /api/v1/attachments/:attachment_id/masked_attachments/preview
 }
 ```
 
-### Response
+Response:
 
 ```http
-HTTP/1.1 200 OK
+200 OK
 Content-Type: application/pdf
 Content-Disposition: inline; filename="masked_preview.pdf"
 ```
 
-The response body is a PDF binary.
+Important:
 
-This endpoint is for preview only.
+- Response is a PDF blob, not JSON.
+- Preview does not create `masked_attachments`.
+- Preview does not create `masked_items`.
+- Frontend should debounce this request by about `300–500 ms`.
 
-It does not:
-
-* create a `masked_attachments` database record
-* create `masked_items`
-* permanently save the preview PDF
-
-### Suggested Frontend Usage
+Example:
 
 ```js
-async function fetchMaskedPdfPreview(attachmentId, selectedLabels, token) {
+async function previewMaskedPdf(attachmentId, selectedLabels, token) {
   const response = await fetch(
     `/api/v1/attachments/${attachmentId}/masked_attachments/preview`,
     {
@@ -110,83 +108,35 @@ async function fetchMaskedPdfPreview(attachmentId, selectedLabels, token) {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
-      body: JSON.stringify({
-        selected_labels: selectedLabels
-      })
+      body: JSON.stringify({ selected_labels: selectedLabels })
     }
   );
 
-  if (!response.ok) {
-    throw new Error("Failed to preview masked PDF");
-  }
+  if (!response.ok) throw new Error("Failed to preview masked PDF");
 
   const pdfBlob = await response.blob();
   return URL.createObjectURL(pdfBlob);
 }
 ```
 
-Example usage with an iframe:
+When replacing previews, revoke the old blob URL:
 
 ```js
-const previewUrl = await fetchMaskedPdfPreview(
-  attachmentId,
-  ["name", "email", "tel"],
-  token
-);
+if (currentPreviewUrl) URL.revokeObjectURL(currentPreviewUrl);
 
-document.querySelector("#pdf-preview").src = previewUrl;
-```
-
-If the frontend creates multiple blob URLs, remember to revoke old URLs when replacing the preview:
-
-```js
-if (currentPreviewUrl) {
-  URL.revokeObjectURL(currentPreviewUrl);
-}
-
-currentPreviewUrl = await fetchMaskedPdfPreview(
-  attachmentId,
-  selectedLabels,
-  token
-);
-
+currentPreviewUrl = await previewMaskedPdf(attachmentId, selectedLabels, token);
 pdfViewer.src = currentPreviewUrl;
 ```
 
-## Frontend Debounce Recommendation
-
-PDF generation is heavier than normal JSON API calls.
-
-When the user toggles labels, the frontend should debounce preview requests.
-
-Recommended debounce time:
-
-```text
-300–500 ms
-```
-
-Suggested behavior:
-
-```text
-User toggles label
--> update selectedLabels state
--> wait 300–500 ms
--> POST selectedLabels to preview endpoint
--> receive PDF blob
--> update PDF preview
-```
-
-This avoids sending too many preview requests when the user clicks labels quickly.
-
 ## 2. Create Official Masked PDF
 
-Use this endpoint when the user confirms the selected masking result.
+Call this when the user confirms the selected mask result.
 
 ```http
 POST /api/v1/attachments/:attachment_id/masked_attachments
 ```
 
-### Request Body
+Request:
 
 ```json
 {
@@ -194,15 +144,15 @@ POST /api/v1/attachments/:attachment_id/masked_attachments
 }
 ```
 
-### Response
+Response:
 
 ```http
-HTTP/1.1 201 Created
+201 Created
 Content-Type: application/json
 Location: api/v1/attachments/:attachment_id/masked_attachments/:masked_attachment_id
 ```
 
-Example response body:
+Example response shape:
 
 ```json
 {
@@ -220,35 +170,25 @@ Example response body:
 }
 ```
 
-This endpoint does:
-
-* create the official masked PDF
-* save the masked PDF file
-* create a `masked_attachments` database record
-* create related `masked_items`
-* return JSON for the saved masked attachment
-
-This endpoint should be called only after the user confirms the masking result.
+Frontend should save the returned `masked_attachment_id` for download.
 
 ## 3. Download Saved Masked PDF
 
-Use this endpoint after an official masked attachment has been created.
+Call this after an official masked attachment has been created.
 
 ```http
 GET /api/v1/attachments/:attachment_id/masked_attachments/:masked_attachment_id/download
 ```
 
-### Response
+Response:
 
 ```http
-HTTP/1.1 200 OK
+200 OK
 Content-Type: application/pdf
 Content-Disposition: attachment; filename="masked_filename.pdf"
 ```
 
-The response body is a PDF binary.
-
-### Suggested Frontend Usage
+Example:
 
 ```js
 async function downloadMaskedPdf(attachmentId, maskedAttachmentId, token) {
@@ -262,9 +202,7 @@ async function downloadMaskedPdf(attachmentId, maskedAttachmentId, token) {
     }
   );
 
-  if (!response.ok) {
-    throw new Error("Failed to download masked PDF");
-  }
+  if (!response.ok) throw new Error("Failed to download masked PDF");
 
   const pdfBlob = await response.blob();
   const downloadUrl = URL.createObjectURL(pdfBlob);
@@ -280,43 +218,116 @@ async function downloadMaskedPdf(attachmentId, maskedAttachmentId, token) {
 }
 ```
 
+## 4. Download Encrypted Masked PDF
+
+Call this when the user wants to download a password-protected PDF.
+
+Frontend behavior:
+
+```text
+User clicks encrypted download
+-> frontend opens password modal
+-> user enters password
+-> frontend POSTs password to backend
+-> backend returns encrypted PDF blob
+-> frontend triggers local download
+```
+
+Endpoint:
+
+```http
+POST /api/v1/attachments/:attachment_id/masked_attachments/:masked_attachment_id/encrypted_download
+```
+
+Request:
+
+```json
+{
+  "password": "user-entered-password"
+}
+```
+
+Response:
+
+```http
+200 OK
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="encrypted_masked_filename.pdf"
+```
+
+Important:
+
+- Response is a password-protected PDF blob.
+- The password is provided by the user through the frontend.
+- Backend does not save a new `masked_attachments` record for encrypted downloads.
+- Blank password returns `400`.
+
+Example:
+
+```js
+async function downloadEncryptedMaskedPdf(
+  attachmentId,
+  maskedAttachmentId,
+  password,
+  token
+) {
+  const response = await fetch(
+    `/api/v1/attachments/${attachmentId}/masked_attachments/${maskedAttachmentId}/encrypted_download`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({ password })
+    }
+  );
+
+  if (!response.ok) throw new Error("Failed to download encrypted PDF");
+
+  const pdfBlob = await response.blob();
+  const downloadUrl = URL.createObjectURL(pdfBlob);
+
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+  link.download = "encrypted_masked_attachment.pdf";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  URL.revokeObjectURL(downloadUrl);
+}
+```
+
 ## Suggested Frontend Flow
 
 ```text
 Initial page load
 -> prepare selectedLabels state
 
-User toggles a label
+User toggles label
 -> update selectedLabels
--> debounce
+-> debounce 300–500 ms
 -> POST preview endpoint
--> receive PDF blob
--> update PDF viewer
+-> update PDF viewer with returned blob URL
 
-User clicks confirm/download
+User confirms mask result
 -> POST create endpoint with selectedLabels
--> receive masked_attachment_id
+-> save returned masked_attachment_id
+
+User clicks normal download
 -> GET download endpoint
--> download saved PDF
+-> download PDF blob
+
+User clicks encrypted download
+-> ask user for password
+-> POST encrypted_download with password
+-> download encrypted PDF blob
 ```
 
 ## Error Handling
 
-### Invalid selected labels
-
-If the frontend sends an unsupported label:
-
-```json
-{
-  "selected_labels": ["unknown"]
-}
-```
-
-Backend response:
-
-```http
-HTTP/1.1 400 Bad Request
-```
+Invalid selected labels:
 
 ```json
 {
@@ -324,13 +335,7 @@ HTTP/1.1 400 Bad Request
 }
 ```
 
-### Attachment not found or unauthorized
-
-Backend may return:
-
-```http
-HTTP/1.1 404 Not Found
-```
+Missing or unauthorized attachment:
 
 ```json
 {
@@ -338,7 +343,7 @@ HTTP/1.1 404 Not Found
 }
 ```
 
-or:
+Missing or unauthorized masked attachment:
 
 ```json
 {
@@ -346,14 +351,23 @@ or:
 }
 ```
 
+Encrypted download failure, including blank password:
+
+```json
+{
+  "message": "Could not encrypt masked attachment"
+}
+```
+
 ## Important Notes
 
-* Preview response is a PDF file, not JSON.
-* Create response is JSON.
-* Download response is a PDF file.
-* Preview does not save records to the database.
-* Create saves the official masked PDF.
-* Download only works for an existing saved masked PDF.
-* The gray mask boxes should not contain text labels such as `NAME`, `EMAIL`, `TEL`, or `ID`.
-* The frontend should use blob handling for preview and download responses.
-* Debouncing preview requests is strongly recommended.
+- Preview response is PDF.
+- Create response is JSON.
+- Normal download response is PDF.
+- Encrypted download response is PDF.
+- Preview does not save database records.
+- Create saves the official masked PDF.
+- Encrypted download does not create a new masked attachment record.
+- Gray mask boxes should not contain label text such as `NAME`, `EMAIL`, `TEL`, or `ID`.
+- Use blob handling for all PDF responses.
+- Debounce preview requests.
