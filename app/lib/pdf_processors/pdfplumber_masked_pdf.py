@@ -347,15 +347,6 @@ def draw_label(pdf: canvas.Canvas, page: dict[str, Any], label: dict[str, Any]) 
     pdf.setLineWidth(0.4)
     pdf.rect(x0, pdf_y, width, height, stroke=1, fill=1)
 
-    text, font_size = fitted_label(label["label"], width, height)
-    font = "Helvetica-Bold"
-    text_width = stringWidth(text, font, font_size)
-    text_x = x0 + max((width - text_width) / 2.0, 0)
-    text_y = pdf_y + max((height - font_size) / 2.0, 0) + (font_size * 0.18)
-    pdf.setFillColor(Color(0.12, 0.12, 0.12))
-    pdf.setFont(font, font_size)
-    pdf.drawString(text_x, text_y, text)
-
 
 def fitted_label(label: str, width: float, height: float) -> tuple[str, float]:
     font = "Helvetica-Bold"

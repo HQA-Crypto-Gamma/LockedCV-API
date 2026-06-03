@@ -11,16 +11,17 @@ module LockedCV
     class AttachmentNotFoundError < StandardError; end
     class ExportError < StandardError; end
 
-    def self.call(account_id:, attachment_id:)
+    def self.call(account_id:, attachment_id:, selected_labels: nil)
       attachment = FindAttachmentService.call(account_id:, attachment_id:)
       raise AttachmentNotFoundError unless attachment
 
-      new(account_id:, attachment:).call
+      new(account_id:, attachment:, selected_labels:).call
     end
 
-    def initialize(account_id:, attachment:)
+    def initialize(account_id:, attachment:, selected_labels:)
       @account_id = account_id
       @attachment = attachment
+      @selected_labels = selected_labels
     end
 
     def call
@@ -35,7 +36,7 @@ module LockedCV
 
     private
 
-    attr_reader :account_id, :attachment
+    attr_reader :account_id, :attachment, :selected_labels
 
     def masking_context
       pdf_path = ResolveAttachmentPath.call(route: attachment.route)
@@ -43,6 +44,8 @@ module LockedCV
       text = ExtractPdf.text(pdf_path)
       matches = MaskSensitiveText.matches_for_masking(text:, sensitive_data:)
       sensitive_items = BuildPdfplumberSensitiveItems.call(matches:, sensitive_data:)
+      sensitive_items = FilterMaskedPdfItems.items(items: sensitive_items, selected_labels:)
+      matches = FilterMaskedPdfItems.matches(matches:, selected_labels:)
 
       [pdf_path, matches, sensitive_items]
     end
