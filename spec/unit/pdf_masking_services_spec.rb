@@ -183,10 +183,9 @@ describe 'PDF Masking Services' do
     _(scrubbed_text).wont_include 'alan@example.com'
     _(scrubbed_text).wont_include '0912-000-002'
     _(scrubbed_text).wont_include 'B987654321'
-    _(scrubbed_text).must_include 'NAME'
-    _(scrubbed_text).must_include 'EMAIL'
-    _(scrubbed_text).must_include 'TEL'
-    _(scrubbed_text).must_include 'ID'
+    _(scrubbed_text).wont_include 'NAME'
+    _(scrubbed_text).wont_include 'EMAIL'
+    _(scrubbed_text).wont_include 'TEL'
   ensure
     route_file&.close if defined?(route_file)
   end

@@ -27,6 +27,39 @@ describe 'Attachment Endpoints' do
     write_text_pdf(path, text)
   end
 
+  def upload_fake_resume_with_sensitive_data
+    post '/api/v1/attachments/upload', { file: fake_resume_upload }, auth_header(@account)
+    attachment_id = json_body.dig('data', 'data', 'attributes', 'id')
+    LockedCV::CreateSensitiveDataService.call(
+      account_id: @account.id,
+      attachment_id:,
+      sensitive_data: fake_resume_sensitive_data
+    )
+
+    attachment_id
+  end
+
+  def fake_resume_upload
+    Rack::Test::UploadedFile.new(
+      'spec/fixtures/files/fake_resume_alan.pdf',
+      'application/pdf',
+      true,
+      original_filename: 'fake_resume_alan.pdf'
+    )
+  end
+
+  def fake_resume_sensitive_data
+    {
+      first_name: 'Alan',
+      last_name: 'Turing',
+      phone_number: '0912-000-002',
+      birthday: '1912-06-23',
+      email: 'alan@example.com',
+      address: 'Manchester',
+      identification_numbers: 'B987654321'
+    }
+  end
+
   before do
     reset_database!
     reset_storage!
@@ -169,7 +202,6 @@ describe 'Attachment Endpoints' do
     ensure
       pdf&.close!
     end
-
   end
 
   describe 'GET /api/v1/attachments' do
@@ -531,6 +563,99 @@ describe 'Attachment Endpoints' do
       _(scrubbed_text).wont_include '@example.com'
       _(scrubbed_text).wont_include '0912'
       _(scrubbed_text).wont_include 'B987'
+    end
+
+    it 'HAPPY: previews a selected-label masked PDF without creating records' do
+      attachment_id = upload_fake_resume_with_sensitive_data
+      python_bin = available_pdf_processor_python
+      skip 'pdfplumber/reportlab Python dependencies are not available' unless python_bin
+
+      with_python_bin(python_bin) do
+        post(
+          "/api/v1/attachments/#{attachment_id}/masked_attachments/preview",
+          { selected_labels: ['email'] }.to_json,
+          auth_req_header(@account)
+        )
+      end
+
+      _(last_response.status).must_equal 200
+      _(last_response.content_type).must_equal 'application/pdf'
+      _(last_response.headers['Content-Disposition']).must_equal 'inline; filename="masked_preview.pdf"'
+      _(last_response.body.byteslice(0, 4)).must_equal '%PDF'
+      _(LockedCV::MaskedAttachment.count).must_equal 0
+      _(LockedCV::MaskedItem.count).must_equal 0
+
+      preview_path = File.join('tmp', 'masked_previews', 'api_preview_selected_email.pdf')
+      File.binwrite(preview_path, last_response.body)
+      preview_text = LockedCV::ExtractPdf.text(preview_path)
+      _(preview_text).wont_include 'alan@example.com'
+      _(preview_text).must_include '0912-000-002'
+      _(preview_text).must_include 'B987654321'
+    ensure
+      FileUtils.rm_f(preview_path) if defined?(preview_path) && preview_path
+    end
+
+    it 'SAD: rejects invalid preview selected labels' do
+      post(
+        "/api/v1/attachments/#{@attachments.first.id}/masked_attachments/preview",
+        { selected_labels: ['unknown'] }.to_json,
+        auth_req_header(@account)
+      )
+
+      _(last_response.status).must_equal 400
+      _(json_body).must_equal('message' => 'Invalid selected labels')
+    end
+
+    it 'HAPPY: creates records only for selected masked labels' do
+      attachment_id = upload_fake_resume_with_sensitive_data
+      python_bin = available_pdf_processor_python
+      skip 'pdfplumber/reportlab Python dependencies are not available' unless python_bin
+
+      with_python_bin(python_bin) do
+        post(
+          "/api/v1/attachments/#{attachment_id}/masked_attachments",
+          { selected_labels: %w[email tel] }.to_json,
+          auth_req_header(@account)
+        )
+      end
+
+      _(last_response.status).must_equal 201
+      masked_attachment_id = json_body.dig('data', 'data', 'attributes', 'id')
+      _(last_response.headers['Location']).must_equal(
+        "api/v1/attachments/#{attachment_id}/masked_attachments/#{masked_attachment_id}"
+      )
+      _(LockedCV::MaskedAttachment.count).must_equal 1
+      _(LockedCV::MaskedItem.order(:field_name).map(&:field_name)).must_equal %w[email phone_number]
+      masked_text = LockedCV::ExtractPdf.text(storage_path_for(json_body.dig('data', 'data', 'attributes', 'route')))
+      _(masked_text).wont_include 'alan@example.com'
+      _(masked_text).wont_include '0912-000-002'
+      _(masked_text).must_include 'B987654321'
+    end
+
+    it 'HAPPY: downloads a saved masked PDF' do
+      attachment_id = upload_fake_resume_with_sensitive_data
+      python_bin = available_pdf_processor_python
+      skip 'pdfplumber/reportlab Python dependencies are not available' unless python_bin
+
+      with_python_bin(python_bin) do
+        post(
+          "/api/v1/attachments/#{attachment_id}/masked_attachments",
+          { selected_labels: ['email'] }.to_json,
+          auth_req_header(@account)
+        )
+      end
+      masked_attachment_id = json_body.dig('data', 'data', 'attributes', 'id')
+
+      get(
+        "/api/v1/attachments/#{attachment_id}/masked_attachments/#{masked_attachment_id}/download",
+        {},
+        auth_header(@account)
+      )
+
+      _(last_response.status).must_equal 200
+      _(last_response.content_type).must_equal 'application/pdf'
+      _(last_response.headers['Content-Disposition']).must_equal 'attachment; filename="masked_fake_resume_alan.pdf"'
+      _(last_response.body.byteslice(0, 4)).must_equal '%PDF'
     end
 
     it 'SAD: returns 404 when exporting a missing attachment' do
