@@ -80,7 +80,7 @@ module LockedCV
           routing.on 'preview' do
             # POST api/v1/attachments/[attachment_id]/masked_attachments/preview
             routing.post do
-              authorized_attachment!(attachment_id, current_account, auth_scope, :view_masked?)
+              authorized_attachment!(attachment_id, current_account, auth_scope, :view?)
               selected_labels = selected_labels_from_request(routing)
               preview_path = PreviewMaskedPdf.call(
                 account_id: current_account.id,
@@ -161,7 +161,7 @@ module LockedCV
 
           # POST api/v1/attachments/[attachment_id]/masked_attachments
           routing.post do
-            authorized_attachment!(attachment_id, current_account, auth_scope, :view_masked?)
+            authorized_attachment!(attachment_id, current_account, auth_scope, :view?)
             selected_labels = selected_labels_from_request(routing)
             masked_attachment = ExportMaskedPdf.call(account_id: current_account.id, attachment_id:, selected_labels:)
 
