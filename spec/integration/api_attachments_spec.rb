@@ -211,23 +211,34 @@ describe 'Attachment Endpoints' do
       text_file&.close!
     end
 
-    it 'SAD: deletes uploaded files when attachment metadata cannot be saved' do
-      pdf = Tempfile.new(['lockedcv-api-upload-duplicate', '.pdf'])
-      write_text_pdf(pdf.path, 'Uploaded PDF text')
-      upload = Rack::Test::UploadedFile.new(
-        pdf.path,
-        'application/pdf',
-        true,
-        original_filename: DATA[:attachments].first['attachment_name']
-      )
+    it 'HAPPY: numbers duplicate display filenames within an account' do
+      pdfs = Array.new(3) do |index|
+        Tempfile.new(["lockedcv-api-upload-duplicate-#{index}", '.pdf']).tap do |pdf|
+          write_text_pdf(pdf.path, "Uploaded PDF text #{index}")
+        end
+      end
 
-      post '/api/v1/attachments/upload', { file: upload }, auth_header(@account)
+      attachment_names = pdfs.map do |pdf|
+        upload = Rack::Test::UploadedFile.new(
+          pdf.path,
+          'application/pdf',
+          true,
+          original_filename: DATA[:attachments].first['attachment_name']
+        )
 
-      _(last_response.status).must_equal 400
-      _(json_body).must_equal('message' => 'Could not upload attachment')
-      _(Dir.exist?(storage_path_for("accounts/#{@account.id}"))).must_equal false
+        post '/api/v1/attachments/upload', { file: upload }, auth_header(@account)
+
+        _(last_response.status).must_equal 201
+        json_body.dig('data', 'data', 'attributes', 'attachment_name')
+      end
+
+      _(attachment_names).must_equal [
+        'resume_ada (1).pdf',
+        'resume_ada (2).pdf',
+        'resume_ada (3).pdf'
+      ]
     ensure
-      pdf&.close!
+      pdfs&.each(&:close!)
     end
   end
 
