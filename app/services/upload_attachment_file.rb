@@ -40,10 +40,14 @@ module LockedCV
       CreateAttachmentService.call(
         account_id:,
         attachment_data: {
-          attachment_name: display_filename,
+          attachment_name: resolved_display_filename,
           route:
         }
       )
+    end
+
+    def resolved_display_filename
+      ResolveAttachmentName.call(account: current_account, filename: display_filename)
     end
 
     def display_filename
