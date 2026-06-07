@@ -23,7 +23,7 @@ require_app
 
 TEST_DB_LOCK = begin
   FileUtils.mkdir_p('tmp')
-  lock = File.open('tmp/test-db.lock', File::RDWR | File::CREAT, 0o644)
+  lock = File.open('tmp/test-db.lock', File::RDWR | File::CREAT, 0o644) # rubocop:disable Style/FileOpen
   lock.flock(File::LOCK_EX)
   # Keep the lock open until process exit; Minitest runs specs from at_exit.
   lock
@@ -43,7 +43,26 @@ module LockedCV
   module SpecHelpers
     SSO_KEY_ID = 'test-google-key'
     REQUIRED_TABLES = %i[
-      accounts attachments attachment_permissions sensitive_data masked_attachments masked_items roles accounts_roles
+      accounts
+      attachments
+      attachment_permissions
+      masked_attachment_share_links
+      sensitive_data
+      masked_attachments
+      masked_items
+      roles
+      accounts_roles
+    ].freeze
+    TABLE_CLEANERS = [
+      -> { LockedCV::MaskedItem.dataset.delete },
+      -> { LockedCV::MaskedAttachmentShareLink.dataset.delete },
+      -> { LockedCV::MaskedAttachment.dataset.delete },
+      -> { LockedCV::SensitiveData.dataset.delete },
+      -> { LockedCV::AttachmentPermission.dataset.delete },
+      -> { LockedCV::Attachment.dataset.delete },
+      -> { LockedCV::Api.DB[:accounts_roles].delete },
+      -> { LockedCV::Role.dataset.delete },
+      -> { LockedCV::Account.dataset.delete }
     ].freeze
 
     def db
@@ -58,14 +77,7 @@ module LockedCV
     end
 
     def wipe_database_tables!
-      LockedCV::MaskedItem.dataset.delete
-      LockedCV::MaskedAttachment.dataset.delete
-      LockedCV::SensitiveData.dataset.delete
-      LockedCV::AttachmentPermission.dataset.delete
-      LockedCV::Attachment.dataset.delete
-      LockedCV::Api.DB[:accounts_roles].delete
-      LockedCV::Role.dataset.delete
-      LockedCV::Account.dataset.delete
+      TABLE_CLEANERS.each(&:call)
     end
 
     def reset_database!
