@@ -80,7 +80,7 @@ module LockedCV
           routing.on 'preview' do
             # POST api/v1/attachments/[attachment_id]/masked_attachments/preview
             routing.post do
-              authorized_attachment!(attachment_id, current_account, auth_scope, :view_masked?)
+              authorized_attachment!(attachment_id, current_account, auth_scope, :view?)
               selected_labels = selected_labels_from_request(routing)
               preview_path = PreviewMaskedPdf.call(
                 account_id: current_account.id,
@@ -107,6 +107,27 @@ module LockedCV
           end
 
           routing.on String do |masked_attachment_id|
+            routing.on 'share_links' do
+              # POST api/v1/attachments/[attachment_id]/masked_attachments/[masked_attachment_id]/share_links
+              routing.post do
+                authorized_attachment!(attachment_id, current_account, auth_scope, :view?)
+                share_link = CreateMaskedAttachmentShareLink.call(
+                  current_account:,
+                  attachment_id:,
+                  masked_attachment_id:
+                )
+
+                response.status = 201
+                response['Location'] = "api/v1/masked_attachment_share_links/#{share_link.token}"
+                { message: 'Masked attachment share link created', data: share_link.to_h }.to_json
+              rescue AttachmentNotAuthorizedError, CreateMaskedAttachmentShareLink::MaskedAttachmentNotFoundError
+                routing.halt 404, { message: 'Masked attachment not found' }.to_json
+              rescue StandardError => e
+                Api.logger.error "MASKED ATTACHMENT SHARE LINK CREATE ERROR: #{e.message}"
+                routing.halt 400, { message: 'Could not create masked attachment share link' }.to_json
+              end
+            end
+
             routing.on 'download' do
               # GET api/v1/attachments/[attachment_id]/masked_attachments/[masked_attachment_id]/download
               routing.get do
@@ -161,7 +182,7 @@ module LockedCV
 
           # POST api/v1/attachments/[attachment_id]/masked_attachments
           routing.post do
-            authorized_attachment!(attachment_id, current_account, auth_scope, :view_masked?)
+            authorized_attachment!(attachment_id, current_account, auth_scope, :view?)
             selected_labels = selected_labels_from_request(routing)
             masked_attachment = ExportMaskedPdf.call(account_id: current_account.id, attachment_id:, selected_labels:)
 
