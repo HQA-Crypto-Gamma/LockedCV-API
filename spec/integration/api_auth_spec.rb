@@ -26,7 +26,7 @@ describe 'Authentication Endpoint' do
       password: @account_data[:password]
     }
 
-    post '/api/v1/auth/authenticate', credentials.to_json, req_header
+    post '/api/v1/auth/authenticate', signed_body(credentials), req_header
 
     _(last_response.status).must_equal 200
     _(last_response.headers['Content-Type']).must_include 'application/json'
@@ -44,6 +44,18 @@ describe 'Authentication Endpoint' do
     _(json_body.dig('data', 'attributes').keys).wont_include 'password_digest'
   end
 
+  it 'SECURITY: rejects unsigned authentication requests' do
+    credentials = {
+      username: @account_data[:username],
+      password: @account_data[:password]
+    }
+
+    post '/api/v1/auth/authenticate', credentials.to_json, req_header
+
+    _(last_response.status).must_equal 403
+    _(json_body).must_equal('message' => 'Must sign request')
+  end
+
   it 'SAD: rejects invalid password' do
     credentials = {
       username: @account_data[:username],
@@ -51,12 +63,12 @@ describe 'Authentication Endpoint' do
     }
 
     capture_app_logs do |logs|
-      post '/api/v1/auth/authenticate', credentials.to_json, req_header
+      post '/api/v1/auth/authenticate', signed_body(credentials), req_header
 
       _(logs.string).must_include 'Authentication failed: invalid credentials'
     end
 
-    _(last_response.status).must_equal 403
+    _(last_response.status).must_equal 401
     _(json_body).must_equal('message' => 'Invalid credentials')
   end
 
@@ -67,12 +79,12 @@ describe 'Authentication Endpoint' do
     }
 
     capture_app_logs do |logs|
-      post '/api/v1/auth/authenticate', credentials.to_json, req_header
+      post '/api/v1/auth/authenticate', signed_body(credentials), req_header
 
       _(logs.string).must_include 'Authentication failed: invalid credentials'
     end
 
-    _(last_response.status).must_equal 403
+    _(last_response.status).must_equal 401
     _(json_body).must_equal('message' => 'Invalid credentials')
   end
 
@@ -99,15 +111,23 @@ describe 'Authentication Endpoint' do
              end
              .to_return(status: 200, body: { id: 'message-id' }.to_json)
 
-      post '/api/v1/auth/register', @registration.to_json, req_header
+      post '/api/v1/auth/register', signed_body(@registration), req_header
 
       _(last_response.status).must_equal 202
       _(json_body).must_equal('message' => 'Verification email sent')
       _(LockedCV::Account.count).must_equal 0
     end
 
+    it 'SECURITY: rejects unsigned registration email requests' do
+      post '/api/v1/auth/register', @registration.to_json, req_header
+
+      _(last_response.status).must_equal 403
+      _(json_body).must_equal('message' => 'Must sign request')
+      assert_not_requested(:post, @mailgun_url)
+    end
+
     it 'SAD: rejects missing verification URL' do
-      post '/api/v1/auth/register', @registration.merge(verification_url: '').to_json, req_header
+      post '/api/v1/auth/register', signed_body(@registration.merge(verification_url: '')), req_header
 
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Verification URL is required')
@@ -115,7 +135,7 @@ describe 'Authentication Endpoint' do
     end
 
     it 'SAD: rejects missing email' do
-      post '/api/v1/auth/register', @registration.merge(email: '').to_json, req_header
+      post '/api/v1/auth/register', signed_body(@registration.merge(email: '')), req_header
 
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Email is required')
@@ -123,7 +143,7 @@ describe 'Authentication Endpoint' do
     end
 
     it 'SAD: rejects missing username' do
-      post '/api/v1/auth/register', @registration.merge(username: '').to_json, req_header
+      post '/api/v1/auth/register', signed_body(@registration.merge(username: '')), req_header
 
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Username is required')
@@ -135,7 +155,7 @@ describe 'Authentication Endpoint' do
         account_data: DATA[:accounts].first.transform_keys(&:to_sym)
       )
 
-      post '/api/v1/auth/register', @registration.merge(email: account.email).to_json, req_header
+      post '/api/v1/auth/register', signed_body(@registration.merge(email: account.email)), req_header
 
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Email already registered')
@@ -147,7 +167,7 @@ describe 'Authentication Endpoint' do
         account_data: DATA[:accounts].first.transform_keys(&:to_sym)
       )
 
-      post '/api/v1/auth/register', @registration.merge(username: account.username).to_json, req_header
+      post '/api/v1/auth/register', signed_body(@registration.merge(username: account.username)), req_header
 
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Username already taken')
@@ -170,7 +190,7 @@ describe 'Authentication Endpoint' do
              end
              .to_return(status: 200, body: { id: 'message-id' }.to_json)
 
-      post '/api/v1/auth/register', padded_registration.to_json, req_header
+      post '/api/v1/auth/register', signed_body(padded_registration), req_header
 
       _(last_response.status).must_equal 202
       _(json_body).must_equal('message' => 'Verification email sent')
@@ -182,7 +202,7 @@ describe 'Authentication Endpoint' do
       WebMock.stub_request(:post, @mailgun_url)
              .to_return(status: 500, body: 'provider down')
 
-      post '/api/v1/auth/register', @registration.to_json, req_header
+      post '/api/v1/auth/register', signed_body(@registration), req_header
 
       _(last_response.status).must_equal 500
       _(json_body).must_equal('message' => 'Could not send verification email')
@@ -193,7 +213,7 @@ describe 'Authentication Endpoint' do
       WebMock.stub_request(:post, @mailgun_url)
              .to_raise(HTTP::Error.new('network down'))
 
-      post '/api/v1/auth/register', @registration.to_json, req_header
+      post '/api/v1/auth/register', signed_body(@registration), req_header
 
       _(last_response.status).must_equal 500
       _(json_body).must_equal('message' => 'Could not send verification email')
@@ -206,7 +226,7 @@ describe 'Authentication Endpoint' do
       reset_database!
 
       post '/api/v1/auth/sso',
-           { provider: 'google', id_token: google_id_token, jwks: google_jwks }.to_json,
+           signed_body({ provider: 'google', id_token: google_id_token, jwks: google_jwks }),
            req_header
 
       _(last_response.status).must_equal 200
@@ -219,6 +239,15 @@ describe 'Authentication Endpoint' do
       _(LockedCV::AuthToken.load(attributes['auth_token']).scope).must_equal LockedCV::AuthScope::FULL
     end
 
+    it 'SECURITY: rejects unsigned SSO requests' do
+      post '/api/v1/auth/sso',
+           { provider: 'google', id_token: google_id_token, jwks: google_jwks }.to_json,
+           req_header
+
+      _(last_response.status).must_equal 403
+      _(json_body).must_equal('message' => 'Must sign request')
+    end
+
     it 'HAPPY: uses the email local part rather than Google display name for SSO username' do
       reset_database!
       token = google_id_token(
@@ -227,7 +256,7 @@ describe 'Authentication Endpoint' do
       )
 
       post '/api/v1/auth/sso',
-           { provider: 'google', id_token: token, jwks: google_jwks }.to_json,
+           signed_body({ provider: 'google', id_token: token, jwks: google_jwks }),
            req_header
 
       _(last_response.status).must_equal 200
@@ -238,7 +267,7 @@ describe 'Authentication Endpoint' do
       token = google_id_token('email' => @account.email, 'name' => @account.username)
 
       post '/api/v1/auth/sso',
-           { provider: 'google', id_token: token, jwks: google_jwks }.to_json,
+           signed_body({ provider: 'google', id_token: token, jwks: google_jwks }),
            req_header
 
       _(last_response.status).must_equal 200
@@ -247,7 +276,7 @@ describe 'Authentication Endpoint' do
     end
 
     it 'SAD: rejects missing SSO token data as a bad request' do
-      post '/api/v1/auth/sso', { provider: 'google' }.to_json, req_header
+      post '/api/v1/auth/sso', signed_body({ provider: 'google' }), req_header
 
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Invalid SSO request')
@@ -255,7 +284,7 @@ describe 'Authentication Endpoint' do
 
     it 'SAD: rejects unsupported SSO provider' do
       post '/api/v1/auth/sso',
-           { provider: 'github', id_token: google_id_token, jwks: google_jwks }.to_json,
+           signed_body({ provider: 'github', id_token: google_id_token, jwks: google_jwks }),
            req_header
 
       _(last_response.status).must_equal 400
@@ -264,7 +293,7 @@ describe 'Authentication Endpoint' do
 
     it 'SAD: rejects invalid Google ID token claims' do
       post '/api/v1/auth/sso',
-           { provider: 'google', id_token: google_id_token('aud' => 'wrong-client'), jwks: google_jwks }.to_json,
+           signed_body({ provider: 'google', id_token: google_id_token('aud' => 'wrong-client'), jwks: google_jwks }),
            req_header
 
       _(last_response.status).must_equal 401
@@ -273,7 +302,7 @@ describe 'Authentication Endpoint' do
 
     it 'SAD: rejects unverified Google email' do
       post '/api/v1/auth/sso',
-           { provider: 'google', id_token: google_id_token('email_verified' => false), jwks: google_jwks }.to_json,
+           signed_body({ provider: 'google', id_token: google_id_token('email_verified' => false), jwks: google_jwks }),
            req_header
 
       _(last_response.status).must_equal 401

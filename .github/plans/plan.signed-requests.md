@@ -27,10 +27,11 @@
   - `SignedRequest` library foundation。
   - `rake newkey:signing` keypair generator。
   - `config/secrets-example.yml` signed request key placeholders。
+  - `HttpRequest#signed_body_data`。
+  - Unauthenticated POST route signature enforcement。
   - App-side Google OAuth `state` nonce 已完成，這是 App concern，不需要 API 參與。
 - 目前尚未有：
-  - `HttpRequest#signed_body_data`。
-  - 對 unauthenticated POST routes 的 signature gate。
+  - App-side signed request sender。
 - 目前應優先簽章的 API routes：
   - `POST /api/v1/auth/authenticate`
   - `POST /api/v1/auth/register`
@@ -80,7 +81,7 @@
    - 確認 env spec 不會把 key 留在 `Api.config`。
    - Remaining：把實際 key 加到 local `config/secrets.yml` 與 Heroku config vars。
 
-3. **HTTP request helper**
+3. **HTTP request helper** - done
    - 在 `app/controllers/http_request.rb` 新增：
 
      ```ruby
@@ -91,18 +92,18 @@
 
    - 保留既有 `body_data` 給 bearer-authenticated routes 使用。
 
-4. **Auth routes**
+4. **Auth routes** - done
    - `app/controllers/auth.rb` route-top 先讀一次 `signed_body_data`。
    - `authenticate`、`register`、`sso` 都使用驗章後的 `@request_data`。
    - `SignedRequest::VerificationError` 回 `403`。
    - 既有 credential / registration / SSO validation error mapping 保持不變。
 
-5. **Account pre-auth routes**
+5. **Account pre-auth routes** - done
    - `POST /api/v1/accounts/registration/check` 改用 `signed_body_data`。
    - `POST /api/v1/accounts` 改用 `signed_body_data`。
    - 這兩個 route 都是在建帳號前使用，無 bearer token，因此應簽章。
 
-6. **Specs**
+6. **Specs** - done
    - 新增 `spec/unit/signed_request_spec.rb` 或依 repo convention 放在對應目錄。
    - 所有呼叫上述 pre-auth POST 的 integration specs 都改成 signed payload。
    - 每一組核心 route 至少補一個 unsigned request -> `403` regression spec。

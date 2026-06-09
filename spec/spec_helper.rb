@@ -97,6 +97,10 @@ module LockedCV
       { 'CONTENT_TYPE' => 'application/json' }
     end
 
+    def signed_body(payload)
+      LockedCV::SignedRequest.sign(payload).to_json
+    end
+
     def auth_header(account, scope: LockedCV::AuthScope.new)
       token = LockedCV::AuthToken.new(
         {

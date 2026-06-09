@@ -63,7 +63,7 @@ module LockedCV
         routing.is 'check' do
           # POST api/v1/accounts/registration/check
           routing.post do
-            registration = HttpRequest.new(routing).body_data
+            registration = signed_request_data!(routing)
             CheckRegistrationAvailability.new(registration).call
 
             { available: true }.to_json
@@ -181,7 +181,7 @@ module LockedCV
 
       # POST api/v1/accounts
       routing.post do
-        new_data = HttpRequest.new(routing).body_data
+        new_data = signed_request_data!(routing)
         new_doc = CreateAccountService.call(account_data: new_data)
 
         response.status = 201
@@ -199,6 +199,12 @@ module LockedCV
     end
 
     private
+
+    def signed_request_data!(routing)
+      HttpRequest.new(routing).signed_body_data
+    rescue SignedRequest::VerificationError
+      routing.halt 403, { message: 'Must sign request' }.to_json
+    end
 
     def authenticated_account!(routing)
       authenticated_authorization!(routing).account
