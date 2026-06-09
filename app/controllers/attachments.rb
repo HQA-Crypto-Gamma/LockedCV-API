@@ -178,6 +178,17 @@ module LockedCV
                 FileUtils.rm_f(encrypted_path) if defined?(encrypted_path) && encrypted_path
               end
             end
+
+            # DELETE api/v1/attachments/[attachment_id]/masked_attachments/[masked_attachment_id]
+            routing.delete do
+              delete_masked_attachment_for(
+                routing,
+                current_account:,
+                auth_scope:,
+                attachment_id:,
+                masked_attachment_id:
+              )
+            end
           end
 
           # GET api/v1/attachments/[attachment_id]/masked_attachments
@@ -344,6 +355,18 @@ module LockedCV
     rescue StandardError => e
       Api.logger.error "ATTACHMENT DELETE ERROR: #{e.message}"
       routing.halt 400, { message: 'Could not delete attachment' }.to_json
+    end
+
+    def delete_masked_attachment_for(routing, current_account:, auth_scope:, attachment_id:, masked_attachment_id:)
+      DeleteMaskedAttachmentService.call(current_account:, attachment_id:, masked_attachment_id:, auth_scope:)
+
+      { message: 'Masked attachment deleted' }.to_json
+    rescue DeleteMaskedAttachmentService::MaskedAttachmentNotFoundError,
+           DeleteMaskedAttachmentService::NotAuthorizedError
+      routing.halt 404, { message: 'Masked attachment not found' }.to_json
+    rescue StandardError => e
+      Api.logger.error "MASKED ATTACHMENT DELETE ERROR: #{e.message}"
+      routing.halt 400, { message: 'Could not delete masked attachment' }.to_json
     end
   end
 end

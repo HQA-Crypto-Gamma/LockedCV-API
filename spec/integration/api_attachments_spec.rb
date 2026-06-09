@@ -412,6 +412,61 @@ describe 'Attachment Endpoints' do
     end
   end
 
+  describe 'DELETE /api/v1/attachments/:attachment_id/masked_attachments/:masked_attachment_id' do
+    it 'HAPPY: deletes one saved masked PDF version without deleting the source attachment' do
+      attachment = stored_attachment(@account)
+      masked_route = "accounts/#{@account.id}/masked/masked_delete_one.pdf"
+      write_stored_pdf(masked_route, 'Masked PDF text')
+      masked_attachment = attachment.add_masked_attachment(
+        attachment_name: 'masked_delete_one.pdf',
+        route: masked_route
+      )
+      masked_path = storage_path_for(masked_route)
+
+      delete(
+        "/api/v1/attachments/#{attachment.id}/masked_attachments/#{masked_attachment.id}",
+        {},
+        auth_header(@account)
+      )
+
+      _(last_response.status).must_equal 200
+      _(json_body).must_equal('message' => 'Masked attachment deleted')
+      _(LockedCV::Attachment.where(id: attachment.id).first).wont_be_nil
+      _(LockedCV::MaskedAttachment.where(id: masked_attachment.id).first).must_be_nil
+      _(File.file?(masked_path)).must_equal false
+    end
+
+    it 'SECURITY: rejects masked version deletes from unrelated accounts' do
+      attachment = stored_attachment(@account)
+      masked_attachment = attachment.add_masked_attachment(
+        attachment_name: 'masked_private.pdf',
+        route: "accounts/#{@account.id}/masked/masked_private.pdf"
+      )
+      other_account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+      )
+
+      delete(
+        "/api/v1/attachments/#{attachment.id}/masked_attachments/#{masked_attachment.id}",
+        {},
+        auth_header(other_account)
+      )
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Masked attachment not found')
+      _(LockedCV::MaskedAttachment.where(id: masked_attachment.id).first).wont_be_nil
+    end
+
+    it 'SAD: returns 404 when the masked version is missing' do
+      attachment = stored_attachment(@account)
+
+      delete "/api/v1/attachments/#{attachment.id}/masked_attachments/999999", {}, auth_header(@account)
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Masked attachment not found')
+    end
+  end
+
   describe 'DELETE /api/v1/attachments/:attachment_id' do
     it 'HAPPY: deletes attachment metadata and stored files for the bearer-token account' do
       attachment = stored_attachment(@account)
