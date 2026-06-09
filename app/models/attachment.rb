@@ -48,7 +48,8 @@ module LockedCV
             attributes: {
               id:,
               attachment_name:,
-              route:
+              route:,
+              masked_attachments_count: masked_attachments_dataset.count
             }
           },
           included: {

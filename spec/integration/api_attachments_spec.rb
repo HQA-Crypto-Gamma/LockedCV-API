@@ -287,6 +287,10 @@ describe 'Attachment Endpoints' do
 
   describe 'GET /api/v1/attachments' do
     it 'HAPPY: gets scoped attachments with policy summaries for current account' do
+      @attachments.first.add_masked_attachment(
+        attachment_name: 'masked_resume_ada.pdf',
+        route: "accounts/#{@account.id}/masked/masked_resume_ada.pdf"
+      )
       shared_owner = LockedCV::CreateAccountService.call(
         account_data: DATA[:accounts].last.transform_keys(&:to_sym)
       )
@@ -332,6 +336,7 @@ describe 'Attachment Endpoints' do
       owned_attachment = attachments.find { |item| item.dig('data', 'attributes', 'id') == @attachments.first.id }
       owned_attachment_name = owned_attachment.dig('data', 'attributes', 'attachment_name')
       _(owned_attachment_name).must_equal DATA[:attachments].first['attachment_name']
+      _(owned_attachment.dig('data', 'attributes', 'masked_attachments_count')).must_equal 1
       _(owned_attachment['policy']).must_equal(
         'can_view' => true,
         'can_view_masked' => true,
@@ -365,6 +370,44 @@ describe 'Attachment Endpoints' do
 
       _(last_response.status).must_equal 401
       _(json_body).must_equal('message' => 'Invalid authorization token')
+    end
+  end
+
+  describe 'GET /api/v1/attachments/:attachment_id/masked_attachments' do
+    it 'HAPPY: lists saved masked PDF versions for an attachment' do
+      attachment = @attachments.first
+      masked_attachment = attachment.add_masked_attachment(
+        attachment_name: 'masked_resume_ada.pdf',
+        route: "accounts/#{@account.id}/masked/masked_resume_ada.pdf"
+      )
+      masked_attachment.add_masked_item(
+        field_name: 'email',
+        value: 'ada@example.com',
+        source: 'regex'
+      )
+
+      get "/api/v1/attachments/#{attachment.id}/masked_attachments", {}, auth_header(@account)
+
+      _(last_response.status).must_equal 200
+      versions = json_body['data']
+      _(versions.length).must_equal 1
+      attributes = versions.first.dig('data', 'attributes')
+      _(attributes['id']).must_equal masked_attachment.id
+      _(attributes['attachment_id']).must_equal attachment.id
+      _(attributes['attachment_name']).must_equal 'masked_resume_ada.pdf'
+      _(attributes['masked_items_count']).must_equal 1
+    end
+
+    it 'SECURITY: rejects masked version listing for unrelated accounts' do
+      attachment = @attachments.first
+      other_account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+      )
+
+      get "/api/v1/attachments/#{attachment.id}/masked_attachments", {}, auth_header(other_account)
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Attachment not found')
     end
   end
 

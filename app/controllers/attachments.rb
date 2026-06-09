@@ -180,6 +180,20 @@ module LockedCV
             end
           end
 
+          # GET api/v1/attachments/[attachment_id]/masked_attachments
+          routing.get do
+            authorized_attachment!(attachment_id, current_account, auth_scope, :view_masked?)
+            attachment = Attachment.first(id: attachment_id.to_s)
+            raise AttachmentNotAuthorizedError unless attachment
+
+            masked_attachments = attachment.masked_attachments_dataset.reverse_order(:created_at).all
+            JSON.pretty_generate(
+              data: masked_attachments.map { |masked_attachment| JSON.parse(masked_attachment.to_json) }
+            )
+          rescue AttachmentNotAuthorizedError
+            routing.halt 404, { message: 'Attachment not found' }.to_json
+          end
+
           # POST api/v1/attachments/[attachment_id]/masked_attachments
           routing.post do
             authorized_attachment!(attachment_id, current_account, auth_scope, :view?)

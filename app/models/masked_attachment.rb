@@ -30,6 +30,7 @@ module LockedCV
               attachment_id:,
               attachment_name:,
               route:,
+              masked_items_count: masked_items_dataset.count,
               created_at:,
               updated_at:
             }
