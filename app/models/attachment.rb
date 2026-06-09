@@ -15,12 +15,14 @@ module LockedCV
     one_to_one :sensitive_data, class: :'LockedCV::SensitiveData', key: :attachment_id
     one_to_many :masked_attachments, class: :'LockedCV::MaskedAttachment', key: :attachment_id
     one_to_many :attachment_permissions, class: :'LockedCV::AttachmentPermission', key: :attachment_id
+    one_to_many :masked_attachment_permissions, class: :'LockedCV::MaskedAttachmentPermission', key: :attachment_id
     one_to_many :masked_attachment_share_links,
                 class: :'LockedCV::MaskedAttachmentShareLink',
                 key: :attachment_id
     add_association_dependencies sensitive_data: :destroy,
                                  masked_attachments: :destroy,
                                  attachment_permissions: :destroy,
+                                 masked_attachment_permissions: :destroy,
                                  masked_attachment_share_links: :destroy
 
     def owner
@@ -48,7 +50,9 @@ module LockedCV
             attributes: {
               id:,
               attachment_name:,
-              route:
+              route:,
+              masked_attachments_count: masked_attachments_dataset.count,
+              created_at:
             }
           },
           included: {

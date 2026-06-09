@@ -16,12 +16,15 @@ module LockedCV
 
     one_to_many :attachments, class: :'LockedCV::Attachment', key: :account_id
     one_to_many :attachment_permissions, class: :'LockedCV::AttachmentPermission', key: :account_id
+    one_to_many :masked_attachment_permissions, class: :'LockedCV::MaskedAttachmentPermission', key: :account_id
     many_to_many :system_roles,
                  class: :'LockedCV::Role',
                  join_table: :accounts_roles,
                  left_key: :account_id,
                  right_key: :role_id
-    add_association_dependencies attachments: :destroy, attachment_permissions: :destroy
+    add_association_dependencies attachments: :destroy,
+                                 attachment_permissions: :destroy,
+                                 masked_attachment_permissions: :destroy
 
     def system_role?(role_name)
       system_roles_dataset.where(name: role_name).any?

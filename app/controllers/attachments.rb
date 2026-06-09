@@ -131,7 +131,7 @@ module LockedCV
             routing.on 'download' do
               # GET api/v1/attachments/[attachment_id]/masked_attachments/[masked_attachment_id]/download
               routing.get do
-                authorized_attachment!(attachment_id, current_account, auth_scope, :view_masked?)
+                authorized_attachment!(attachment_id, current_account, auth_scope, :view?)
                 masked_attachment = MaskedAttachment.first(id: masked_attachment_id, attachment_id: attachment_id.to_s)
                 raise AttachmentNotAuthorizedError unless masked_attachment
 
@@ -149,10 +149,31 @@ module LockedCV
               end
             end
 
+            routing.on 'view' do
+              # GET api/v1/attachments/[attachment_id]/masked_attachments/[masked_attachment_id]/view
+              routing.get do
+                masked_attachment = MaskedAttachment.first(id: masked_attachment_id, attachment_id: attachment_id.to_s)
+                raise AttachmentNotAuthorizedError unless masked_attachment
+                raise AttachmentNotAuthorizedError unless masked_attachment_view_authorized?(masked_attachment, current_account, auth_scope)
+
+                masked_path = ResolveAttachmentPath.call(route: masked_attachment.route)
+                response.status = 200
+                response['Content-Type'] = 'application/pdf'
+                response['Content-Disposition'] = inline_content_disposition(masked_attachment)
+                File.binread(masked_path)
+              rescue AttachmentNotAuthorizedError, ResolveAttachmentPath::UnsafePathError,
+                     ResolveAttachmentPath::MissingFileError, Sequel::Error
+                routing.halt 404, { message: 'Masked attachment not found' }.to_json
+              rescue StandardError => e
+                Api.logger.error "PDF VIEW ERROR: #{e.message}"
+                routing.halt 400, { message: 'Could not view masked attachment' }.to_json
+              end
+            end
+
             routing.on 'encrypted_download' do
               # POST api/v1/attachments/[attachment_id]/masked_attachments/[masked_attachment_id]/encrypted_download
               routing.post do
-                authorized_attachment!(attachment_id, current_account, auth_scope, :view_masked?)
+                authorized_attachment!(attachment_id, current_account, auth_scope, :view?)
                 password = HttpRequest.new(routing).body_data.fetch(:password, nil)
                 raise BuildEncryptedPdf::Error, 'Password is required' if password.to_s.strip.empty?
 
@@ -178,6 +199,31 @@ module LockedCV
                 FileUtils.rm_f(encrypted_path) if defined?(encrypted_path) && encrypted_path
               end
             end
+
+            # DELETE api/v1/attachments/[attachment_id]/masked_attachments/[masked_attachment_id]
+            routing.delete do
+              delete_masked_attachment_for(
+                routing,
+                current_account:,
+                auth_scope:,
+                attachment_id:,
+                masked_attachment_id:
+              )
+            end
+          end
+
+          # GET api/v1/attachments/[attachment_id]/masked_attachments
+          routing.get do
+            authorized_attachment!(attachment_id, current_account, auth_scope, :view?)
+            attachment = Attachment.first(id: attachment_id.to_s)
+            raise AttachmentNotAuthorizedError unless attachment
+
+            masked_attachments = attachment.masked_attachments_dataset.reverse_order(:created_at).all
+            JSON.pretty_generate(
+              data: masked_attachments.map { |masked_attachment| JSON.parse(masked_attachment.to_json) }
+            )
+          rescue AttachmentNotAuthorizedError
+            routing.halt 404, { message: 'Attachment not found' }.to_json
           end
 
           # POST api/v1/attachments/[attachment_id]/masked_attachments
@@ -217,7 +263,7 @@ module LockedCV
 
       # GET api/v1/attachments
       routing.get do
-        attachments = AttachmentPolicy::AccountScope.new(current_account).viewable.all
+        attachments = AttachmentPolicy::AccountScope.new(current_account).viewable.reverse_order(:created_at).all
         output = {
           data: attachments.map do |attachment|
             policy = AttachmentPolicy.new(current_account, attachment, auth_scope:)
@@ -270,6 +316,23 @@ module LockedCV
     def encrypted_download_content_disposition(masked_attachment)
       filename = File.basename(masked_attachment.attachment_name)
       "attachment; filename=\"encrypted_#{filename}\""
+    end
+
+    def inline_content_disposition(masked_attachment)
+      filename = File.basename(masked_attachment.attachment_name)
+      "inline; filename=\"#{filename}\""
+    end
+
+    def masked_attachment_view_authorized?(masked_attachment, current_account, auth_scope)
+      return false unless auth_scope.can_read?(AttachmentPolicy::RESOURCE)
+      return true if current_account&.id == masked_attachment.attachment&.account_id
+
+      MaskedAttachmentPermission.where(
+        account_id: current_account&.id,
+        attachment_id: masked_attachment.attachment_id,
+        masked_attachment_id: masked_attachment.id,
+        role: 'viewer'
+      ).any?
     end
 
     def upload_attachment_for(routing, current_account:, auth_scope:, location_base:)
@@ -330,6 +393,18 @@ module LockedCV
     rescue StandardError => e
       Api.logger.error "ATTACHMENT DELETE ERROR: #{e.message}"
       routing.halt 400, { message: 'Could not delete attachment' }.to_json
+    end
+
+    def delete_masked_attachment_for(routing, current_account:, auth_scope:, attachment_id:, masked_attachment_id:)
+      DeleteMaskedAttachmentService.call(current_account:, attachment_id:, masked_attachment_id:, auth_scope:)
+
+      { message: 'Masked attachment deleted' }.to_json
+    rescue DeleteMaskedAttachmentService::MaskedAttachmentNotFoundError,
+           DeleteMaskedAttachmentService::NotAuthorizedError
+      routing.halt 404, { message: 'Masked attachment not found' }.to_json
+    rescue StandardError => e
+      Api.logger.error "MASKED ATTACHMENT DELETE ERROR: #{e.message}"
+      routing.halt 400, { message: 'Could not delete masked attachment' }.to_json
     end
   end
 end

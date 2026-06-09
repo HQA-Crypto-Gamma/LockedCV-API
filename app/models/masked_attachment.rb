@@ -13,10 +13,14 @@ module LockedCV
 
     many_to_one :attachment, class: :'LockedCV::Attachment', key: :attachment_id
     one_to_many :masked_items, class: :'LockedCV::MaskedItem', key: :masked_attachment_id
+    one_to_many :masked_attachment_permissions,
+                class: :'LockedCV::MaskedAttachmentPermission',
+                key: :masked_attachment_id
     one_to_many :masked_attachment_share_links,
                 class: :'LockedCV::MaskedAttachmentShareLink',
                 key: :masked_attachment_id
     add_association_dependencies masked_items: :destroy,
+                                 masked_attachment_permissions: :destroy,
                                  masked_attachment_share_links: :destroy
 
     # rubocop:disable Metrics/MethodLength
@@ -30,6 +34,7 @@ module LockedCV
               attachment_id:,
               attachment_name:,
               route:,
+              masked_items_count: masked_items_dataset.count,
               created_at:,
               updated_at:
             }

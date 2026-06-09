@@ -78,6 +78,11 @@ describe 'Attachment Endpoints' do
       attachment_name: 'share_masked.pdf',
       route: masked_route
     )
+    masked_attachment.add_masked_item(
+      field_name: 'email',
+      value: 'alan@example.com',
+      source: 'regex'
+    )
 
     [attachment, masked_attachment]
   end
@@ -287,6 +292,10 @@ describe 'Attachment Endpoints' do
 
   describe 'GET /api/v1/attachments' do
     it 'HAPPY: gets scoped attachments with policy summaries for current account' do
+      @attachments.first.add_masked_attachment(
+        attachment_name: 'masked_resume_ada.pdf',
+        route: "accounts/#{@account.id}/masked/masked_resume_ada.pdf"
+      )
       shared_owner = LockedCV::CreateAccountService.call(
         account_data: DATA[:accounts].last.transform_keys(&:to_sym)
       )
@@ -328,10 +337,14 @@ describe 'Attachment Endpoints' do
       _(attachment_ids).must_include @attachments.first.id
       _(attachment_ids).must_include shared_attachment.id
       _(attachment_ids).wont_include unrelated_attachment.id
+      attachment_times = attachments.map { |item| Time.parse(item.dig('data', 'attributes', 'created_at')) }
+      _(attachment_times).must_equal attachment_times.sort.reverse
 
       owned_attachment = attachments.find { |item| item.dig('data', 'attributes', 'id') == @attachments.first.id }
       owned_attachment_name = owned_attachment.dig('data', 'attributes', 'attachment_name')
       _(owned_attachment_name).must_equal DATA[:attachments].first['attachment_name']
+      _(owned_attachment.dig('data', 'attributes', 'masked_attachments_count')).must_equal 1
+      _(owned_attachment.dig('data', 'attributes', 'created_at')).wont_be_nil
       _(owned_attachment['policy']).must_equal(
         'can_view' => true,
         'can_view_masked' => true,
@@ -365,6 +378,113 @@ describe 'Attachment Endpoints' do
 
       _(last_response.status).must_equal 401
       _(json_body).must_equal('message' => 'Invalid authorization token')
+    end
+  end
+
+  describe 'GET /api/v1/attachments/:attachment_id/masked_attachments' do
+    it 'HAPPY: lists saved masked PDF versions for an attachment' do
+      attachment = @attachments.first
+      masked_attachment = attachment.add_masked_attachment(
+        attachment_name: 'masked_resume_ada.pdf',
+        route: "accounts/#{@account.id}/masked/masked_resume_ada.pdf"
+      )
+      masked_attachment.add_masked_item(
+        field_name: 'email',
+        value: 'ada@example.com',
+        source: 'regex'
+      )
+
+      get "/api/v1/attachments/#{attachment.id}/masked_attachments", {}, auth_header(@account)
+
+      _(last_response.status).must_equal 200
+      versions = json_body['data']
+      _(versions.length).must_equal 1
+      attributes = versions.first.dig('data', 'attributes')
+      _(attributes['id']).must_equal masked_attachment.id
+      _(attributes['attachment_id']).must_equal attachment.id
+      _(attributes['attachment_name']).must_equal 'masked_resume_ada.pdf'
+      _(attributes['masked_items_count']).must_equal 1
+    end
+
+    it 'SECURITY: rejects viewer_masked accounts from listing all masked PDF versions' do
+      attachment = @attachments.first
+      attachment.add_masked_attachment(
+        attachment_name: 'masked_resume_ada.pdf',
+        route: "accounts/#{@account.id}/masked/masked_resume_ada.pdf"
+      )
+      viewer = viewer_masked_account_for(attachment.id)
+
+      get "/api/v1/attachments/#{attachment.id}/masked_attachments", {}, auth_header(viewer)
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Attachment not found')
+    end
+
+    it 'SECURITY: rejects masked version listing for unrelated accounts' do
+      attachment = @attachments.first
+      other_account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+      )
+
+      get "/api/v1/attachments/#{attachment.id}/masked_attachments", {}, auth_header(other_account)
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Attachment not found')
+    end
+  end
+
+  describe 'DELETE /api/v1/attachments/:attachment_id/masked_attachments/:masked_attachment_id' do
+    it 'HAPPY: deletes one saved masked PDF version without deleting the source attachment' do
+      attachment = stored_attachment(@account)
+      masked_route = "accounts/#{@account.id}/masked/masked_delete_one.pdf"
+      write_stored_pdf(masked_route, 'Masked PDF text')
+      masked_attachment = attachment.add_masked_attachment(
+        attachment_name: 'masked_delete_one.pdf',
+        route: masked_route
+      )
+      masked_path = storage_path_for(masked_route)
+
+      delete(
+        "/api/v1/attachments/#{attachment.id}/masked_attachments/#{masked_attachment.id}",
+        {},
+        auth_header(@account)
+      )
+
+      _(last_response.status).must_equal 200
+      _(json_body).must_equal('message' => 'Masked attachment deleted')
+      _(LockedCV::Attachment.where(id: attachment.id).first).wont_be_nil
+      _(LockedCV::MaskedAttachment.where(id: masked_attachment.id).first).must_be_nil
+      _(File.file?(masked_path)).must_equal false
+    end
+
+    it 'SECURITY: rejects masked version deletes from unrelated accounts' do
+      attachment = stored_attachment(@account)
+      masked_attachment = attachment.add_masked_attachment(
+        attachment_name: 'masked_private.pdf',
+        route: "accounts/#{@account.id}/masked/masked_private.pdf"
+      )
+      other_account = LockedCV::CreateAccountService.call(
+        account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+      )
+
+      delete(
+        "/api/v1/attachments/#{attachment.id}/masked_attachments/#{masked_attachment.id}",
+        {},
+        auth_header(other_account)
+      )
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Masked attachment not found')
+      _(LockedCV::MaskedAttachment.where(id: masked_attachment.id).first).wont_be_nil
+    end
+
+    it 'SAD: returns 404 when the masked version is missing' do
+      attachment = stored_attachment(@account)
+
+      delete "/api/v1/attachments/#{attachment.id}/masked_attachments/999999", {}, auth_header(@account)
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Masked attachment not found')
     end
   end
 
@@ -767,7 +887,21 @@ describe 'Attachment Endpoints' do
       _(last_response.body.byteslice(0, 4)).must_equal '%PDF'
     end
 
-    it 'HAPPY: lets viewer_masked accounts download a saved masked PDF' do
+    it 'SECURITY: rejects attachment-level viewer_masked accounts from viewing unshared masked PDFs inline' do
+      attachment_id, masked_attachment_id = create_masked_attachment_with_selected_labels(['email'])
+      viewer = viewer_masked_account_for(attachment_id)
+
+      get(
+        "/api/v1/attachments/#{attachment_id}/masked_attachments/#{masked_attachment_id}/view",
+        {},
+        auth_header(viewer)
+      )
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Masked attachment not found')
+    end
+
+    it 'SECURITY: rejects viewer_masked accounts from downloading a saved masked PDF' do
       attachment_id, masked_attachment_id = create_masked_attachment_with_selected_labels(['email'])
       viewer = viewer_masked_account_for(attachment_id)
 
@@ -777,9 +911,8 @@ describe 'Attachment Endpoints' do
         auth_header(viewer)
       )
 
-      _(last_response.status).must_equal 200
-      _(last_response.content_type).must_equal 'application/pdf'
-      _(last_response.body.byteslice(0, 4)).must_equal '%PDF'
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Masked attachment not found')
     end
 
     it 'HAPPY: downloads a password-protected masked PDF' do
@@ -815,13 +948,9 @@ describe 'Attachment Endpoints' do
       FileUtils.rm_f(encrypted_path) if defined?(encrypted_path) && encrypted_path
     end
 
-    it 'HAPPY: lets viewer_masked accounts download a password-protected masked PDF' do
-      skip 'qpdf is not available' unless command_available?('qpdf')
-      skip 'pdftotext is not available' unless command_available?('pdftotext')
-
+    it 'SECURITY: rejects viewer_masked accounts from downloading password-protected masked PDFs' do
       attachment_id, masked_attachment_id = create_masked_attachment_with_selected_labels(['email'])
       viewer = viewer_masked_account_for(attachment_id)
-      encrypted_files_before = Dir.glob(File.join('tmp', 'encrypted_pdfs', '*.pdf'))
 
       post(
         "/api/v1/attachments/#{attachment_id}/masked_attachments/#{masked_attachment_id}/encrypted_download",
@@ -829,21 +958,8 @@ describe 'Attachment Endpoints' do
         auth_req_header(viewer)
       )
 
-      _(last_response.status).must_equal 200
-      _(last_response.content_type).must_equal 'application/pdf'
-      _(last_response.body.byteslice(0, 4)).must_equal '%PDF'
-
-      encrypted_path = File.join('tmp', 'encrypted_download_viewer_masked_test.pdf')
-      File.binwrite(encrypted_path, last_response.body)
-      _stdout, _stderr, no_password_status = Open3.capture3('pdftotext', encrypted_path, '-')
-      unlocked_text, _stderr, password_status = Open3.capture3('pdftotext', '-upw', 'test123', encrypted_path, '-')
-
-      _(no_password_status.success?).must_equal false
-      _(password_status.success?).must_equal true
-      _(unlocked_text).must_include 'Alan Turing'
-      _(Dir.glob(File.join('tmp', 'encrypted_pdfs', '*.pdf'))).must_equal encrypted_files_before
-    ensure
-      FileUtils.rm_f(encrypted_path) if defined?(encrypted_path) && encrypted_path
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Masked attachment not found')
     end
 
     it 'HAPPY: lets owners create masked attachment share links' do
@@ -890,12 +1006,13 @@ describe 'Attachment Endpoints' do
       _(json_body.dig('data', 'attributes')).must_equal(
         'attachment_id' => attachment.id,
         'masked_attachment_id' => masked_attachment.id,
-        'role' => 'viewer_masked'
+        'role' => 'viewer'
       )
-      _(LockedCV::AttachmentPermission.where(
+      _(LockedCV::MaskedAttachmentPermission.where(
         attachment_id: attachment.id,
+        masked_attachment_id: masked_attachment.id,
         account_id: recipient.id,
-        role: 'viewer_masked'
+        role: 'viewer'
       ).count).must_equal 1
     end
 
@@ -914,14 +1031,79 @@ describe 'Attachment Endpoints' do
 
         _(last_response.status).must_equal 200
       end
-      _(LockedCV::AttachmentPermission.where(
+      _(LockedCV::MaskedAttachmentPermission.where(
         attachment_id: attachment.id,
+        masked_attachment_id: masked_attachment.id,
         account_id: recipient.id,
-        role: 'viewer_masked'
+        role: 'viewer'
       ).count).must_equal 1
     end
 
-    it 'HAPPY: lets redeemed recipients download the shared masked PDF' do
+    it 'HAPPY: lets redeemed recipients view the shared masked PDF inline' do
+      attachment, masked_attachment = saved_masked_attachment_for
+      recipient = recipient_account
+      create_masked_attachment_share_link(attachment, masked_attachment)
+      token = json_body.dig('data', 'attributes', 'token')
+      post("/api/v1/masked_attachment_share_links/#{token}/redeem", {}.to_json, auth_req_header(recipient))
+
+      get(
+        "/api/v1/attachments/#{attachment.id}/masked_attachments/#{masked_attachment.id}/view",
+        {},
+        auth_header(recipient)
+      )
+
+      _(last_response.status).must_equal 200
+      _(last_response.content_type).must_equal 'application/pdf'
+      _(last_response.headers['Content-Disposition']).must_equal "inline; filename=\"#{masked_attachment.attachment_name}\""
+      _(last_response.body.byteslice(0, 4)).must_equal '%PDF'
+    end
+
+    it 'SECURITY: rejects redeemed recipients from viewing other masked PDFs for the same attachment' do
+      attachment, masked_attachment = saved_masked_attachment_for
+      other_masked_attachment = attachment.add_masked_attachment(
+        attachment_name: 'masked_other_resume.pdf',
+        route: "accounts/#{attachment.account_id}/masked/masked_other_resume.pdf"
+      )
+      recipient = recipient_account
+      create_masked_attachment_share_link(attachment, masked_attachment)
+      token = json_body.dig('data', 'attributes', 'token')
+      post("/api/v1/masked_attachment_share_links/#{token}/redeem", {}.to_json, auth_req_header(recipient))
+
+      get(
+        "/api/v1/attachments/#{attachment.id}/masked_attachments/#{other_masked_attachment.id}/view",
+        {},
+        auth_header(recipient)
+      )
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Masked attachment not found')
+    end
+
+    it 'HAPPY: lists only masked PDFs shared with the current account' do
+      attachment, masked_attachment = saved_masked_attachment_for
+      attachment.add_masked_attachment(
+        attachment_name: 'masked_not_shared.pdf',
+        route: "accounts/#{attachment.account_id}/masked/masked_not_shared.pdf"
+      )
+      recipient = recipient_account
+      create_masked_attachment_share_link(attachment, masked_attachment)
+      token = json_body.dig('data', 'attributes', 'token')
+      post("/api/v1/masked_attachment_share_links/#{token}/redeem", {}.to_json, auth_req_header(recipient))
+
+      get('/api/v1/shared_masked_attachments', {}, auth_header(recipient))
+
+      _(last_response.status).must_equal 200
+      shared = json_body['data']
+      _(shared.length).must_equal 1
+      attributes = shared.first.dig('data', 'attributes')
+      _(attributes['attachment_id']).must_equal attachment.id
+      _(attributes['masked_attachment_id']).must_equal masked_attachment.id
+      _(attributes['attachment_name']).must_equal attachment.attachment_name
+      _(attributes['masked_attachment_name']).must_equal masked_attachment.attachment_name
+      _(attributes['masked_items_count']).must_equal 1
+    end
+
+    it 'SECURITY: rejects redeemed recipients from downloading shared masked PDFs' do
       attachment, masked_attachment = saved_masked_attachment_for
       recipient = recipient_account
       create_masked_attachment_share_link(attachment, masked_attachment)
@@ -934,21 +1116,16 @@ describe 'Attachment Endpoints' do
         auth_header(recipient)
       )
 
-      _(last_response.status).must_equal 200
-      _(last_response.content_type).must_equal 'application/pdf'
-      _(last_response.body.byteslice(0, 4)).must_equal '%PDF'
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Masked attachment not found')
     end
 
-    it 'HAPPY: lets redeemed recipients download encrypted shared masked PDFs' do
-      skip 'qpdf is not available' unless command_available?('qpdf')
-      skip 'pdftotext is not available' unless command_available?('pdftotext')
-
+    it 'SECURITY: rejects redeemed recipients from downloading encrypted shared masked PDFs' do
       attachment, masked_attachment = saved_masked_attachment_for
       recipient = recipient_account
       create_masked_attachment_share_link(attachment, masked_attachment)
       token = json_body.dig('data', 'attributes', 'token')
       post("/api/v1/masked_attachment_share_links/#{token}/redeem", {}.to_json, auth_req_header(recipient))
-      encrypted_files_before = Dir.glob(File.join('tmp', 'encrypted_pdfs', '*.pdf'))
 
       post(
         "/api/v1/attachments/#{attachment.id}/masked_attachments/#{masked_attachment.id}/encrypted_download",
@@ -956,21 +1133,8 @@ describe 'Attachment Endpoints' do
         auth_req_header(recipient)
       )
 
-      _(last_response.status).must_equal 200
-      _(last_response.content_type).must_equal 'application/pdf'
-      _(last_response.body.byteslice(0, 4)).must_equal '%PDF'
-
-      encrypted_path = File.join('tmp', 'encrypted_shared_download_test.pdf')
-      File.binwrite(encrypted_path, last_response.body)
-      _stdout, _stderr, no_password_status = Open3.capture3('pdftotext', encrypted_path, '-')
-      unlocked_text, _stderr, password_status = Open3.capture3('pdftotext', '-upw', 'test123', encrypted_path, '-')
-
-      _(no_password_status.success?).must_equal false
-      _(password_status.success?).must_equal true
-      _(unlocked_text).must_include 'Alan Turing'
-      _(Dir.glob(File.join('tmp', 'encrypted_pdfs', '*.pdf'))).must_equal encrypted_files_before
-    ensure
-      FileUtils.rm_f(encrypted_path) if defined?(encrypted_path) && encrypted_path
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Masked attachment not found')
     end
 
     it 'SAD: returns 404 when redeeming an invalid masked attachment share link token' do
