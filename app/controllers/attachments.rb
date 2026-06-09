@@ -242,7 +242,7 @@ module LockedCV
 
       # GET api/v1/attachments
       routing.get do
-        attachments = AttachmentPolicy::AccountScope.new(current_account).viewable.all
+        attachments = AttachmentPolicy::AccountScope.new(current_account).viewable.reverse_order(:created_at).all
         output = {
           data: attachments.map do |attachment|
             policy = AttachmentPolicy.new(current_account, attachment, auth_scope:)

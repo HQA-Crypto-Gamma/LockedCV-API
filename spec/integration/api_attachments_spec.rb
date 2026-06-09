@@ -332,6 +332,8 @@ describe 'Attachment Endpoints' do
       _(attachment_ids).must_include @attachments.first.id
       _(attachment_ids).must_include shared_attachment.id
       _(attachment_ids).wont_include unrelated_attachment.id
+      attachment_times = attachments.map { |item| Time.parse(item.dig('data', 'attributes', 'created_at')) }
+      _(attachment_times).must_equal attachment_times.sort.reverse
 
       owned_attachment = attachments.find { |item| item.dig('data', 'attributes', 'id') == @attachments.first.id }
       owned_attachment_name = owned_attachment.dig('data', 'attributes', 'attachment_name')
