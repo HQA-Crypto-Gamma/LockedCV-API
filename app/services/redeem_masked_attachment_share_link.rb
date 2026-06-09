@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 module LockedCV
-  # Redeems a masked attachment share token into viewer_masked permission.
+  # Redeems a masked attachment share token into access to one masked PDF.
   class RedeemMaskedAttachmentShareLink
     class ShareLinkNotFoundError < StandardError; end
 
-    ROLE = 'viewer_masked'
+    ROLE = 'viewer'
 
     def self.call(current_account:, token:)
       new(current_account:, token:).call
@@ -44,16 +44,17 @@ module LockedCV
     end
 
     def permission
-      @permission ||= AttachmentPermission.first(permission_data)
+      @permission ||= MaskedAttachmentPermission.first(permission_data)
     end
 
     def create_permission
-      @permission = AttachmentPermission.create(permission_data)
+      @permission = MaskedAttachmentPermission.create(permission_data)
     end
 
     def permission_data
       {
         attachment_id: share_link.attachment_id,
+        masked_attachment_id: share_link.masked_attachment_id,
         account_id: current_account.id,
         role: ROLE
       }

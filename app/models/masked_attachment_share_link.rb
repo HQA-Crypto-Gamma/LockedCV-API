@@ -4,7 +4,7 @@ require 'json'
 require 'sequel'
 
 module LockedCV
-  # Reusable token that grants viewer_masked access to a saved masked attachment.
+  # Reusable token that grants access to one saved masked attachment.
   class MaskedAttachmentShareLink < Sequel::Model(:masked_attachment_share_links)
     plugin :timestamps
     plugin :whitelist_security

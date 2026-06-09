@@ -46,6 +46,7 @@ module LockedCV
       accounts
       attachments
       attachment_permissions
+      masked_attachment_permissions
       masked_attachment_share_links
       sensitive_data
       masked_attachments
@@ -55,6 +56,7 @@ module LockedCV
     ].freeze
     TABLE_CLEANERS = [
       -> { LockedCV::MaskedItem.dataset.delete },
+      -> { LockedCV::MaskedAttachmentPermission.dataset.delete },
       -> { LockedCV::MaskedAttachmentShareLink.dataset.delete },
       -> { LockedCV::MaskedAttachment.dataset.delete },
       -> { LockedCV::SensitiveData.dataset.delete },
