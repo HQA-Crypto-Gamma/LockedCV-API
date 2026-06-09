@@ -10,18 +10,18 @@ module LockedCV
       routing.is 'authenticate' do
         # POST api/v1/auth/authenticate
         routing.post do
-          credentials = HttpRequest.new(routing).body_data
-          AuthenticateAccountService.call(credentials).to_json
+          request_data = signed_request_data!(routing)
+          AuthenticateAccountService.call(request_data).to_json
         rescue AuthenticateAccountService::UnauthorizedError
           Api.logger.warn('Authentication failed: invalid credentials')
-          routing.halt 403, { message: 'Invalid credentials' }.to_json
+          routing.halt 401, { message: 'Invalid credentials' }.to_json
         end
       end
 
       routing.is 'register' do
         # POST api/v1/auth/register
         routing.post do
-          registration = HttpRequest.new(routing).body_data
+          registration = signed_request_data!(routing)
           VerifyRegistration.new(registration).call
           response.status = 202
           { message: 'Verification email sent' }.to_json
@@ -39,7 +39,7 @@ module LockedCV
       routing.is 'sso' do
         # POST api/v1/auth/sso
         routing.post do
-          request = HttpRequest.new(routing).body_data
+          request = signed_request_data!(routing)
           provider = request.fetch(:provider, 'google')
           routing.halt 400, { message: 'Unsupported SSO provider' }.to_json unless provider == 'google'
           unless request[:id_token].to_s.strip != '' && request[:jwks].is_a?(Hash)
@@ -57,6 +57,14 @@ module LockedCV
           routing.halt 401, { message: 'Invalid SSO token' }.to_json
         end
       end
+    end
+
+    private
+
+    def signed_request_data!(routing)
+      HttpRequest.new(routing).signed_body_data
+    rescue SignedRequest::VerificationError
+      routing.halt 403, { message: 'Must sign request' }.to_json
     end
   end
 end

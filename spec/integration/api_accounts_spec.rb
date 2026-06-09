@@ -22,10 +22,22 @@ describe 'Account Endpoints' do
         email: 'new-user@example.com'
       }
 
-      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+      post '/api/v1/accounts/registration/check', signed_body(payload), req_header
 
       _(last_response.status).must_equal 200
       _(json_body).must_equal('available' => true)
+    end
+
+    it 'SECURITY: rejects unsigned registration availability checks' do
+      payload = {
+        username: 'new-user',
+        email: 'new-user@example.com'
+      }
+
+      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+
+      _(last_response.status).must_equal 403
+      _(json_body).must_equal('message' => 'Must sign request')
     end
 
     it 'SAD: returns 400 for registered email' do
@@ -37,7 +49,7 @@ describe 'Account Endpoints' do
         email: account.email
       }
 
-      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+      post '/api/v1/accounts/registration/check', signed_body(payload), req_header
 
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Email already registered')
@@ -52,7 +64,7 @@ describe 'Account Endpoints' do
         email: 'new-user@example.com'
       }
 
-      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+      post '/api/v1/accounts/registration/check', signed_body(payload), req_header
 
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Username already taken')
@@ -64,7 +76,7 @@ describe 'Account Endpoints' do
         email: ''
       }
 
-      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+      post '/api/v1/accounts/registration/check', signed_body(payload), req_header
 
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Email is required')
@@ -76,7 +88,7 @@ describe 'Account Endpoints' do
         email: 'new-user@example.com'
       }
 
-      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+      post '/api/v1/accounts/registration/check', signed_body(payload), req_header
 
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Username is required')
@@ -91,7 +103,7 @@ describe 'Account Endpoints' do
         email: "  #{account.email}  "
       }
 
-      post '/api/v1/accounts/registration/check', payload.to_json, req_header
+      post '/api/v1/accounts/registration/check', signed_body(payload), req_header
 
       _(last_response.status).must_equal 400
       _(json_body).must_equal('message' => 'Email already registered')
@@ -102,7 +114,7 @@ describe 'Account Endpoints' do
     it 'HAPPY: creates an account' do
       payload = DATA[:accounts].last.transform_keys(&:to_sym)
 
-      post '/api/v1/accounts', payload.to_json, req_header
+      post '/api/v1/accounts', signed_body(payload), req_header
 
       _(last_response.status).must_equal 201
       _(last_response.headers['Content-Type']).must_include 'application/json'
@@ -110,6 +122,15 @@ describe 'Account Endpoints' do
       _(json_body.dig('data', 'data', 'attributes', 'email')).must_equal payload[:email]
       _(json_body.dig('data', 'data', 'attributes').keys).wont_include 'password'
       _(json_body.dig('data', 'data', 'attributes').keys).wont_include 'password_digest'
+    end
+
+    it 'SECURITY: rejects unsigned account creation requests' do
+      payload = DATA[:accounts].last.transform_keys(&:to_sym)
+
+      post '/api/v1/accounts', payload.to_json, req_header
+
+      _(last_response.status).must_equal 403
+      _(json_body).must_equal('message' => 'Must sign request')
     end
 
     it 'HAPPY: creates an account with optional personal data' do
@@ -121,7 +142,7 @@ describe 'Account Endpoints' do
         identification_numbers: 'NINO-123'
       )
 
-      post '/api/v1/accounts', payload.to_json, req_header
+      post '/api/v1/accounts', signed_body(payload), req_header
 
       attributes = json_body.dig('data', 'data', 'attributes')
 
@@ -140,7 +161,7 @@ describe 'Account Endpoints' do
       before_count = LockedCV::Account.count
 
       capture_app_logs do |logs|
-        post '/api/v1/accounts', payload.to_json, req_header
+        post '/api/v1/accounts', signed_body(payload), req_header
 
         _(last_response.status).must_equal 400
         _(json_body).must_equal('message' => 'Illegal attributes')
