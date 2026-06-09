@@ -152,9 +152,9 @@ module LockedCV
             routing.on 'view' do
               # GET api/v1/attachments/[attachment_id]/masked_attachments/[masked_attachment_id]/view
               routing.get do
-                authorized_attachment!(attachment_id, current_account, auth_scope, :view_masked?)
                 masked_attachment = MaskedAttachment.first(id: masked_attachment_id, attachment_id: attachment_id.to_s)
                 raise AttachmentNotAuthorizedError unless masked_attachment
+                raise AttachmentNotAuthorizedError unless masked_attachment_view_authorized?(masked_attachment, current_account, auth_scope)
 
                 masked_path = ResolveAttachmentPath.call(route: masked_attachment.route)
                 response.status = 200
@@ -214,7 +214,7 @@ module LockedCV
 
           # GET api/v1/attachments/[attachment_id]/masked_attachments
           routing.get do
-            authorized_attachment!(attachment_id, current_account, auth_scope, :view_masked?)
+            authorized_attachment!(attachment_id, current_account, auth_scope, :view?)
             attachment = Attachment.first(id: attachment_id.to_s)
             raise AttachmentNotAuthorizedError unless attachment
 
@@ -321,6 +321,18 @@ module LockedCV
     def inline_content_disposition(masked_attachment)
       filename = File.basename(masked_attachment.attachment_name)
       "inline; filename=\"#{filename}\""
+    end
+
+    def masked_attachment_view_authorized?(masked_attachment, current_account, auth_scope)
+      return false unless auth_scope.can_read?(AttachmentPolicy::RESOURCE)
+      return true if current_account&.id == masked_attachment.attachment&.account_id
+
+      MaskedAttachmentPermission.where(
+        account_id: current_account&.id,
+        attachment_id: masked_attachment.attachment_id,
+        masked_attachment_id: masked_attachment.id,
+        role: 'viewer'
+      ).any?
     end
 
     def upload_attachment_for(routing, current_account:, auth_scope:, location_base:)
