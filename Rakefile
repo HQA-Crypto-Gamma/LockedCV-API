@@ -195,4 +195,12 @@ namespace :newkey do
     require_app('lib', config: false)
     puts "MSG_KEY: #{LockedCV::AuthToken.generate_key}"
   end
+
+  desc 'Create sample Ed25519 keypair for signed client requests'
+  task :signing do
+    require_app('lib', config: false)
+    keypair = LockedCV::SignedRequest.generate_keypair
+    puts "SIGNING_KEY: #{keypair[:signing_key]}"
+    puts "VERIFY_KEY: #{keypair[:verify_key]}"
+  end
 end

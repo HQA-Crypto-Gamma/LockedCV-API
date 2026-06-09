@@ -24,10 +24,11 @@
   - `HttpRequest#body_data`：所有 JSON body 目前直接從 request parse。
   - Google SSO API route：`POST /api/v1/auth/sso`。
   - Auth scope、API key、policy scope gating。
+  - `SignedRequest` library foundation。
+  - `rake newkey:signing` keypair generator。
+  - `config/secrets-example.yml` signed request key placeholders。
   - App-side Google OAuth `state` nonce 已完成，這是 App concern，不需要 API 參與。
 - 目前尚未有：
-  - `SignedRequest` library。
-  - API verify key config。
   - `HttpRequest#signed_body_data`。
   - 對 unauthenticated POST routes 的 signature gate。
 - 目前應優先簽章的 API routes：
@@ -58,7 +59,7 @@
 
 ## 實作策略（分階段）
 
-1. **Signing library**
+1. **Signing library** - done
    - 新增 `app/lib/signed_request.rb`。
    - 提供：
      - `.setup(verify_key64, signing_key64 = nil)`
@@ -69,7 +70,7 @@
    - 使用 `Base64.strict_encode64` / `Base64.strict_decode64`。
    - 補 unit specs：happy path、tampered data、missing signature、bad key、verify-only setup。
 
-2. **Config and secrets**
+2. **Config and secrets** - partially done
    - `config/environments.rb` require `SignedRequest`，並以 `ENV.delete('VERIFY_KEY')` / `ENV.delete('SIGNING_KEY')` setup。
    - `config/secrets-example.yml` 加入：
      - development：`VERIFY_KEY`
@@ -77,6 +78,7 @@
      - production：`VERIFY_KEY`
    - 新增或更新 rake task，例如 `rake newkey:signing`，輸出 `SIGNING_KEY` 與 `VERIFY_KEY`。
    - 確認 env spec 不會把 key 留在 `Api.config`。
+   - Remaining：把實際 key 加到 local `config/secrets.yml` 與 Heroku config vars。
 
 3. **HTTP request helper**
    - 在 `app/controllers/http_request.rb` 新增：
