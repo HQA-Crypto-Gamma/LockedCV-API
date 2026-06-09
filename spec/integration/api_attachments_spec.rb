@@ -337,6 +337,7 @@ describe 'Attachment Endpoints' do
       owned_attachment_name = owned_attachment.dig('data', 'attributes', 'attachment_name')
       _(owned_attachment_name).must_equal DATA[:attachments].first['attachment_name']
       _(owned_attachment.dig('data', 'attributes', 'masked_attachments_count')).must_equal 1
+      _(owned_attachment.dig('data', 'attributes', 'created_at')).wont_be_nil
       _(owned_attachment['policy']).must_equal(
         'can_view' => true,
         'can_view_masked' => true,
