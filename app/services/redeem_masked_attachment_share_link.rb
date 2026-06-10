@@ -38,26 +38,35 @@ module LockedCV
     end
 
     def grant_permission
-      permission || create_permission
+      permission ? refresh_permission : create_permission
     rescue Sequel::UniqueConstraintViolation
-      permission
+      @permission = nil
+      refresh_permission
     end
 
     def permission
-      @permission ||= MaskedAttachmentPermission.first(permission_data)
+      @permission ||= MaskedAttachmentPermission.first(permission_identity)
     end
 
     def create_permission
       @permission = MaskedAttachmentPermission.create(permission_data)
     end
 
-    def permission_data
+    def refresh_permission
+      permission.update(expires_at: share_link.expires_at)
+    end
+
+    def permission_identity
       {
         attachment_id: share_link.attachment_id,
         masked_attachment_id: share_link.masked_attachment_id,
         account_id: current_account.id,
         role: ROLE
       }
+    end
+
+    def permission_data
+      permission_identity.merge(expires_at: share_link.expires_at)
     end
 
     def redemption

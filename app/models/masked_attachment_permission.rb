@@ -9,7 +9,7 @@ module LockedCV
 
     plugin :timestamps
     plugin :whitelist_security
-    set_allowed_columns :attachment_id, :masked_attachment_id, :account_id, :role
+    set_allowed_columns :attachment_id, :masked_attachment_id, :account_id, :role, :expires_at
 
     many_to_one :attachment, class: :'LockedCV::Attachment', key: :attachment_id
     many_to_one :masked_attachment, class: :'LockedCV::MaskedAttachment', key: :masked_attachment_id
@@ -18,6 +18,10 @@ module LockedCV
     def validate
       super
       errors.add(:role, 'is unsupported') unless ROLES.include?(role)
+    end
+
+    def active?
+      expires_at && expires_at.to_time > Time.now
     end
   end
 end
