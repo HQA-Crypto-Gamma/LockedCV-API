@@ -976,8 +976,8 @@ describe 'Attachment Endpoints' do
       _(attributes['masked_attachment_id']).must_equal masked_attachment.id
       _(attributes['share_url']).must_equal "/share/masked-attachments/#{attributes['token']}"
       expires_at = DateTime.parse(attributes['expires_at']).to_time
-      _(expires_at).must_be :>, Time.now + (13 * 24 * 60 * 60)
-      _(expires_at).must_be :<, Time.now + (15 * 24 * 60 * 60)
+      _(expires_at).must_be :>, Time.now + 50
+      _(expires_at).must_be :<, Time.now + 70
       _(last_response.headers['Location']).must_equal "api/v1/masked_attachment_share_links/#{attributes['token']}"
     end
 
