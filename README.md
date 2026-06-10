@@ -457,8 +457,8 @@ set `PYTHON_BIN` when the desired Python executable is not `python3`.
 #### Masked Attachment Share Link Expiration
 
 The demo TTL is currently 1 minute. The intended production TTL is 14 days.
-Expiration blocks future redemptions and expires viewer permissions granted by
-the share link. Owner access is unaffected.
+Expiration blocks future redemptions and removes expired viewer access when
+encountered. Owner access is unaffected.
 
 ### Sensitive Data Endpoints
 

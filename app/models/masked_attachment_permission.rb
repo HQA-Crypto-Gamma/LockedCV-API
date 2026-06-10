@@ -21,7 +21,11 @@ module LockedCV
     end
 
     def active?
-      expires_at && expires_at.to_time > Time.now
+      !expired?
+    end
+
+    def expired?
+      expires_at.nil? || expires_at.to_time <= Time.now
     end
   end
 end
