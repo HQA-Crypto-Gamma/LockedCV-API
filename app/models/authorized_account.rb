@@ -10,7 +10,7 @@ module LockedCV
   class AuthorizedAccount
     attr_reader :account, :scope
 
-    def initialize(account, auth_scope = AuthScope.new(), account_id: nil)
+    def initialize(account, auth_scope = AuthScope.new, account_id: nil)
       @account = account
       @account_id = account_id
       @scope = parse_scope(auth_scope)
@@ -39,7 +39,7 @@ module LockedCV
     def parse_scope(auth_scope)
       case auth_scope
       when AuthScope then auth_scope
-      when nil then AuthScope.new()
+      when nil then AuthScope.new
       else AuthScope.new(auth_scope)
       end
     end

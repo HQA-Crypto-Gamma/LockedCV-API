@@ -11,7 +11,7 @@ module LockedCV
       alias_method :created?, :created
     end
 
-    def self.call(current_account:, target_username:, role_name:, auth_scope: AuthScope.new())
+    def self.call(current_account:, target_username:, role_name:, auth_scope: AuthScope.new)
       find_system_role!(role_name)
       target = find_target_account!(target_username)
       authorize_assignment!(current_account, target, auth_scope)
@@ -23,7 +23,11 @@ module LockedCV
     def self.authorize_assignment!(current_account, target, auth_scope)
       return if AccountPolicy.new(current_account, target, auth_scope:).assign_system_role?
 
-      message = current_account&.id == target&.id ? 'Admins cannot change their own system role' : 'Only admins can manage system roles'
+      message = if current_account&.id == target&.id
+                  'Admins cannot change their own system role'
+                else
+                  'Only admins can manage system roles'
+                end
       raise NotAuthorizedError, message
     end
     private_class_method :authorize_assignment!

@@ -7,7 +7,7 @@ module LockedCV
 
     attr_reader :current_account, :account, :auth_scope
 
-    def initialize(current_account, account = current_account, auth_scope: AuthScope.new())
+    def initialize(current_account, account = current_account, auth_scope: AuthScope.new)
       @current_account = current_account
       @account = account
       @auth_scope = auth_scope

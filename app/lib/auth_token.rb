@@ -40,7 +40,7 @@ module LockedCV
       instance
     end
 
-    def initialize(payload, expiration = ONE_WEEK, scope: AuthScope.new())
+    def initialize(payload, expiration = ONE_WEEK, scope: AuthScope.new)
       @payload = payload
       @scope = scope
       @expiration = (Time.now + expiration).to_i

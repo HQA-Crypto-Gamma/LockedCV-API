@@ -5,11 +5,11 @@ module LockedCV
   class UploadAttachmentFile
     class NotAuthorizedError < StandardError; end
 
-    def self.call(current_account:, uploaded_file:, original_filename: nil, auth_scope: AuthScope.new())
+    def self.call(current_account:, uploaded_file:, original_filename: nil, auth_scope: AuthScope.new)
       new(current_account:, uploaded_file:, original_filename:, auth_scope:).call
     end
 
-    def initialize(current_account:, uploaded_file:, original_filename: nil, auth_scope: AuthScope.new())
+    def initialize(current_account:, uploaded_file:, original_filename: nil, auth_scope: AuthScope.new)
       @current_account = current_account
       @uploaded_file = uploaded_file
       @original_filename = original_filename.to_s.strip
