@@ -131,9 +131,11 @@ module LockedCV
             routing.on 'download' do
               # GET api/v1/attachments/[attachment_id]/masked_attachments/[masked_attachment_id]/download
               routing.get do
-                authorized_attachment!(attachment_id, current_account, auth_scope, :view?)
                 masked_attachment = MaskedAttachment.first(id: masked_attachment_id, attachment_id: attachment_id.to_s)
                 raise AttachmentNotAuthorizedError unless masked_attachment
+                unless masked_attachment_view_authorized?(masked_attachment, current_account, auth_scope)
+                  raise AttachmentNotAuthorizedError
+                end
 
                 masked_path = ResolveAttachmentPath.call(route: masked_attachment.route)
                 response.status = 200
@@ -154,7 +156,9 @@ module LockedCV
               routing.get do
                 masked_attachment = MaskedAttachment.first(id: masked_attachment_id, attachment_id: attachment_id.to_s)
                 raise AttachmentNotAuthorizedError unless masked_attachment
-                raise AttachmentNotAuthorizedError unless masked_attachment_view_authorized?(masked_attachment, current_account, auth_scope)
+                unless masked_attachment_view_authorized?(masked_attachment, current_account, auth_scope)
+                  raise AttachmentNotAuthorizedError
+                end
 
                 masked_path = ResolveAttachmentPath.call(route: masked_attachment.route)
                 response.status = 200

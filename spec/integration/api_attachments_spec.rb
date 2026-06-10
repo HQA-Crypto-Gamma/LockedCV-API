@@ -78,13 +78,13 @@ describe 'Attachment Endpoints' do
       attachment_name: 'share_masked.pdf',
       route: masked_route
     )
-    masked_attachment.add_masked_item(
-      field_name: 'email',
-      value: 'alan@example.com',
-      source: 'regex'
-    )
+    add_shared_masked_item(masked_attachment)
 
     [attachment, masked_attachment]
+  end
+
+  def add_shared_masked_item(masked_attachment)
+    masked_attachment.add_masked_item(field_name: 'email', value: 'alan@example.com', source: 'regex')
   end
 
   def create_masked_attachment_share_link(attachment, masked_attachment, account = @account)
@@ -975,6 +975,9 @@ describe 'Attachment Endpoints' do
       _(attributes['attachment_id']).must_equal attachment.id
       _(attributes['masked_attachment_id']).must_equal masked_attachment.id
       _(attributes['share_url']).must_equal "/share/masked-attachments/#{attributes['token']}"
+      expires_at = DateTime.parse(attributes['expires_at']).to_time
+      _(expires_at).must_be :>, Time.now + (13 * 24 * 60 * 60)
+      _(expires_at).must_be :<, Time.now + (15 * 24 * 60 * 60)
       _(last_response.headers['Location']).must_equal "api/v1/masked_attachment_share_links/#{attributes['token']}"
     end
 
@@ -1054,8 +1057,37 @@ describe 'Attachment Endpoints' do
 
       _(last_response.status).must_equal 200
       _(last_response.content_type).must_equal 'application/pdf'
-      _(last_response.headers['Content-Disposition']).must_equal "inline; filename=\"#{masked_attachment.attachment_name}\""
+      disposition = "inline; filename=\"#{masked_attachment.attachment_name}\""
+      _(last_response.headers['Content-Disposition']).must_equal disposition
       _(last_response.body.byteslice(0, 4)).must_equal '%PDF'
+    end
+
+    it 'HAPPY: keeps redeemed masked PDF download access after the share link expires' do
+      attachment, masked_attachment = saved_masked_attachment_for
+      recipient = recipient_account
+      create_masked_attachment_share_link(attachment, masked_attachment)
+      token = json_body.dig('data', 'attributes', 'token')
+      post("/api/v1/masked_attachment_share_links/#{token}/redeem", {}.to_json, auth_req_header(recipient))
+      share_link = LockedCV::MaskedAttachmentShareLink.first(token:)
+      share_link.update(expires_at: Time.now - 1)
+
+      get(
+        "/api/v1/attachments/#{attachment.id}/masked_attachments/#{masked_attachment.id}/download",
+        {},
+        auth_header(recipient)
+      )
+
+      _(last_response.status).must_equal 200
+      _(last_response.content_type).must_equal 'application/pdf'
+      disposition = "attachment; filename=\"#{masked_attachment.attachment_name}\""
+      _(last_response.headers['Content-Disposition']).must_equal disposition
+      _(last_response.body.byteslice(0, 4)).must_equal '%PDF'
+      _(LockedCV::MaskedAttachmentPermission.where(
+        attachment_id: attachment.id,
+        masked_attachment_id: masked_attachment.id,
+        account_id: recipient.id,
+        role: 'viewer'
+      ).count).must_equal 1
     end
 
     it 'SECURITY: rejects redeemed recipients from viewing other masked PDFs for the same attachment' do
@@ -1103,7 +1135,7 @@ describe 'Attachment Endpoints' do
       _(attributes['masked_items_count']).must_equal 1
     end
 
-    it 'SECURITY: rejects redeemed recipients from downloading shared masked PDFs' do
+    it 'HAPPY: lets redeemed recipients download shared masked PDFs' do
       attachment, masked_attachment = saved_masked_attachment_for
       recipient = recipient_account
       create_masked_attachment_share_link(attachment, masked_attachment)
@@ -1116,8 +1148,9 @@ describe 'Attachment Endpoints' do
         auth_header(recipient)
       )
 
-      _(last_response.status).must_equal 404
-      _(json_body).must_equal('message' => 'Masked attachment not found')
+      _(last_response.status).must_equal 200
+      _(last_response.content_type).must_equal 'application/pdf'
+      _(last_response.body.byteslice(0, 4)).must_equal '%PDF'
     end
 
     it 'SECURITY: rejects redeemed recipients from downloading encrypted shared masked PDFs' do
@@ -1148,6 +1181,27 @@ describe 'Attachment Endpoints' do
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Masked attachment share link not found')
+    end
+
+    it 'SAD: returns 404 when redeeming an expired masked attachment share link token' do
+      attachment, masked_attachment = saved_masked_attachment_for
+      recipient = recipient_account
+      share_link = LockedCV::CreateMaskedAttachmentShareLink.call(
+        current_account: @account,
+        attachment_id: attachment.id,
+        masked_attachment_id: masked_attachment.id,
+        expires_at: Time.now - 1
+      )
+
+      post(
+        "/api/v1/masked_attachment_share_links/#{share_link.token}/redeem",
+        {}.to_json,
+        auth_req_header(recipient)
+      )
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Masked attachment share link not found')
+      _(LockedCV::MaskedAttachmentPermission.where(account_id: recipient.id).count).must_equal 0
     end
 
     it 'SAD: rejects encrypted download with a blank password' do
