@@ -1017,6 +1017,13 @@ describe 'Attachment Endpoints' do
         account_id: recipient.id,
         role: 'viewer'
       ).count).must_equal 1
+      share_link = LockedCV::MaskedAttachmentShareLink.first(token:)
+      permission = LockedCV::MaskedAttachmentPermission.first(
+        masked_attachment_id: masked_attachment.id,
+        account_id: recipient.id,
+        role: 'viewer'
+      )
+      _(permission.expires_at.to_time.to_i).must_equal share_link.expires_at.to_time.to_i
     end
 
     it 'HAPPY: redeems masked attachment share links idempotently' do
@@ -1025,21 +1032,34 @@ describe 'Attachment Endpoints' do
       create_masked_attachment_share_link(attachment, masked_attachment)
       token = json_body.dig('data', 'attributes', 'token')
 
-      2.times do
-        post(
-          "/api/v1/masked_attachment_share_links/#{token}/redeem",
-          {}.to_json,
-          auth_req_header(recipient)
-        )
+      post(
+        "/api/v1/masked_attachment_share_links/#{token}/redeem",
+        {}.to_json,
+        auth_req_header(recipient)
+      )
+      permission = LockedCV::MaskedAttachmentPermission.first(
+        masked_attachment_id: masked_attachment.id,
+        account_id: recipient.id,
+        role: 'viewer'
+      )
+      permission.update(expires_at: Time.now - 1)
 
-        _(last_response.status).must_equal 200
-      end
+      post(
+        "/api/v1/masked_attachment_share_links/#{token}/redeem",
+        {}.to_json,
+        auth_req_header(recipient)
+      )
+
+      _(last_response.status).must_equal 200
       _(LockedCV::MaskedAttachmentPermission.where(
         attachment_id: attachment.id,
         masked_attachment_id: masked_attachment.id,
         account_id: recipient.id,
         role: 'viewer'
       ).count).must_equal 1
+      permission.refresh
+      share_link = LockedCV::MaskedAttachmentShareLink.first(token:)
+      _(permission.expires_at.to_time.to_i).must_equal share_link.expires_at.to_time.to_i
     end
 
     it 'HAPPY: lets redeemed recipients view the shared masked PDF inline' do
@@ -1062,7 +1082,7 @@ describe 'Attachment Endpoints' do
       _(last_response.body.byteslice(0, 4)).must_equal '%PDF'
     end
 
-    it 'HAPPY: keeps redeemed masked PDF download access after the share link expires' do
+    it 'SECURITY: rejects redeemed viewer access after the permission expires' do
       attachment, masked_attachment = saved_masked_attachment_for
       recipient = recipient_account
       create_masked_attachment_share_link(attachment, masked_attachment)
@@ -1070,6 +1090,21 @@ describe 'Attachment Endpoints' do
       post("/api/v1/masked_attachment_share_links/#{token}/redeem", {}.to_json, auth_req_header(recipient))
       share_link = LockedCV::MaskedAttachmentShareLink.first(token:)
       share_link.update(expires_at: Time.now - 1)
+      permission = LockedCV::MaskedAttachmentPermission.first(
+        masked_attachment_id: masked_attachment.id,
+        account_id: recipient.id,
+        role: 'viewer'
+      )
+      permission.update(expires_at: share_link.expires_at)
+
+      get(
+        "/api/v1/attachments/#{attachment.id}/masked_attachments/#{masked_attachment.id}/view",
+        {},
+        auth_header(recipient)
+      )
+
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Masked attachment not found')
 
       get(
         "/api/v1/attachments/#{attachment.id}/masked_attachments/#{masked_attachment.id}/download",
@@ -1077,17 +1112,37 @@ describe 'Attachment Endpoints' do
         auth_header(recipient)
       )
 
-      _(last_response.status).must_equal 200
-      _(last_response.content_type).must_equal 'application/pdf'
-      disposition = "attachment; filename=\"#{masked_attachment.attachment_name}\""
-      _(last_response.headers['Content-Disposition']).must_equal disposition
-      _(last_response.body.byteslice(0, 4)).must_equal '%PDF'
-      _(LockedCV::MaskedAttachmentPermission.where(
-        attachment_id: attachment.id,
+      _(last_response.status).must_equal 404
+      _(json_body).must_equal('message' => 'Masked attachment not found')
+      _(permission.refresh).wont_be_nil
+    end
+
+    it 'HAPPY: keeps owner access after the share link and viewer permission expire' do
+      attachment, masked_attachment = saved_masked_attachment_for
+      recipient = recipient_account
+      create_masked_attachment_share_link(attachment, masked_attachment)
+      token = json_body.dig('data', 'attributes', 'token')
+      post("/api/v1/masked_attachment_share_links/#{token}/redeem", {}.to_json, auth_req_header(recipient))
+      LockedCV::MaskedAttachmentShareLink.first(token:).update(expires_at: Time.now - 1)
+      LockedCV::MaskedAttachmentPermission.first(
         masked_attachment_id: masked_attachment.id,
         account_id: recipient.id,
         role: 'viewer'
-      ).count).must_equal 1
+      ).update(expires_at: Time.now - 1)
+
+      get(
+        "/api/v1/attachments/#{attachment.id}/masked_attachments/#{masked_attachment.id}/view",
+        {},
+        auth_header(@account)
+      )
+      _(last_response.status).must_equal 200
+
+      get(
+        "/api/v1/attachments/#{attachment.id}/masked_attachments/#{masked_attachment.id}/download",
+        {},
+        auth_header(@account)
+      )
+      _(last_response.status).must_equal 200
     end
 
     it 'SECURITY: rejects redeemed recipients from viewing other masked PDFs for the same attachment' do
