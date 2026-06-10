@@ -25,6 +25,8 @@ module LockedCV
     private
 
     def shared_masked_attachment_json(permission)
+      return unless active_shared_permission?(permission)
+
       masked_attachment = permission.masked_attachment
       attachment = permission.attachment
       return unless masked_attachment && attachment
@@ -35,6 +37,13 @@ module LockedCV
           attributes: shared_masked_attachment_attributes(permission, attachment, masked_attachment)
         }
       }
+    end
+
+    def active_shared_permission?(permission)
+      return true unless permission.expired?
+
+      permission.delete
+      false
     end
 
     def shared_masked_attachment_attributes(permission, attachment, masked_attachment)
