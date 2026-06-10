@@ -1105,6 +1105,7 @@ describe 'Attachment Endpoints' do
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Masked attachment not found')
+      _(LockedCV::MaskedAttachmentPermission.where(id: permission.id).count).must_equal 0
 
       get(
         "/api/v1/attachments/#{attachment.id}/masked_attachments/#{masked_attachment.id}/download",
@@ -1114,7 +1115,6 @@ describe 'Attachment Endpoints' do
 
       _(last_response.status).must_equal 404
       _(json_body).must_equal('message' => 'Masked attachment not found')
-      _(permission.refresh).wont_be_nil
     end
 
     it 'HAPPY: keeps owner access after the share link and viewer permission expire' do

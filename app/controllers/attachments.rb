@@ -331,13 +331,21 @@ module LockedCV
       return false unless auth_scope.can_read?(AttachmentPolicy::RESOURCE)
       return true if current_account&.id == masked_attachment.attachment&.account_id
 
-      permission = MaskedAttachmentPermission.first(
+      permission = masked_attachment_viewer_permission(masked_attachment, current_account)
+      return false unless permission
+      return true if permission.active?
+
+      permission.delete
+      false
+    end
+
+    def masked_attachment_viewer_permission(masked_attachment, current_account)
+      MaskedAttachmentPermission.first(
         account_id: current_account&.id,
         attachment_id: masked_attachment.attachment_id,
         masked_attachment_id: masked_attachment.id,
         role: 'viewer'
       )
-      permission&.active? || false
     end
 
     def upload_attachment_for(routing, current_account:, auth_scope:, location_base:)
