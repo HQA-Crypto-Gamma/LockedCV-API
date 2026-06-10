@@ -7,7 +7,7 @@ module LockedCV
     class AccountNotFoundError < StandardError; end
     class CannotDeleteSelfError < StandardError; end
 
-    def self.call(current_account:, target_account_id:, auth_scope: AuthScope.new())
+    def self.call(current_account:, target_account_id:, auth_scope: AuthScope.new)
       target = target_account!(target_account_id)
       raise CannotDeleteSelfError if current_account&.id == target.id
       raise NotAuthorizedError unless AccountPolicy.new(current_account, target, auth_scope:).delete?

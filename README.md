@@ -19,7 +19,10 @@ A Ruby web API for the Crypto γ SEC project that allows accounts to securely sh
 
 - Ruby 4.0.2 (see `.ruby-version`)
 - Bundler
-- Python 3 with `pdfplumber` and `reportlab` for masked PDF export
+- Python 3 for masked PDF export. Python packages are managed by
+  `requirements.txt` and include `pdfplumber` and `reportlab`.
+- `qpdf` for encrypted masked PDF download
+- Heroku apt dependencies are managed by `Aptfile`
 
 ## Installation
 
@@ -34,6 +37,29 @@ cd LockedCV-API
 
 ```bash
 bundle install
+```
+
+Install the Python dependencies:
+
+```bash
+python3 -m pip install -r requirements.txt
+```
+
+On WSL/Ubuntu, if this fails because the system Python environment is
+externally managed, create a local virtual environment instead:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+When using a virtual environment, set `PYTHON_BIN` for specs or the app, for
+example `PYTHON_BIN=.venv/bin/python`. Install `qpdf` locally when testing
+encrypted downloads:
+
+```bash
+sudo apt update && sudo apt install qpdf
 ```
 
 3. Copy local secrets:
@@ -428,6 +454,12 @@ text-based visual masking approximation, not a formal PDF redaction engine.
 The export path shells out to `app/lib/pdf_processors/pdfplumber_masked_pdf.py`;
 set `PYTHON_BIN` when the desired Python executable is not `python3`.
 
+#### Masked Attachment Share Link Expiration
+
+The demo TTL is currently 1 minute. The intended production TTL is 14 days.
+Expiration only blocks future redemptions and does not revoke permissions
+already granted.
+
 ### Sensitive Data Endpoints
 
 #### Create Sensitive Data for an Attachment
@@ -524,11 +556,21 @@ wipe the same database at the same time.
 
 Before merging/deploying to Heroku, confirm:
 
+- The API requires these Heroku buildpacks in this order:
+
+  1. `heroku-community/apt`
+  2. `heroku/python`
+  3. `heroku/ruby`
+
+- `requirements.txt` installs `pdfplumber` and `reportlab` for masked PDF
+  export.
+- `Aptfile` installs `qpdf`, which is required by encrypted masked PDF
+  download.
+- `PYTHON_BIN` can be set when the runtime Python executable is not the
+  default.
 - Heroku API config vars include `GOOGLE_CLIENT_ID`, Mailgun settings,
   `DB_KEY`, `HASH_KEY`, `MSG_KEY`, and `SECURE_SCHEME=HTTPS`.
 - Database migrations have run on the Heroku Postgres database.
-- The Python runtime/buildpack provides `pdfplumber` and `reportlab`, or
-  `PYTHON_BIN` points at the correct executable.
 - Uploaded/generated PDFs on Heroku dyno storage are ephemeral; production
   should move toward external object storage.
 

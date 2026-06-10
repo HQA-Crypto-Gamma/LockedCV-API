@@ -5,6 +5,7 @@ require 'sequel'
 
 module LockedCV
   # Sequel model for accounts table
+  # rubocop:disable Metrics/ClassLength
   class Account < Sequel::Model(:accounts)
     OPTIONAL_ENCRYPTED_FIELDS = %i[first_name last_name birthday address identification_numbers].freeze
 
@@ -136,4 +137,5 @@ module LockedCV
                                  end
     end
   end
+  # rubocop:enable Metrics/ClassLength
 end

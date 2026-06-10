@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'set'
-
 module LockedCV
   # Resolves a user-facing attachment name that is unique within an account.
   class ResolveAttachmentName

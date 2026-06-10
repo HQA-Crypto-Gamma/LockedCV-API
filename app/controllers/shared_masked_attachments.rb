@@ -32,16 +32,20 @@ module LockedCV
       {
         data: {
           type: 'shared_masked_attachment',
-          attributes: {
-            attachment_id: attachment.id,
-            masked_attachment_id: masked_attachment.id,
-            attachment_name: attachment.attachment_name,
-            masked_attachment_name: masked_attachment.attachment_name,
-            masked_items_count: masked_attachment.masked_items_dataset.count,
-            shared_at: permission.created_at,
-            created_at: masked_attachment.created_at
-          }
+          attributes: shared_masked_attachment_attributes(permission, attachment, masked_attachment)
         }
+      }
+    end
+
+    def shared_masked_attachment_attributes(permission, attachment, masked_attachment)
+      {
+        attachment_id: attachment.id,
+        masked_attachment_id: masked_attachment.id,
+        attachment_name: attachment.attachment_name,
+        masked_attachment_name: masked_attachment.attachment_name,
+        masked_items_count: masked_attachment.masked_items_dataset.count,
+        shared_at: permission.created_at,
+        created_at: masked_attachment.created_at
       }
     end
   end

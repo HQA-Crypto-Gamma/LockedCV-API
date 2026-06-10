@@ -8,6 +8,7 @@ module LockedCV
     class MaskedAttachmentNotFoundError < StandardError; end
 
     MAX_TOKEN_ATTEMPTS = 5
+    DEFAULT_EXPIRATION_SECONDS = 60
 
     def self.call(current_account:, attachment_id:, masked_attachment_id:, expires_at: nil)
       new(current_account:, attachment_id:, masked_attachment_id:, expires_at:).call
@@ -17,7 +18,7 @@ module LockedCV
       @current_account = current_account
       @attachment_id = attachment_id
       @masked_attachment_id = masked_attachment_id
-      @expires_at = expires_at
+      @expires_at = expires_at || (Time.now + DEFAULT_EXPIRATION_SECONDS)
     end
 
     def call

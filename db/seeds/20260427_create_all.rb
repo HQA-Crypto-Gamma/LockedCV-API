@@ -74,7 +74,7 @@ module LockedCV
         CreateAccountService.call(account_data: account_info.transform_keys(&:to_sym))
     end
 
-    def find_or_create_attachment(account, attachment_info)
+    def find_or_create_attachment(account, attachment_info) # rubocop:disable Metrics/MethodLength
       attachment_name = attachment_info.fetch('attachment_name')
       route = seed_attachment_file(account:, attachment_name:)
       attachment = account.attachments_dataset.first(attachment_name:)
@@ -87,7 +87,7 @@ module LockedCV
           route:
         }
       )
-    end
+    end # rubocop:enable Metrics/MethodLength
 
     def find_or_create_sensitive_data(account, attachment, sensitive_data_info)
       SensitiveData.first(attachment_id: attachment.id) ||

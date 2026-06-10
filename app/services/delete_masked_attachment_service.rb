@@ -6,7 +6,7 @@ module LockedCV
     class MaskedAttachmentNotFoundError < StandardError; end
     class NotAuthorizedError < StandardError; end
 
-    def self.call(current_account:, attachment_id:, masked_attachment_id:, auth_scope: AuthScope.new())
+    def self.call(current_account:, attachment_id:, masked_attachment_id:, auth_scope: AuthScope.new)
       attachment = Attachment.first(id: attachment_id.to_s)
       raise MaskedAttachmentNotFoundError unless attachment
       raise NotAuthorizedError unless AttachmentPolicy.new(current_account, attachment, auth_scope:).delete?
