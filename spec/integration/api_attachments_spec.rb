@@ -1190,6 +1190,26 @@ describe 'Attachment Endpoints' do
       _(attributes['masked_items_count']).must_equal 1
     end
 
+    it 'SECURITY: removes expired viewer permissions when listing shared masked attachments' do
+      attachment, masked_attachment = saved_masked_attachment_for
+      recipient = recipient_account
+      create_masked_attachment_share_link(attachment, masked_attachment)
+      token = json_body.dig('data', 'attributes', 'token')
+      post("/api/v1/masked_attachment_share_links/#{token}/redeem", {}.to_json, auth_req_header(recipient))
+      permission = LockedCV::MaskedAttachmentPermission.first(
+        masked_attachment_id: masked_attachment.id,
+        account_id: recipient.id,
+        role: 'viewer'
+      )
+      permission.update(expires_at: Time.now - 1)
+
+      get('/api/v1/shared_masked_attachments', {}, auth_header(recipient))
+
+      _(last_response.status).must_equal 200
+      _(json_body['data']).must_equal []
+      _(LockedCV::MaskedAttachmentPermission.where(id: permission.id).count).must_equal 0
+    end
+
     it 'HAPPY: lets redeemed recipients download shared masked PDFs' do
       attachment, masked_attachment = saved_masked_attachment_for
       recipient = recipient_account
