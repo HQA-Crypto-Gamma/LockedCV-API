@@ -22,8 +22,11 @@ module LockedCV
       raise CreateAttachmentService::AccountNotFoundError unless FindAccountService.call(account_id:)
 
       route = StoreAttachmentFile.call(uploaded_file:, account_id:)
-      create_attachment(route:)
+      attachment = create_attachment(route:)
+      create_sensitive_data_for(attachment)
+      attachment
     rescue StandardError
+      attachment&.delete
       StoreAttachmentFile.delete(route:) if route
       raise
     end
@@ -44,6 +47,26 @@ module LockedCV
           route:
         }
       )
+    end
+
+    def create_sensitive_data_for(attachment)
+      CreateSensitiveDataService.call(
+        account_id:,
+        attachment_id: attachment.id,
+        sensitive_data: account_sensitive_data
+      )
+    end
+
+    def account_sensitive_data
+      {
+        first_name: current_account.first_name,
+        last_name: current_account.last_name,
+        phone_number: current_account.phone_number,
+        birthday: current_account.birthday,
+        email: current_account.email,
+        address: current_account.address,
+        identification_numbers: current_account.identification_numbers
+      }.transform_values(&:to_s)
     end
 
     def resolved_display_filename

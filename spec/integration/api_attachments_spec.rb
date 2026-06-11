@@ -28,15 +28,9 @@ describe 'Attachment Endpoints' do
   end
 
   def upload_fake_resume_with_sensitive_data
+    apply_sensitive_data_to_account(@account, fake_resume_sensitive_data)
     post '/api/v1/attachments/upload', { file: fake_resume_upload }, auth_header(@account)
-    attachment_id = json_body.dig('data', 'data', 'attributes', 'id')
-    LockedCV::CreateSensitiveDataService.call(
-      account_id: @account.id,
-      attachment_id:,
-      sensitive_data: fake_resume_sensitive_data
-    )
-
-    attachment_id
+    json_body.dig('data', 'data', 'attributes', 'id')
   end
 
   def fake_resume_upload
@@ -58,6 +52,13 @@ describe 'Attachment Endpoints' do
       address: 'Manchester',
       identification_numbers: 'B987654321'
     }
+  end
+
+  def apply_sensitive_data_to_account(account, sensitive_data)
+    sensitive_data.each do |field, value|
+      account.public_send("#{field}=", value)
+    end
+    account.save_changes
   end
 
   def create_masked_attachment_with_selected_labels(labels)
@@ -124,7 +125,12 @@ describe 'Attachment Endpoints' do
 
   def viewer_masked_account_for(attachment_id)
     viewer = LockedCV::CreateAccountService.call(
-      account_data: DATA[:accounts].last.transform_keys(&:to_sym)
+      account_data: {
+        username: "viewer-#{attachment_id}",
+        email: "viewer-#{attachment_id}@example.com",
+        phone_number: nil,
+        password: 'viewer-secret'
+      }
     )
     LockedCV::AttachmentPermission.create(
       account_id: viewer.id,
@@ -168,6 +174,36 @@ describe 'Attachment Endpoints' do
       route = json_body.dig('data', 'data', 'attributes', 'route')
       _(route).must_match %r{\Aaccounts/#{@account.id}/resume_ada_[0-9a-f]{32}\.pdf\z}
       _(File.file?(storage_path_for(route))).must_equal true
+    ensure
+      pdf&.close!
+    end
+
+    it 'HAPPY: creates attachment sensitive data from the bearer-token account profile' do
+      apply_sensitive_data_to_account(
+        @account,
+        {
+          first_name: 'Ada',
+          last_name: 'Lovelace',
+          phone_number: '0912-000-001',
+          birthday: '1815-12-10',
+          email: 'ada@example.com',
+          address: 'London',
+          identification_numbers: 'A123456789'
+        }
+      )
+      pdf = Tempfile.new(['lockedcv-api-sensitive-upload', '.pdf'])
+      write_text_pdf(pdf.path, 'Ada Lovelace can be reached at ada@example.com')
+      upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'ada.pdf')
+
+      post '/api/v1/attachments/upload', { file: upload }, auth_header(@account)
+
+      _(last_response.status).must_equal 201
+      attachment_id = json_body.dig('data', 'data', 'attributes', 'id')
+      sensitive_data = LockedCV::FindSensitiveDataService.call(attachment_id:)
+      _(sensitive_data.first_name).must_equal 'Ada'
+      _(sensitive_data.last_name).must_equal 'Lovelace'
+      _(sensitive_data.email).must_equal 'ada@example.com'
+      _(sensitive_data.identification_numbers).must_equal 'A123456789'
     ensure
       pdf&.close!
     end
@@ -680,17 +716,13 @@ describe 'Attachment Endpoints' do
     end
 
     it 'HAPPY: masks text from an uploaded PDF through the storage resolver' do
+      apply_sensitive_data_to_account(@account, DATA[:sensitive_data].first.transform_keys(&:to_sym))
       pdf = Tempfile.new(['lockedcv-api-mask-upload', '.pdf'])
       write_text_pdf(pdf.path, 'Ada Lovelace email ada@example.com phone 0912-000-001')
       upload = Rack::Test::UploadedFile.new(pdf.path, 'application/pdf', true, original_filename: 'maskable.pdf')
 
       post '/api/v1/attachments/upload', { file: upload }, auth_header(@account)
       attachment_id = json_body.dig('data', 'data', 'attributes', 'id')
-      LockedCV::CreateSensitiveDataService.call(
-        account_id: @account.id,
-        attachment_id:,
-        sensitive_data: DATA[:sensitive_data].first.transform_keys(&:to_sym)
-      )
 
       get "/api/v1/attachments/#{attachment_id}/masked_text", {}, auth_header(@account)
 
@@ -712,6 +744,7 @@ describe 'Attachment Endpoints' do
 
   describe 'POST /api/v1/attachments/:attachment_id/masked_attachments' do
     it 'HAPPY: exports a visual-masked text-based PDF attachment record' do
+      apply_sensitive_data_to_account(@account, fake_resume_sensitive_data)
       upload = Rack::Test::UploadedFile.new(
         'spec/fixtures/files/fake_resume_alan.pdf',
         'application/pdf',
@@ -722,19 +755,6 @@ describe 'Attachment Endpoints' do
       post '/api/v1/attachments/upload', { file: upload }, auth_header(@account)
       attachment_id = json_body.dig('data', 'data', 'attributes', 'id')
       original_route = json_body.dig('data', 'data', 'attributes', 'route')
-      LockedCV::CreateSensitiveDataService.call(
-        account_id: @account.id,
-        attachment_id:,
-        sensitive_data: {
-          first_name: 'Alan',
-          last_name: 'Turing',
-          phone_number: '0912-000-002',
-          birthday: '1912-06-23',
-          email: 'alan@example.com',
-          address: 'Manchester',
-          identification_numbers: 'B987654321'
-        }
-      )
 
       python_bin = available_pdf_processor_python
       skip 'pdfplumber/reportlab Python dependencies are not available' unless python_bin
